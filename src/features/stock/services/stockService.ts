@@ -19,7 +19,7 @@ export async function fetchStock(): Promise<StockItem[]> {
     { data: products, error: productsError },
     { data: locations, error: locationsError },
   ] = await Promise.all([
-    supabase.from('stock_levels').select('*').order('created_at'),
+    supabase.from('stock_levels').select('*').order('updated_at'),
     supabase.from('products').select('id, name, unit, threshold'),
     supabase.from('locations').select('id, name'),
   ])
