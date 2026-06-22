@@ -6,8 +6,11 @@ describe('cn', () => {
     expect(cn('a', 'b')).toBe('a b')
   })
 
-  it('handles conditional classes', () => {
-    expect(cn('a', false && 'b', 'c')).toBe('a c')
+  it.each([
+    { includeB: false, expected: 'a c' },
+    { includeB: true, expected: 'a b c' },
+  ])('handles conditional classes (includeB=$includeB)', ({ includeB, expected }) => {
+    expect(cn('a', includeB && 'b', 'c')).toBe(expected)
   })
 
   it('resolves tailwind conflicts', () => {

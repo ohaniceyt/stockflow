@@ -83,16 +83,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Expected format: "argon2id$..." or "pbkdf2$salt$hash"
-    const [algo, ...rest] = user.pin_hash.split('$')
-    if (algo !== 'pbkdf2' || rest.length !== 2) {
+    const [algo, saltB64, expectedHashB64] = user.pin_hash.split('$')
+    if (algo !== 'pbkdf2' || !saltB64 || !expectedHashB64) {
       return new Response(
         JSON.stringify({ error: 'Invalid pin format' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const [saltB64, expectedHashB64] = rest
     const computedHash = await hashPin(pin, saltB64)
 
     if (!timingSafeEqual(computedHash, expectedHashB64)) {
@@ -102,32 +100,41 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Issue session token via Supabase Auth
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email: `${user.id}@stockflow.local`,
-      user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
-      email_confirm: true,
-    })
+    const authEmail = `${user.id}@stockflow.local`
 
-    if (authError || !authData.user) {
+    // Find existing auth user
+    const { data: listData } = await adminClient.auth.admin.listUsers()
+    let authUserId = listData?.users.find((u) => u.email === authEmail)?.id
+
+    // Create auth user if missing
+    if (!authUserId) {
+      const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+        email: authEmail,
+        password: crypto.randomUUID(),
+        user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
+        email_confirm: true,
+      })
+      if (createError || !createData.user) {
+        return new Response(
+          JSON.stringify({ error: 'Could not create auth user' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      authUserId = createData.user.id
+    }
+
+    // Sign in as the auth user to obtain a valid JWT
+    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.signInUser(
+      authUserId
+    )
+
+    if (sessionError || !sessionData) {
       return new Response(
         JSON.stringify({ error: 'Could not create session' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.signInUser(
-      authData.user.id
-    )
-
-    if (sessionError || !sessionData) {
-      return new Response(
-        JSON.stringify({ error: 'Could not sign in' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Update last login
     await adminClient.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
 
     return new Response(

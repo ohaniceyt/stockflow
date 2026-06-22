@@ -36,17 +36,15 @@ export default function ChangePinPage() {
       return
     }
 
-    if (step === 'confirm') {
-      if (pin !== newPin) {
-        setError('Les PIN ne correspondent pas')
-        return
-      }
-      try {
-        await changePin(currentPin, pin)
-        navigate('/', { replace: true })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Échec du changement')
-      }
+    if (pin !== newPin) {
+      setError('Les PIN ne correspondent pas')
+      return
+    }
+    try {
+      await changePin(currentPin, pin)
+      void navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Échec du changement')
     }
   }
 

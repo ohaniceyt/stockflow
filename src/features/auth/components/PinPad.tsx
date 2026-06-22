@@ -76,7 +76,7 @@ export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabl
               {digit}
             </button>
           ) : (
-            <div key={`empty-${index}`} />
+            <div key={`empty-${String(index)}`} />
           )
         )}
         <button
@@ -105,7 +105,7 @@ export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabl
         )}
         <button
           type="button"
-          disabled={disabled || pin.length < 4}
+          disabled={Boolean(disabled) || pin.length < 4}
           onClick={() => onSubmit(pin)}
           className="flex-1 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >

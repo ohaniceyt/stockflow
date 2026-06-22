@@ -1,4 +1,4 @@
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       organizations: {

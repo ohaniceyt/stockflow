@@ -55,11 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (userId: string, pin: string) => {
       setIsLoading(true)
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/login`, {
+        const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+        const response = await fetch(`${supabaseUrl}/functions/v1/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
           },
           body: JSON.stringify({ userId, pin }),
         })
@@ -106,18 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!session) throw new Error('Non authentifié')
       setIsLoading(true)
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/change-pin`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.accessToken}`,
-              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            },
-            body: JSON.stringify({ currentPin, newPin }),
-          }
-        )
+        const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+        const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+            apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+          },
+          body: JSON.stringify({ currentPin, newPin }),
+        })
 
         if (!response.ok) {
           const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
@@ -160,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) {

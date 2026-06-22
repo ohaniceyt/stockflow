@@ -4,41 +4,78 @@ import { useAuth } from '../context/AuthContext'
 import { PinPad } from '../components/PinPad'
 import type { User } from '@/types'
 
-// TODO: replace with actual user list query
-const MOCK_USERS: User[] = [
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    orgId: '00000000-0000-0000-0000-000000000000',
-    name: 'Alice Admin',
-    role: 'admin',
-    isActive: true,
-    lastLoginAt: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    orgId: '00000000-0000-0000-0000-000000000000',
-    name: 'Bob Opérateur',
-    role: 'operator',
-    isActive: true,
-    lastLoginAt: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
+
+async function fetchActiveUsers(): Promise<User[]> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/list-users`, {
+    method: 'GET',
+    headers: {
+      apikey: SUPABASE_KEY,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!res.ok) {
+    throw new Error('Could not load users')
+  }
+
+  const data = (await res.json()) as {
+    users?: {
+      id: string
+      name: string
+      role: string
+      org_id: string
+      is_active: boolean
+      last_login_at?: string | null
+      created_at?: string
+      updated_at?: string
+    }[]
+  }
+
+  return (data.users ?? []).map((u) => ({
+    id: u.id,
+    orgId: u.org_id,
+    name: u.name,
+    role: u.role as User['role'],
+    isActive: u.is_active,
+    lastLoginAt: u.last_login_at ?? null,
+    createdAt: u.created_at ?? new Date().toISOString(),
+    updatedAt: u.updated_at ?? new Date().toISOString(),
+  }))
+}
 
 export default function LoginPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [usersLoading, setUsersLoading] = useState(true)
+  const [usersError, setUsersError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { login, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true })
+      void navigate('/', { replace: true })
     }
   }, [isAuthenticated, navigate])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchActiveUsers()
+      .then((data) => {
+        if (!cancelled) setUsers(data)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setUsersError(err instanceof Error ? err.message : 'Erreur de chargement')
+      })
+      .finally(() => {
+        if (!cancelled) setUsersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handlePinSubmit = async (pin: string) => {
     if (!selectedUser) return
@@ -64,22 +101,30 @@ export default function LoginPage() {
         {!selectedUser ? (
           <div className="space-y-3">
             <p className="mb-4 text-center text-sm font-medium text-muted-foreground">Qui êtes-vous ?</p>
-            {MOCK_USERS.map((user) => (
-              <button
-                key={user.id}
-                type="button"
-                onClick={() => setSelectedUser(user)}
-                className="flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary hover:bg-accent"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold">
-                  {user.name.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold">{user.name}</p>
-                  <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
-                </div>
-              </button>
-            ))}
+            {usersLoading ? (
+              <p className="text-center text-sm text-muted-foreground">Chargement des profils…</p>
+            ) : usersError ? (
+              <p className="text-center text-sm text-destructive">{usersError}</p>
+            ) : users.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">Aucun utilisateur actif</p>
+            ) : (
+              users.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => setSelectedUser(user)}
+                  className="flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary hover:bg-accent"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold">{user.name}</p>
+                    <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         ) : (
           <div className="space-y-4">
