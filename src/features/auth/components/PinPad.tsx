@@ -56,9 +56,7 @@ export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabl
         ))}
       </div>
 
-      {error && (
-        <p className="mb-4 text-center text-sm font-medium text-destructive">{error}</p>
-      )}
+      {error && <p className="mb-4 text-center text-sm font-medium text-destructive">{error}</p>}
 
       <div className="grid grid-cols-3 gap-3">
         {digits.map((digit, index) =>

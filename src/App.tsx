@@ -33,15 +33,49 @@ function App() {
             }
           />
 
-          <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+          <Route
+            element={
+              <RequireAuth>
+                <AppLayout />
+              </RequireAuth>
+            }
+          >
             <Route path="/" element={<DashboardPage />} />
             <Route path="/stock" element={<StockPage />} />
             <Route path="/movements" element={<MovementsPage />} />
-            <Route path="/inventory" element={<RequireAuth roles={['super_admin', 'admin', 'operator']}><InventoryPage /></RequireAuth>} />
-            <Route path="/products" element={<RequireAuth roles={['super_admin', 'admin']}><ProductsPage /></RequireAuth>} />
-            <Route path="/team" element={<RequireAuth roles={['super_admin', 'admin']}><TeamPage /></RequireAuth>} />
+            <Route
+              path="/inventory"
+              element={
+                <RequireAuth roles={['super_admin', 'admin', 'operator']}>
+                  <InventoryPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <ProductsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <TeamPage />
+                </RequireAuth>
+              }
+            />
             <Route path="/recap" element={<RecapPage />} />
-            <Route path="/super-admin" element={<RequireAuth roles={['super_admin']}><SuperAdminPage /></RequireAuth>} />
+            <Route
+              path="/super-admin"
+              element={
+                <RequireAuth roles={['super_admin']}>
+                  <SuperAdminPage />
+                </RequireAuth>
+              }
+            />
           </Route>
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />

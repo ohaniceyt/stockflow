@@ -15,13 +15,38 @@ import {
 } from 'lucide-react'
 
 const navItems: { to: string; label: string; icon: React.ElementType; roles: UserRole[] }[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'operator', 'reader'] },
-  { to: '/stock', label: 'Stock', icon: Package, roles: ['super_admin', 'admin', 'operator', 'reader'] },
-  { to: '/movements', label: 'Mouvements', icon: ArrowLeftRight, roles: ['super_admin', 'admin', 'operator', 'reader'] },
-  { to: '/inventory', label: 'Inventaire', icon: ClipboardList, roles: ['super_admin', 'admin', 'operator'] },
+  {
+    to: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/stock',
+    label: 'Stock',
+    icon: Package,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/movements',
+    label: 'Mouvements',
+    icon: ArrowLeftRight,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/inventory',
+    label: 'Inventaire',
+    icon: ClipboardList,
+    roles: ['super_admin', 'admin', 'operator'],
+  },
   { to: '/products', label: 'Produits', icon: Warehouse, roles: ['super_admin', 'admin'] },
   { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
-  { to: '/recap', label: 'Récap', icon: FileText, roles: ['super_admin', 'admin', 'operator', 'reader'] },
+  {
+    to: '/recap',
+    label: 'Récap',
+    icon: FileText,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
   { to: '/super-admin', label: 'Super Admin', icon: Building2, roles: ['super_admin'] },
 ]
 

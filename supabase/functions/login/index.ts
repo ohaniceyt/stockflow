@@ -53,10 +53,10 @@ Deno.serve(async (req: Request) => {
 
     const { userId, pin }: LoginPayload = await req.json()
     if (!userId || !pin || pin.length < 4 || pin.length > 8) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -70,34 +70,34 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !user) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (!user.is_active) {
-      return new Response(
-        JSON.stringify({ error: 'Account disabled' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Account disabled' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const [algo, saltB64, expectedHashB64] = user.pin_hash.split('$')
     if (algo !== 'pbkdf2' || !saltB64 || !expectedHashB64) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid pin format' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Invalid pin format' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const computedHash = await hashPin(pin, saltB64)
 
     if (!timingSafeEqual(computedHash, expectedHashB64)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid PIN' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const authEmail = `${user.id}@stockflow.local`
@@ -115,10 +115,10 @@ Deno.serve(async (req: Request) => {
         email_confirm: true,
       })
       if (createError || !createData.user) {
-        return new Response(
-          JSON.stringify({ error: 'Could not create auth user' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: 'Could not create auth user' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
       }
       authUserId = createData.user.id
     }
@@ -148,7 +148,10 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    await adminClient.from('users').update({ last_login_at: new Date().toISOString() }).eq('id', user.id)
+    await adminClient
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', user.id)
 
     return new Response(
       JSON.stringify({
@@ -167,9 +170,9 @@ Deno.serve(async (req: Request) => {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })

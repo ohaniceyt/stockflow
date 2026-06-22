@@ -95,12 +95,16 @@ export default function LoginPage() {
             S
           </div>
           <h1 className="text-2xl font-bold">StockFlow vNext</h1>
-          <p className="text-sm text-muted-foreground">Sélectionnez votre profil puis saisissez votre PIN</p>
+          <p className="text-sm text-muted-foreground">
+            Sélectionnez votre profil puis saisissez votre PIN
+          </p>
         </div>
 
         {!selectedUser ? (
           <div className="space-y-3">
-            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">Qui êtes-vous ?</p>
+            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
+              Qui êtes-vous ?
+            </p>
             {usersLoading ? (
               <p className="text-center text-sm text-muted-foreground">Chargement des profils…</p>
             ) : usersError ? (

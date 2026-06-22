@@ -7,7 +7,10 @@ export default function UnauthorizedPage() {
       <p className="mb-6 text-lg text-muted-foreground">
         Vous n'avez pas l'autorisation d'accéder à cette page.
       </p>
-      <Link to="/" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90">
+      <Link
+        to="/"
+        className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+      >
         Retour au tableau de bord
       </Link>
     </div>

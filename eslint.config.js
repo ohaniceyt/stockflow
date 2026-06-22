@@ -8,7 +8,15 @@ import prettier from 'eslint-config-prettier'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'node_modules', 'playwright-report', 'test-results', '.npm-cache', 'supabase/functions', 'playwright.config.ts']),
+  globalIgnores([
+    'dist',
+    'node_modules',
+    'playwright-report',
+    'test-results',
+    '.npm-cache',
+    'supabase/functions',
+    'playwright.config.ts',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

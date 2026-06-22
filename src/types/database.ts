@@ -10,8 +10,12 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['organizations']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['organizations']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
         Update: Partial<Database['public']['Tables']['organizations']['Insert']>
+        Relationships: []
       }
       users: {
         Row: {
@@ -25,8 +29,12 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['users']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['users']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
         Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Relationships: []
       }
       products: {
         Row: {
@@ -45,8 +53,12 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['products']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['products']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
         Update: Partial<Database['public']['Tables']['products']['Insert']>
+        Relationships: []
       }
       locations: {
         Row: {
@@ -60,6 +72,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['locations']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['locations']['Insert']>
+        Relationships: []
       }
       stock_levels: {
         Row: {
@@ -71,6 +84,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['stock_levels']['Row'], 'id' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['stock_levels']['Insert']>
+        Relationships: []
       }
       movements: {
         Row: {
@@ -89,7 +103,24 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['movements']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['movements']['Insert']>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: {
+      record_movement: {
+        Args: {
+          p_product_id: string
+          p_location_id: string
+          p_target_location_id: string | null
+          p_type: 'IN' | 'OUT' | 'INVENTORY' | 'ADJUSTMENT' | 'TRANSFER'
+          p_quantity: number
+          p_reason: string | null
+        }
+        Returns: string
+      }
+    }
+    Enums: Record<string, string>
+    CompositeTypes: Record<string, never>
   }
 }
