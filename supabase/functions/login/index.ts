@@ -123,14 +123,27 @@ Deno.serve(async (req: Request) => {
       authUserId = createData.user.id
     }
 
-    // Sign in as the auth user to obtain a valid JWT
-    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.signInUser(
-      authUserId
-    )
+    // Create a magic link and verify it server-side to obtain a valid JWT
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: authEmail,
+    })
 
-    if (sessionError || !sessionData) {
+    if (linkError || !linkData.properties?.hashed_token) {
       return new Response(
-        JSON.stringify({ error: 'Could not create session' }),
+        JSON.stringify({ error: linkError?.message ?? 'Could not generate auth link' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: sessionData, error: sessionError } = await adminClient.auth.verifyOtp({
+      token_hash: linkData.properties.hashed_token,
+      type: 'magiclink',
+    })
+
+    if (sessionError || !sessionData.session) {
+      return new Response(
+        JSON.stringify({ error: sessionError?.message ?? 'Could not create session' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -139,9 +152,9 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        access_token: sessionData.access_token,
-        refresh_token: sessionData.refresh_token,
-        expires_in: sessionData.expires_in,
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        expires_in: sessionData.session.expires_in,
         user: {
           id: user.id,
           orgId: user.org_id,

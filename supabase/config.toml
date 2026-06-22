@@ -31,12 +31,10 @@ port = 54324
 
 [storage]
 enabled = true
-port = 54325
 file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-port = 54326
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["https://localhost:5173/**"]
 jwt_expiry = 3600
@@ -46,7 +44,6 @@ enable_manual_linking = false
 
 [edge_runtime]
 enabled = true
-port = 54327
 inspector_port = 8238
 
 [analytics]
