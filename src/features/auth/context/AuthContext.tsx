@@ -197,16 +197,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(PENDING_EMAIL_KEY, data.email)
         localStorage.setItem(PENDING_USER_KEY, JSON.stringify(pendingUser))
 
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email: data.email,
-          options: {
-            emailRedirectTo: window.location.origin,
+        // Send magic link via Resend-backed Edge Function instead of Supabase's default OTP email.
+        const magicLinkResponse = await fetch(`${supabaseUrl}/functions/v1/send-magic-link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
           },
+          body: JSON.stringify({
+            email: data.email,
+            redirectTo: window.location.origin,
+          }),
         })
 
-        if (otpError) {
+        if (!magicLinkResponse.ok) {
+          const magicLinkData = (await magicLinkResponse.json().catch(() => ({}))) as {
+            error?: { message: string }
+          }
           clearPending()
-          throw new Error(otpError.message)
+          throw new Error(magicLinkData.error?.message ?? "Échec de l'envoi du lien magique")
         }
 
         return {

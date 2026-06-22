@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { sendEmail } from '../_shared/resend.ts'
 
 interface CreateUserPayload {
   name: string
@@ -84,7 +85,6 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           error: 'Forbidden',
           debug: operatorError?.message ?? 'Operator not found or insufficient role',
-          authId: authUser.id,
         }),
         {
           status: 403,
@@ -116,7 +116,9 @@ Deno.serve(async (req: Request) => {
       await adminClient.auth.admin.createUser({
         email,
         password: crypto.randomUUID(),
-        email_confirm: false,
+        // We manage email verification ourselves (welcome + magic-link emails via Resend),
+        // so confirm the email immediately to avoid Supabase sending its own confirmation email.
+        email_confirm: true,
         user_metadata: { org_id: operator.org_id, role, name },
       })
 
@@ -148,11 +150,31 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    // Send welcome email with temporary PIN via Resend.
+    // We do not block account creation if the email fails; we just log and surface it.
+    let emailSent = false
+    try {
+      const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow-ruby.vercel.app'
+      const loginUrl = `${appUrl}/login`
+      await sendEmail({
+        to: email,
+        subject: 'Bienvenue sur StockFlow — vos identifiants temporaires',
+        html: buildWelcomeEmailHtml(name, tempPin, loginUrl),
+        text: `Bonjour ${name},\n\nVotre compte StockFlow a été créé.\n\nVotre PIN temporaire est : ${tempPin}\n\nPour vous connecter : ${loginUrl}\n\nVous devrez définir un PIN définitif lors de votre première connexion.\n\nStockFlow vNext`,
+      })
+      emailSent = true
+    } catch (emailErr) {
+      console.error('Failed to send welcome email:', emailErr)
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         tempPin,
-        message: 'Utilisateur créé. Communiquez le PIN temporaire.',
+        emailSent,
+        message: emailSent
+          ? 'Utilisateur créé. Un email avec le PIN temporaire a été envoyé.'
+          : 'Utilisateur créé. Communiquez le PIN temporaire (envoi email échoué).',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -164,3 +186,54 @@ Deno.serve(async (req: Request) => {
     })
   }
 })
+
+function buildWelcomeEmailHtml(name: string, tempPin: string, loginUrl: string): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bienvenue sur StockFlow</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+          .container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+          .logo { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+          .title { font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 16px; }
+          .text { color: #6b7280; line-height: 1.6; margin-bottom: 24px; }
+          .pin-box { background: #f3f4f6; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 24px; }
+          .pin { font-size: 28px; font-weight: 700; letter-spacing: 8px; color: #111827; }
+          .button { display: inline-block; padding: 14px 24px; background: #111827; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 500; }
+          .footer { margin-top: 32px; font-size: 12px; color: #9ca3af; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="logo">StockFlow</div>
+          <div class="title">Bienvenue, ${escapeHtml(name)} !</div>
+          <p class="text">
+            Votre compte a été créé. Utilisez le PIN temporaire ci-dessous pour vous connecter. Vous devrez le changer lors de votre première connexion.
+          </p>
+          <div class="pin-box">
+            <div class="pin">${escapeHtml(tempPin)}</div>
+          </div>
+          <p>
+            <a class="button" href="${escapeHtml(loginUrl)}" target="_blank">Se connecter</a>
+          </p>
+          <p class="footer">
+            StockFlow vNext — Ne partagez ce PIN avec personne.
+          </p>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
