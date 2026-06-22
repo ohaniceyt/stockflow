@@ -105,6 +105,40 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['movements']['Insert']>
         Relationships: []
       }
+      inventory_sessions: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          name: string
+          status: 'pending' | 'completed' | 'cancelled'
+          started_at: string
+          completed_at: string | null
+          operator_id: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['inventory_sessions']['Row'],
+          'id' | 'started_at' | 'completed_at'
+        >
+        Update: Partial<Database['public']['Tables']['inventory_sessions']['Insert']>
+        Relationships: []
+      }
+      inventory_counts: {
+        Row: {
+          id: string
+          session_id: string
+          product_id: string
+          location_id: string
+          theoretical_quantity: number
+          counted_quantity: number
+          difference: number
+          is_validated: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['inventory_counts']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['inventory_counts']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -118,6 +152,10 @@ export interface Database {
           p_reason: string | null
         }
         Returns: string
+      }
+      apply_inventory_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
       }
     }
     Enums: Record<string, string>

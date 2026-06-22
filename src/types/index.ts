@@ -72,6 +72,29 @@ export interface Movement {
   createdAt: string
 }
 
+export interface InventorySession {
+  id: string
+  orgId: string
+  locationId: string
+  name: string
+  status: 'pending' | 'completed' | 'cancelled'
+  startedAt: string
+  completedAt: string | null
+  operatorId: string
+}
+
+export interface InventoryCount {
+  id: string
+  sessionId: string
+  productId: string
+  locationId: string
+  theoreticalQuantity: number
+  countedQuantity: number
+  difference: number
+  isValidated: boolean
+  createdAt: string
+}
+
 export interface PendingOperation {
   id: string
   type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE'
