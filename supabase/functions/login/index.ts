@@ -126,66 +126,77 @@ Deno.serve(async (req: Request) => {
     // Dev-only bypass for demo accounts when Supabase email rate limits block OTP.
     // Controlled by the DEMO_BYPASS environment variable; never enable in production.
     const demoBypass = Deno.env.get('DEMO_BYPASS') === 'true'
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     const isDemoAccount =
       demoBypass &&
-      (user.id === '11111111-1111-1111-1111-111111111111' ||
-        user.id === '22222222-2222-2222-2222-222222222222')
+      anonKey &&
+      (user.id === '584a7634-fbed-41ad-a947-b104d013ee96' ||
+        user.id === '0c14cf03-5341-4b95-bb9e-eb0fbcd16836')
 
     if (isDemoAccount) {
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-      if (anonKey) {
-        const anonClient = createClient(supabaseUrl, anonKey, {
-          auth: { autoRefreshToken: false, persistSession: false },
-        })
+      const anonClient = createClient(supabaseUrl, anonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
 
-        const demoPassword = `demo-${user.id.slice(0, 8)}`
+      const demoPassword = `demo-${user.id.slice(0, 8)}`
 
-        // Ensure the auth user exists and has a known password
-        await adminClient.auth.admin
-          .createUser({
-            id: user.id,
-            email: user.email,
-            password: demoPassword,
-            email_confirm: true,
-            user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
-          })
-          .catch(() => {
-            // User may already exist; update password to keep it deterministic.
-            return adminClient.auth.admin.updateUserById(user.id, { password: demoPassword })
-          })
+      // Ensure the auth user exists and has a known password
+      const { error: createError } = await adminClient.auth.admin.createUser({
+        id: user.id,
+        email: user.email,
+        password: demoPassword,
+        email_confirm: true,
+        user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
+      })
 
-        const { data: signInData, error: signInError } = await anonClient.auth.signInWithPassword({
-          email: user.email,
+      if (createError) {
+        const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
           password: demoPassword,
         })
-
-        if (!signInError && signInData.session) {
+        if (updateError) {
           return new Response(
-            JSON.stringify({
-              email: user.email,
-              forcePinChange: user.force_pin_change,
-              onboardingCompleted,
-              session: {
-                access_token: signInData.session.access_token,
-                refresh_token: signInData.session.refresh_token,
-                expires_in: signInData.session.expires_in,
-                expires_at: signInData.session.expires_at,
-              },
-              user: {
-                id: user.id,
-                orgId: user.org_id,
-                name: user.name,
-                email: user.email,
-                emailVerified: true,
-                role: user.role,
-                forcePinChange: user.force_pin_change,
-                onboardingCompleted,
-              },
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: `Bypass auth setup failed: ${updateError.message}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
       }
+
+      const { data: signInData, error: signInError } = await anonClient.auth.signInWithPassword({
+        email: user.email,
+        password: demoPassword,
+      })
+
+      if (signInError || !signInData.session) {
+        return new Response(
+          JSON.stringify({ error: `Bypass sign-in failed: ${signInError?.message ?? 'no session'}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          email: user.email,
+          forcePinChange: user.force_pin_change,
+          onboardingCompleted,
+          session: {
+            access_token: signInData.session.access_token,
+            refresh_token: signInData.session.refresh_token,
+            expires_in: signInData.session.expires_in,
+            expires_at: signInData.session.expires_at,
+          },
+          user: {
+            id: user.id,
+            orgId: user.org_id,
+            name: user.name,
+            email: user.email,
+            emailVerified: true,
+            role: user.role,
+            forcePinChange: user.force_pin_change,
+            onboardingCompleted,
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     return new Response(

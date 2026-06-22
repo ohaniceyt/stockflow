@@ -27,7 +27,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO users (id, org_id, name, email, role, pin_hash, is_active, force_pin_change)
 VALUES
   (
-    '11111111-1111-1111-1111-111111111111',
+    '584a7634-fbed-41ad-a947-b104d013ee96',
     '00000000-0000-0000-0000-000000000000',
     'Alice Admin',
     'earful-wannabe-wok@duck.com',
@@ -37,7 +37,7 @@ VALUES
     FALSE
   ),
   (
-    '22222222-2222-2222-2222-222222222222',
+    '0c14cf03-5341-4b95-bb9e-eb0fbcd16836',
     '00000000-0000-0000-0000-000000000000',
     'Bob Opérateur',
     'lagged-poach-decoy@duck.com',
