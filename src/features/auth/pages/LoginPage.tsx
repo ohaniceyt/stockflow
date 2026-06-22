@@ -18,6 +18,7 @@ async function fetchActiveUsers(): Promise<User[]> {
     method: 'GET',
     headers: {
       apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
     },
   })
