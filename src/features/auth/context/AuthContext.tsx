@@ -145,6 +145,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email?: string
           forcePinChange?: boolean
           onboardingCompleted?: boolean
+          session?: {
+            access_token: string
+            refresh_token: string
+            expires_in: number
+            expires_at?: number
+          }
           user?: User & { forcePinChange?: boolean; onboardingCompleted?: boolean }
           error?: { message: string }
         }
@@ -157,6 +163,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...data.user,
           forcePinChange: data.forcePinChange ?? false,
           onboardingCompleted: data.onboardingCompleted ?? true,
+        }
+
+        // Dev-only bypass: the Edge Function returned a session directly.
+        if (data.session) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          })
+
+          if (setSessionError) {
+            throw new Error(setSessionError.message)
+          }
+
+          const next: AuthSession = {
+            user: pendingUser,
+            accessToken: data.session.access_token,
+            refreshToken: data.session.refresh_token,
+            expiresAt: data.session.expires_at ?? Date.now() / 1000 + data.session.expires_in,
+            forcePinChange: pendingUser.forcePinChange,
+            onboardingCompleted: pendingUser.onboardingCompleted,
+          }
+          persistSession(next)
+
+          return {
+            email: data.email,
+            forcePinChange: data.forcePinChange ?? false,
+            onboardingCompleted: data.onboardingCompleted ?? true,
+          }
         }
 
         localStorage.setItem(PENDING_EMAIL_KEY, data.email)
@@ -183,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
       }
     },
-    [clearPending]
+    [clearPending, persistSession]
   )
 
   const verifyMagicLinkSession = useCallback(async () => {
