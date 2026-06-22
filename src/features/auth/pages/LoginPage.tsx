@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { PinPad } from '../components/PinPad'
+import {
+  formatLockoutDuration,
+  getPinLockStatus,
+  recordPinFailure,
+  resetPinLockout,
+} from '../utils/pinLock'
 import type { User } from '@/types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
@@ -57,6 +63,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  const [lockTick, setLockTick] = useState(0)
   const { login, isAuthenticated, isLoading, verifyMagicLinkSession } = useAuth()
   const navigate = useNavigate()
 
@@ -83,14 +90,32 @@ export default function LoginPage() {
     }
   }, [])
 
+  const pinLock = selectedUser ? getPinLockStatus(selectedUser.id) : null
+
+  useEffect(() => {
+    if (!selectedUser || !pinLock?.locked) return
+    const timer = setInterval(() => setLockTick((t) => t + 1), 1000)
+    return () => clearInterval(timer)
+  }, [selectedUser, pinLock?.locked])
+
   const handlePinSubmit = async (pin: string) => {
     if (!selectedUser) return
     setError(null)
+
+    const lock = getPinLockStatus(selectedUser.id)
+    if (lock.locked) {
+      setLockTick((t) => t + 1)
+      return
+    }
+
     try {
       const result = await login(selectedUser.id, pin)
+      resetPinLockout(selectedUser.id)
       setPendingEmail(result.email)
       setMagicLinkSent(true)
     } catch (err) {
+      recordPinFailure(selectedUser.id)
+      setLockTick((t) => t + 1)
       setError(err instanceof Error ? err.message : 'PIN incorrect')
     }
   }
@@ -191,23 +216,33 @@ export default function LoginPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4" key={lockTick}>
             <button
               type="button"
               onClick={() => {
                 setSelectedUser(null)
                 setError(null)
+                setLockTick((t) => t + 1)
               }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               ← Changer de profil
             </button>
+            {pinLock?.locked && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center text-sm text-destructive">
+                Trop de tentatives échouées. Réessayez dans{' '}
+                <strong>{formatLockoutDuration(pinLock.remainingMs)}</strong>.
+              </div>
+            )}
             <PinPad
               title={`Bonjour, ${selectedUser.name.split(' ')[0]}`}
               onSubmit={handlePinSubmit}
-              onCancel={() => setSelectedUser(null)}
+              onCancel={() => {
+                setSelectedUser(null)
+                setLockTick((t) => t + 1)
+              }}
               error={error}
-              disabled={isLoading}
+              disabled={isLoading || (pinLock?.locked ?? false)}
             />
           </div>
         )}
