@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { decodeBase64, encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
 interface ChangePinPayload {
   currentPin: string
@@ -49,39 +50,26 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const authHeader = req.headers.get('authorization')
-    const apiKey = req.headers.get('apikey') ?? serviceRoleKey
-
-    if (!authHeader) {
+    const token = getBearerToken(req)
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const client = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        global: {
-          headers: {
-            Authorization: authHeader,
-            apikey: apiKey,
-          },
-        },
-      },
+    const claims = parseJwt(token)
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const {
-      data: { user: authUser },
-      error: userError,
-    } = await client.auth.getUser()
-    if (userError || !authUser?.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
 
     const { currentPin, newPin }: ChangePinPayload = await req.json()
     if (!newPin || newPin.length < 4 || newPin.length > 8 || !/^\d+$/.test(newPin)) {
@@ -98,10 +86,10 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: user, error: fetchError } = await client
+    const { data: user, error: fetchError } = await adminClient
       .from('users')
       .select('id, pin_hash, is_active')
-      .eq('id', authUser.id)
+      .eq('id', claims.sub)
       .single()
 
     if (fetchError || !user) {
@@ -139,14 +127,14 @@ Deno.serve(async (req: Request) => {
     const newSalt = crypto.getRandomValues(new Uint8Array(16))
     const newHash = `pbkdf2$${encodeBase64(newSalt)}$${await hashPin(newPin, newSalt)}`
 
-    const { error: updateError } = await client
+    const { error: updateError } = await adminClient
       .from('users')
       .update({
         pin_hash: newHash,
         force_pin_change: false,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', authUser.id)
+      .eq('id', claims.sub)
 
     if (updateError) {
       return new Response(JSON.stringify({ error: updateError.message }), {

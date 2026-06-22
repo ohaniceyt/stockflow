@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,35 +21,22 @@ Deno.serve(async (req: Request) => {
     // Public login directory: the login page must show available profiles before any user
     // is authenticated. We therefore accept requests that carry only the public anon key.
     // TODO: redesign login flow so profiles are not exposed publicly (e.g. enter email first).
-    const authHeader = req.headers.get('authorization')
-    const apiKey = req.headers.get('apikey') ?? serviceRoleKey
+    const token = getBearerToken(req)
 
-    const client = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        global: {
-          headers: {
-            ...(authHeader ? { Authorization: authHeader } : {}),
-            apikey: apiKey,
-          },
-        },
-      },
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
     let orgId: string | null = null
     let isSuperAdmin = false
 
-    if (authHeader) {
-      const {
-        data: { user: authUser },
-        error: userError,
-      } = await client.auth.getUser()
-      if (!userError && authUser?.id) {
-        const { data: operator } = await client
+    if (token) {
+      const claims = parseJwt(token)
+      if (claims?.sub) {
+        const { data: operator } = await adminClient
           .from('users')
           .select('role, org_id')
-          .eq('id', authUser.id)
+          .eq('id', claims.sub)
           .single()
         if (operator) {
           orgId = operator.org_id
@@ -57,7 +45,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let query = client
+    let query = adminClient
       .from('users')
       .select('id, name, email, email_verified, role, org_id, is_active')
       .eq('is_active', true)

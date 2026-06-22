@@ -20,6 +20,8 @@ export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabl
       setPin(next)
       if (next.length >= 4) {
         onSubmit(next)
+        // Reset after auto-submit so multi-step flows (e.g. change PIN) start fresh.
+        setPin('')
       }
     }
   }

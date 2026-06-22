@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
 interface OnboardingPayload {
   orgName: string
@@ -24,42 +25,31 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
+    const token = getBearerToken(req)
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const client = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        global: {
-          headers: {
-            Authorization: authHeader,
-            apikey: serviceRoleKey,
-          },
-        },
-      },
+    const claims = parseJwt(token)
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const {
-      data: { user: authUser },
-      error: userError,
-    } = await client.auth.getUser()
-    if (userError || !authUser?.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
 
-    const { data: user, error: userError2 } = await client
+    const { data: user, error: userError2 } = await adminClient
       .from('users')
       .select('id, role, org_id')
-      .eq('id', authUser.id)
+      .eq('id', claims.sub)
       .single()
 
     if (userError2 || !user || !['super_admin', 'admin'].includes(user.role)) {
@@ -77,7 +67,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { error: updateOrgError } = await client
+    const { error: updateOrgError } = await adminClient
       .from('organizations')
       .update({
         name: orgName,
@@ -94,7 +84,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { error: locationError } = await client.from('locations').insert({
+    const { error: locationError } = await adminClient.from('locations').insert({
       org_id: user.org_id,
       name: defaultLocationName,
       description: 'Emplacement par défaut créé lors de l’onboarding',

@@ -8,10 +8,10 @@ import {
   recordPinFailure,
   resetPinLockout,
 } from '../utils/pinLock'
+import { supabaseKey as SUPABASE_KEY } from '@/services/supabase'
 import type { User } from '@/types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
 
 async function fetchActiveUsers(): Promise<User[]> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/list-users`, {

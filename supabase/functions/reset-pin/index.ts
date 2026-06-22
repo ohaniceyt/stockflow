@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
 interface ResetPinPayload {
   userId: string
@@ -41,44 +42,31 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
+    const token = getBearerToken(req)
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const client = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        global: {
-          headers: {
-            Authorization: authHeader,
-            apikey: serviceRoleKey,
-          },
-        },
-      },
+    const claims = parseJwt(token)
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const {
-      data: { user: authUser },
-      error: userError,
-    } = await client.auth.getUser()
-    if (userError || !authUser?.email) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
 
-    const operatorId = authUser.id
-
-    const { data: operator, error: operatorError } = await client
+    const { data: operator, error: operatorError } = await adminClient
       .from('users')
       .select('role, org_id')
-      .eq('id', operatorId)
+      .eq('id', claims.sub)
       .single()
 
     if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
@@ -96,7 +84,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: targetUser, error: targetError } = await client
+    const { data: targetUser, error: targetError } = await adminClient
       .from('users')
       .select('id, org_id, role')
       .eq('id', userId)
@@ -119,7 +107,7 @@ Deno.serve(async (req: Request) => {
     const salt = crypto.getRandomValues(new Uint8Array(16))
     const newHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(newPin, salt)}`
 
-    const { error: updateError } = await client
+    const { error: updateError } = await adminClient
       .from('users')
       .update({
         pin_hash: newHash,

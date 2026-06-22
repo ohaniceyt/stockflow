@@ -7,7 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from 'react'
-import { supabase } from '@/services/supabase'
+import { supabase, supabaseKey } from '@/services/supabase'
 import type { User, UserRole } from '@/types'
 
 interface AuthSession {
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+            apikey: supabaseKey,
           },
           body: JSON.stringify({ userId, pin }),
         })
@@ -265,7 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
-            apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+            apikey: supabaseKey,
           },
           body: JSON.stringify({ currentPin, newPin }),
         })
@@ -298,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
-          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+          apikey: supabaseKey,
         },
         body: JSON.stringify(input),
       })

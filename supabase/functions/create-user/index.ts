@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
 interface CreateUserPayload {
   name: string
@@ -50,49 +51,46 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
+    const token = getBearerToken(req)
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const client = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        global: {
-          headers: {
-            Authorization: authHeader,
-            apikey: serviceRoleKey,
-          },
-        },
-      },
+    const claims = parseJwt(token)
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const {
-      data: { user: authUser },
-      error: userError,
-    } = await client.auth.getUser()
-    if (userError || !authUser?.email) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const operatorId = claims.sub
 
-    const { data: operator, error: operatorError } = await client
+    const { data: operator, error: operatorError } = await adminClient
       .from('users')
       .select('role, org_id')
-      .eq('id', authUser.id)
+      .eq('id', operatorId)
       .single()
 
     if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({
+          error: 'Forbidden',
+          debug: operatorError?.message ?? 'Operator not found or insufficient role',
+          authId: authUser.id,
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     const { name, email, role }: CreateUserPayload = await req.json()
@@ -114,7 +112,7 @@ Deno.serve(async (req: Request) => {
     const salt = crypto.getRandomValues(new Uint8Array(16))
     const pinHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(tempPin, salt)}`
 
-    const { data: createAuthData, error: createAuthError } = await client.auth.admin.createUser({
+    const { data: createAuthData, error: createAuthError } = await adminClient.auth.admin.createUser({
       email,
       password: crypto.randomUUID(),
       email_confirm: false,
@@ -128,7 +126,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { error: insertError } = await client.from('users').insert({
+    const { error: insertError } = await adminClient.from('users').insert({
       id: createAuthData.user.id,
       org_id: operator.org_id,
       name,
@@ -142,7 +140,7 @@ Deno.serve(async (req: Request) => {
 
     if (insertError) {
       // Best-effort cleanup of auth user
-      await client.auth.admin.deleteUser(createAuthData.user.id)
+      await adminClient.auth.admin.deleteUser(createAuthData.user.id)
       return new Response(JSON.stringify({ error: insertError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

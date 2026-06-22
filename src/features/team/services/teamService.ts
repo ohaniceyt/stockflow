@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase'
+import { supabase, supabaseKey } from '@/services/supabase'
 import type { User } from '@/types'
 import type { Database } from '@/types/database'
 
@@ -54,7 +54,7 @@ export async function resetUserPin(userId: string, newPin: string): Promise<void
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
-      apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+      apikey: supabaseKey,
     },
     body: JSON.stringify({ userId, newPin }),
   })
@@ -82,7 +82,7 @@ export async function createUser(input: {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
-      apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+      apikey: supabaseKey,
     },
     body: JSON.stringify(input),
   })
