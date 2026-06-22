@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
+import { useNetworkStatus } from '@/features/offline/hooks/useSync'
+import { queueOperation } from '@/features/offline/services/queueService'
 import {
   applyInventorySession,
   createInventorySession,
@@ -76,9 +78,15 @@ export function useApplyInventorySession() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
   const orgId = session?.user.orgId
+  const online = useNetworkStatus()
 
   return useMutation({
-    mutationFn: applyInventorySession,
+    mutationFn: (sessionId: string) => {
+      if (!online) {
+        return queueOperation({ type: 'INVENTORY', payload: { sessionId } }).then(() => undefined)
+      }
+      return applyInventorySession(sessionId)
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INVENTORY_QUERY_KEY, orgId] })
       void queryClient.invalidateQueries({ queryKey: ['stock'] })

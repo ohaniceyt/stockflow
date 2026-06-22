@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types'
 import {
@@ -109,6 +110,7 @@ export function AppLayout() {
         </header>
         <div className="p-6">
           <Outlet />
+          <OfflineStatus />
         </div>
       </main>
     </div>
