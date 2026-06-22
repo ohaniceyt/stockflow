@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const ChangePinPage = lazy(() => import('@/features/auth/pages/ChangePinPage'))
+const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage'))
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
 const StockPage = lazy(() => import('@/features/stock/pages/StockPage'))
 const MovementsPage = lazy(() => import('@/features/movements/pages/MovementsPage'))
@@ -29,6 +30,14 @@ function App() {
             element={
               <RequireAuth>
                 <ChangePinPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <RequireAuth roles={['super_admin', 'admin']}>
+                <OnboardingPage />
               </RequireAuth>
             }
           />

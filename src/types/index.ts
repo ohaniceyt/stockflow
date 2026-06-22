@@ -5,6 +5,8 @@ export interface Organization {
   name: string
   currency: string
   timezone: string
+  isActive: boolean
+  onboardingCompleted: boolean
   createdAt: string
   updatedAt: string
 }

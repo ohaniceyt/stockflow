@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  type ReactNode,
+} from 'react'
 import { supabase } from '@/services/supabase'
 import type { User, UserRole } from '@/types'
 
@@ -8,17 +16,27 @@ interface AuthSession {
   refreshToken: string
   expiresAt: number
   forcePinChange: boolean
+  onboardingCompleted: boolean
 }
 
 interface AuthContextValue {
   session: AuthSession | null
   isAuthenticated: boolean
-  login: (userId: string, pin: string) => Promise<{ email: string; forcePinChange: boolean }>
+  login: (
+    userId: string,
+    pin: string
+  ) => Promise<{ email: string; forcePinChange: boolean; onboardingCompleted: boolean }>
   verifyMagicLinkSession: () => Promise<void>
   changePin: (currentPin: string, newPin: string) => Promise<void>
   logout: () => void
   hasRole: (roles: UserRole[]) => boolean
   isLoading: boolean
+  completeOnboarding: (updates: {
+    orgName: string
+    currency: string
+    timezone: string
+    defaultLocationName: string
+  }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -42,11 +60,13 @@ function loadSession(): AuthSession | null {
   }
 }
 
-function loadPendingUser(): (User & { forcePinChange: boolean }) | null {
+function loadPendingUser():
+  | (User & { forcePinChange: boolean; onboardingCompleted: boolean })
+  | null {
   try {
     const raw = localStorage.getItem(PENDING_USER_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as User & { forcePinChange: boolean }
+    return JSON.parse(raw) as User & { forcePinChange: boolean; onboardingCompleted: boolean }
   } catch {
     return null
   }
@@ -92,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshToken: authSession.refresh_token,
           expiresAt: Date.now() / 1000 + authSession.expires_in,
           forcePinChange: pendingUser.forcePinChange,
+          onboardingCompleted: pendingUser.onboardingCompleted,
         }
         persistSession(next)
         clearPending()
@@ -104,7 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearPending, persistSession])
 
   const login = useCallback(
-    async (userId: string, pin: string): Promise<{ email: string; forcePinChange: boolean }> => {
+    async (
+      userId: string,
+      pin: string
+    ): Promise<{ email: string; forcePinChange: boolean; onboardingCompleted: boolean }> => {
       setIsLoading(true)
       try {
         const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
@@ -120,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = (await response.json()) as {
           email?: string
           forcePinChange?: boolean
-          user?: User & { forcePinChange?: boolean }
+          onboardingCompleted?: boolean
+          user?: User & { forcePinChange?: boolean; onboardingCompleted?: boolean }
           error?: { message: string }
         }
 
@@ -128,9 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.error?.message ?? 'Échec de la connexion')
         }
 
-        const pendingUser: User & { forcePinChange: boolean } = {
+        const pendingUser: User & { forcePinChange: boolean; onboardingCompleted: boolean } = {
           ...data.user,
           forcePinChange: data.forcePinChange ?? false,
+          onboardingCompleted: data.onboardingCompleted ?? true,
         }
 
         localStorage.setItem(PENDING_EMAIL_KEY, data.email)
@@ -148,7 +174,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(otpError.message)
         }
 
-        return { email: data.email, forcePinChange: data.forcePinChange ?? false }
+        return {
+          email: data.email,
+          forcePinChange: data.forcePinChange ?? false,
+          onboardingCompleted: data.onboardingCompleted ?? true,
+        }
       } finally {
         setIsLoading(false)
       }
@@ -181,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: data.session.refresh_token,
         expiresAt: Date.now() / 1000 + data.session.expires_in,
         forcePinChange: pendingUser.forcePinChange,
+        onboardingCompleted: pendingUser.onboardingCompleted,
       }
       persistSession(next)
       clearPending()
@@ -218,6 +249,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [session, persistSession]
   )
 
+  const completeOnboarding = useCallback(
+    async (input: {
+      orgName: string
+      currency: string
+      timezone: string
+      defaultLocationName: string
+    }) => {
+      if (!session) throw new Error('Non authentifié')
+
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/complete-onboarding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+          apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+        },
+        body: JSON.stringify(input),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
+        throw new Error(data.error?.message ?? 'Échec de la finalisation')
+      }
+
+      persistSession({ ...session, onboardingCompleted: true })
+    },
+    [session, persistSession]
+  )
+
   const logout = useCallback(() => {
     void supabase.auth.signOut()
     persistSession(null)
@@ -242,8 +303,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       hasRole,
       isLoading,
+      completeOnboarding,
     }),
-    [session, login, verifyMagicLinkSession, changePin, logout, hasRole, isLoading]
+    [
+      session,
+      login,
+      verifyMagicLinkSession,
+      changePin,
+      logout,
+      hasRole,
+      isLoading,
+      completeOnboarding,
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

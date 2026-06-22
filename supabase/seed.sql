@@ -1,11 +1,12 @@
 -- Seed data for local development and initial Supabase setup
 
-INSERT INTO organizations (id, name, currency, timezone)
+INSERT INTO organizations (id, name, currency, timezone, onboarding_completed)
 VALUES (
   '00000000-0000-0000-0000-000000000000',
   'StockFlow Demo',
   'XOF',
-  'Africa/Abidjan'
+  'Africa/Abidjan',
+  TRUE
 )
 ON CONFLICT (id) DO NOTHING;
 

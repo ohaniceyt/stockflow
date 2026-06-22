@@ -65,13 +65,28 @@ Deno.serve(async (req: Request) => {
 
     const { data: user, error } = await adminClient
       .from('users')
-      .select('id, org_id, name, email, email_verified, role, pin_hash, is_active, force_pin_change')
+      .select(
+        'id, org_id, name, email, email_verified, role, pin_hash, is_active, force_pin_change'
+      )
       .eq('id', userId)
+      .single()
+
+    const { data: org, error: orgError } = await adminClient
+      .from('organizations')
+      .select('onboarding_completed')
+      .eq('id', user?.org_id ?? '')
       .single()
 
     if (error || !user) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (orgError) {
+      return new Response(JSON.stringify({ error: orgError.message }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -105,10 +120,14 @@ Deno.serve(async (req: Request) => {
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', user.id)
 
+    const onboardingCompleted =
+      ['super_admin', 'admin'].includes(user.role) && org?.onboarding_completed === true
+
     return new Response(
       JSON.stringify({
         email: user.email,
         forcePinChange: user.force_pin_change,
+        onboardingCompleted,
         user: {
           id: user.id,
           orgId: user.org_id,
@@ -117,6 +136,7 @@ Deno.serve(async (req: Request) => {
           emailVerified: user.email_verified,
           role: user.role,
           forcePinChange: user.force_pin_change,
+          onboardingCompleted,
         },
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

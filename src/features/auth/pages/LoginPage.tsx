@@ -119,7 +119,9 @@ export default function LoginPage() {
             S
           </div>
           <h1 className="text-2xl font-bold">StockFlow vNext</h1>
-          <p className="text-sm text-muted-foreground">Sélectionnez votre profil puis saisissez votre PIN</p>
+          <p className="text-sm text-muted-foreground">
+            Sélectionnez votre profil puis saisissez votre PIN
+          </p>
         </div>
 
         {magicLinkSent ? (
@@ -128,7 +130,10 @@ export default function LoginPage() {
               <h3 className="mb-2 text-lg font-semibold text-primary">Vérifiez votre email</h3>
               <p className="text-sm text-muted-foreground">
                 Un lien de connexion sécurisé a été envoyé à{' '}
-                <span className="font-medium text-foreground">{pendingEmail ? maskEmail(pendingEmail) : 'votre adresse'}</span>.
+                <span className="font-medium text-foreground">
+                  {pendingEmail ? maskEmail(pendingEmail) : 'votre adresse'}
+                </span>
+                .
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Cliquez sur le lien dans l'email, puis revenez ici et cliquez sur "Continuer".
@@ -157,7 +162,9 @@ export default function LoginPage() {
           </div>
         ) : !selectedUser ? (
           <div className="space-y-3">
-            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">Qui êtes-vous ?</p>
+            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
+              Qui êtes-vous ?
+            </p>
             {usersLoading ? (
               <p className="text-center text-sm text-muted-foreground">Chargement des profils…</p>
             ) : usersError ? (

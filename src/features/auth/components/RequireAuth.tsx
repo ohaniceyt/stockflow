@@ -20,6 +20,18 @@ export function RequireAuth({ children, roles, fallback }: RequireAuthProps) {
     return <Navigate to="/change-pin" replace />
   }
 
+  if (
+    !session?.onboardingCompleted &&
+    hasRole(['super_admin', 'admin']) &&
+    location.pathname !== '/onboarding'
+  ) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  if (location.pathname === '/onboarding' && session?.onboardingCompleted) {
+    return <Navigate to="/" replace />
+  }
+
   if (roles && !hasRole(roles)) {
     if (fallback) return fallback
     return <Navigate to="/unauthorized" replace />

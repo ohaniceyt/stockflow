@@ -7,6 +7,8 @@ export interface Database {
           name: string
           currency: string
           timezone: string
+          is_active: boolean
+          onboarding_completed: boolean
           created_at: string
           updated_at: string
         }
