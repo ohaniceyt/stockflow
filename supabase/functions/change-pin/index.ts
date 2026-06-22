@@ -70,7 +70,6 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-
     const { currentPin, newPin }: ChangePinPayload = await req.json()
     if (!newPin || newPin.length < 4 || newPin.length > 8 || !/^\d+$/.test(newPin)) {
       return new Response(JSON.stringify({ error: 'Invalid new PIN' }), {
@@ -79,7 +78,12 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    if (!currentPin || currentPin.length < 4 || currentPin.length > 8 || !/^\d+$/.test(currentPin)) {
+    if (
+      !currentPin ||
+      currentPin.length < 4 ||
+      currentPin.length > 8 ||
+      !/^\d+$/.test(currentPin)
+    ) {
       return new Response(JSON.stringify({ error: 'Invalid current PIN' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -112,12 +112,13 @@ Deno.serve(async (req: Request) => {
     const salt = crypto.getRandomValues(new Uint8Array(16))
     const pinHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(tempPin, salt)}`
 
-    const { data: createAuthData, error: createAuthError } = await adminClient.auth.admin.createUser({
-      email,
-      password: crypto.randomUUID(),
-      email_confirm: false,
-      user_metadata: { org_id: operator.org_id, role, name },
-    })
+    const { data: createAuthData, error: createAuthError } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password: crypto.randomUUID(),
+        email_confirm: false,
+        user_metadata: { org_id: operator.org_id, role, name },
+      })
 
     if (createAuthError || !createAuthData.user) {
       return new Response(

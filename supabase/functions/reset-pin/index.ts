@@ -62,7 +62,6 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-
     const { data: operator, error: operatorError } = await adminClient
       .from('users')
       .select('role, org_id')

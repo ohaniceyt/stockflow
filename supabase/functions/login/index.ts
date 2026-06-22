@@ -134,10 +134,13 @@ Deno.serve(async (req: Request) => {
     // Rate-limit by IP
     const ipFailures = await countRecentFailures(adminClient, 'ip_address', clientIp)
     if (ipFailures >= MAX_FAILED_ATTEMPTS_PER_IP) {
-      return new Response(JSON.stringify({ error: 'Too many attempts from this network. Try again later.' }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ error: 'Too many attempts from this network. Try again later.' }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     const { data: user, error } = await adminClient
@@ -249,7 +252,9 @@ Deno.serve(async (req: Request) => {
 
       if (signInError || !signInData.session) {
         return new Response(
-          JSON.stringify({ error: `Bypass sign-in failed: ${signInError?.message ?? 'no session'}` }),
+          JSON.stringify({
+            error: `Bypass sign-in failed: ${signInError?.message ?? 'no session'}`,
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
