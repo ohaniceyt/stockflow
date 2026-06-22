@@ -51,6 +51,10 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
     const { userId, pin }: LoginPayload = await req.json()
     if (!userId || !pin || pin.length < 4 || pin.length > 8) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
@@ -59,13 +63,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
     const { data: user, error } = await adminClient
       .from('users')
-      .select('id, org_id, name, role, pin_hash, is_active, force_pin_change')
+      .select('id, org_id, name, email, email_verified, role, pin_hash, is_active, force_pin_change')
       .eq('id', userId)
       .single()
 
@@ -100,54 +100,6 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const authEmail = `${user.id}@stockflow.local`
-
-    // Find existing auth user
-    const { data: listData } = await adminClient.auth.admin.listUsers()
-    let authUserId = listData?.users.find((u) => u.email === authEmail)?.id
-
-    // Create auth user if missing
-    if (!authUserId) {
-      const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
-        email: authEmail,
-        password: crypto.randomUUID(),
-        user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
-        email_confirm: true,
-      })
-      if (createError || !createData.user) {
-        return new Response(JSON.stringify({ error: 'Could not create auth user' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      authUserId = createData.user.id
-    }
-
-    // Create a magic link and verify it server-side to obtain a valid JWT
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: authEmail,
-    })
-
-    if (linkError || !linkData.properties?.hashed_token) {
-      return new Response(
-        JSON.stringify({ error: linkError?.message ?? 'Could not generate auth link' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const { data: sessionData, error: sessionError } = await adminClient.auth.verifyOtp({
-      token_hash: linkData.properties.hashed_token,
-      type: 'magiclink',
-    })
-
-    if (sessionError || !sessionData.session) {
-      return new Response(
-        JSON.stringify({ error: sessionError?.message ?? 'Could not create session' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     await adminClient
       .from('users')
       .update({ last_login_at: new Date().toISOString() })
@@ -155,13 +107,14 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        access_token: sessionData.session.access_token,
-        refresh_token: sessionData.session.refresh_token,
-        expires_in: sessionData.session.expires_in,
+        email: user.email,
+        forcePinChange: user.force_pin_change,
         user: {
           id: user.id,
           orgId: user.org_id,
           name: user.name,
+          email: user.email,
+          emailVerified: user.email_verified,
           role: user.role,
           forcePinChange: user.force_pin_change,
         },

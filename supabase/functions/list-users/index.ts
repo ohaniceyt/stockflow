@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: users, error } = await adminClient
       .from('users')
-      .select('id, name, role, org_id, is_active')
+      .select('id, name, email, email_verified, role, org_id, is_active')
       .eq('is_active', true)
       .order('name')
 

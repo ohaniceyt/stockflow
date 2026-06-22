@@ -1,18 +1,26 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { TeamList } from '../components/TeamList'
 import { ResetPinDialog } from '../components/ResetPinDialog'
-import { useResetUserPin, useTeamUsers, useUpdateUserActive } from '../hooks/useTeam'
+import { InviteUserDialog } from '../components/InviteUserDialog'
+import { useCreateUser, useResetUserPin, useTeamUsers, useUpdateUserActive } from '../hooks/useTeam'
 import type { User } from '@/types'
 
 export default function TeamPage() {
-  const { session } = useAuth()
+  const { session, hasRole } = useAuth()
   const { data: users, isLoading, error } = useTeamUsers()
   const updateActive = useUpdateUserActive()
   const resetPin = useResetUserPin()
+  const createUser = useCreateUser()
+
+  const canCreate = hasRole(['super_admin', 'admin'])
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [resetOpen, setResetOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [createdPin, setCreatedPin] = useState<string | null>(null)
 
   const handleToggleActive = (user: User) => {
     updateActive.mutate({ id: user.id, isActive: !user.isActive })
@@ -36,11 +44,27 @@ export default function TeamPage() {
     )
   }
 
+  const handleInvite = (input: { name: string; email: string; role: User['role'] }) => {
+    createUser.mutate(input, {
+      onSuccess: (data) => {
+        setCreatedPin(data.tempPin)
+      },
+    })
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Équipe</h1>
-        <p className="text-muted-foreground">Gérez les utilisateurs de votre organisation.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Équipe</h1>
+          <p className="text-muted-foreground">Gérez les utilisateurs de votre organisation.</p>
+        </div>
+        {canCreate && (
+          <Button onClick={() => setInviteOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Inviter
+          </Button>
+        )}
       </div>
 
       {isLoading && <p className="text-muted-foreground">Chargement de l'équipe…</p>}
@@ -61,6 +85,19 @@ export default function TeamPage() {
         onOpenChange={setResetOpen}
         onConfirm={handleConfirmReset}
         isLoading={resetPin.isPending}
+      />
+
+      <InviteUserDialog
+        open={inviteOpen}
+        onOpenChange={(open) => {
+          setInviteOpen(open)
+          if (!open) {
+            setCreatedPin(null)
+          }
+        }}
+        onSubmit={handleInvite}
+        createdPin={createdPin}
+        isLoading={createUser.isPending}
       />
     </div>
   )

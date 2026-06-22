@@ -24,6 +24,8 @@ async function fetchActiveUsers(): Promise<User[]> {
     users?: {
       id: string
       name: string
+      email: string
+      email_verified: boolean
       role: string
       org_id: string
       is_active: boolean
@@ -37,6 +39,8 @@ async function fetchActiveUsers(): Promise<User[]> {
     id: u.id,
     orgId: u.org_id,
     name: u.name,
+    email: u.email,
+    emailVerified: u.email_verified,
     role: u.role as User['role'],
     isActive: u.is_active,
     lastLoginAt: u.last_login_at ?? null,
@@ -51,7 +55,9 @@ export default function LoginPage() {
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { login, isAuthenticated, isLoading } = useAuth()
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  const { login, isAuthenticated, isLoading, verifyMagicLinkSession } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -81,10 +87,28 @@ export default function LoginPage() {
     if (!selectedUser) return
     setError(null)
     try {
-      await login(selectedUser.id, pin)
+      const result = await login(selectedUser.id, pin)
+      setPendingEmail(result.email)
+      setMagicLinkSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PIN incorrect')
     }
+  }
+
+  const handleVerify = async () => {
+    setError(null)
+    try {
+      await verifyMagicLinkSession()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Session invalide')
+    }
+  }
+
+  const maskEmail = (email: string) => {
+    const [local, domain] = email.split('@')
+    if (!local || !domain) return email
+    const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***'
+    return `${maskedLocal}@${domain}`
   }
 
   return (
@@ -95,16 +119,45 @@ export default function LoginPage() {
             S
           </div>
           <h1 className="text-2xl font-bold">StockFlow vNext</h1>
-          <p className="text-sm text-muted-foreground">
-            Sélectionnez votre profil puis saisissez votre PIN
-          </p>
+          <p className="text-sm text-muted-foreground">Sélectionnez votre profil puis saisissez votre PIN</p>
         </div>
 
-        {!selectedUser ? (
+        {magicLinkSent ? (
+          <div className="space-y-4 text-center">
+            <div className="rounded-xl bg-primary/10 p-6">
+              <h3 className="mb-2 text-lg font-semibold text-primary">Vérifiez votre email</h3>
+              <p className="text-sm text-muted-foreground">
+                Un lien de connexion sécurisé a été envoyé à{' '}
+                <span className="font-medium text-foreground">{pendingEmail ? maskEmail(pendingEmail) : 'votre adresse'}</span>.
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Cliquez sur le lien dans l'email, puis revenez ici et cliquez sur "Continuer".
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMagicLinkSent(false)
+                setPendingEmail(null)
+                setSelectedUser(null)
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              ← Changer de profil
+            </button>
+            <button
+              type="button"
+              onClick={handleVerify}
+              disabled={isLoading}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isLoading ? 'Vérification…' : 'Continuer'}
+            </button>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        ) : !selectedUser ? (
           <div className="space-y-3">
-            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
-              Qui êtes-vous ?
-            </p>
+            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">Qui êtes-vous ?</p>
             {usersLoading ? (
               <p className="text-center text-sm text-muted-foreground">Chargement des profils…</p>
             ) : usersError ? (

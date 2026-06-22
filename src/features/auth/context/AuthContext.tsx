@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
+import { supabase } from '@/services/supabase'
 import type { User, UserRole } from '@/types'
 
 interface AuthSession {
@@ -12,7 +13,8 @@ interface AuthSession {
 interface AuthContextValue {
   session: AuthSession | null
   isAuthenticated: boolean
-  login: (userId: string, pin: string) => Promise<void>
+  login: (userId: string, pin: string) => Promise<{ email: string; forcePinChange: boolean }>
+  verifyMagicLinkSession: () => Promise<void>
   changePin: (currentPin: string, newPin: string) => Promise<void>
   logout: () => void
   hasRole: (roles: UserRole[]) => boolean
@@ -22,6 +24,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 const SESSION_KEY = 'stockflow-session'
+const PENDING_EMAIL_KEY = 'stockflow-pending-email'
+const PENDING_USER_KEY = 'stockflow-pending-user'
 
 function loadSession(): AuthSession | null {
   try {
@@ -33,6 +37,16 @@ function loadSession(): AuthSession | null {
       return null
     }
     return parsed
+  } catch {
+    return null
+  }
+}
+
+function loadPendingUser(): (User & { forcePinChange: boolean }) | null {
+  try {
+    const raw = localStorage.getItem(PENDING_USER_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as User & { forcePinChange: boolean }
   } catch {
     return null
   }
@@ -51,8 +65,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(next)
   }, [])
 
+  const clearPending = useCallback(() => {
+    localStorage.removeItem(PENDING_EMAIL_KEY)
+    localStorage.removeItem(PENDING_USER_KEY)
+  }, [])
+
+  // Listen to magic link / OAuth callbacks
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, authSession) => {
+      if (event === 'SIGNED_IN' && authSession) {
+        const pendingUser = loadPendingUser()
+        if (!pendingUser) return
+
+        // Verify email matches pending user
+        if (authSession.user.email?.toLowerCase() !== pendingUser.email.toLowerCase()) {
+          await supabase.auth.signOut()
+          clearPending()
+          return
+        }
+
+        const next: AuthSession = {
+          user: pendingUser,
+          accessToken: authSession.access_token,
+          refreshToken: authSession.refresh_token,
+          expiresAt: Date.now() / 1000 + authSession.expires_in,
+          forcePinChange: pendingUser.forcePinChange,
+        }
+        persistSession(next)
+        clearPending()
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [clearPending, persistSession])
+
   const login = useCallback(
-    async (userId: string, pin: string) => {
+    async (userId: string, pin: string): Promise<{ email: string; forcePinChange: boolean }> => {
       setIsLoading(true)
       try {
         const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
@@ -66,41 +118,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         const data = (await response.json()) as {
-          access_token?: string
-          refresh_token?: string
-          expires_in?: number
+          email?: string
+          forcePinChange?: boolean
           user?: User & { forcePinChange?: boolean }
           error?: { message: string }
         }
 
-        if (!response.ok || !data.access_token || !data.user) {
+        if (!response.ok || !data.email || !data.user) {
           throw new Error(data.error?.message ?? 'Échec de la connexion')
         }
 
-        const next: AuthSession = {
-          user: {
-            id: data.user.id,
-            orgId: data.user.orgId,
-            name: data.user.name,
-            role: data.user.role,
-            isActive: data.user.isActive,
-            lastLoginAt: data.user.lastLoginAt,
-            createdAt: data.user.createdAt,
-            updatedAt: data.user.updatedAt,
-          },
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token ?? '',
-          expiresAt: Date.now() / 1000 + (data.expires_in ?? 3600),
-          forcePinChange: data.user.forcePinChange ?? false,
+        const pendingUser: User & { forcePinChange: boolean } = {
+          ...data.user,
+          forcePinChange: data.forcePinChange ?? false,
         }
 
-        persistSession(next)
+        localStorage.setItem(PENDING_EMAIL_KEY, data.email)
+        localStorage.setItem(PENDING_USER_KEY, JSON.stringify(pendingUser))
+
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: data.email,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        })
+
+        if (otpError) {
+          clearPending()
+          throw new Error(otpError.message)
+        }
+
+        return { email: data.email, forcePinChange: data.forcePinChange ?? false }
       } finally {
         setIsLoading(false)
       }
     },
-    [persistSession]
+    [clearPending]
   )
+
+  const verifyMagicLinkSession = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error || !data.session) {
+        throw new Error('Aucune session active')
+      }
+
+      const pendingUser = loadPendingUser()
+      if (!pendingUser) {
+        throw new Error('Aucune connexion en attente')
+      }
+
+      if (data.session.user.email?.toLowerCase() !== pendingUser.email.toLowerCase()) {
+        await supabase.auth.signOut()
+        clearPending()
+        throw new Error("L'email ne correspond pas")
+      }
+
+      const next: AuthSession = {
+        user: pendingUser,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        expiresAt: Date.now() / 1000 + data.session.expires_in,
+        forcePinChange: pendingUser.forcePinChange,
+      }
+      persistSession(next)
+      clearPending()
+    } finally {
+      setIsLoading(false)
+    }
+  }, [clearPending, persistSession])
 
   const changePin = useCallback(
     async (currentPin: string, newPin: string) => {
@@ -132,8 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(() => {
+    void supabase.auth.signOut()
     persistSession(null)
-  }, [persistSession])
+    clearPending()
+  }, [clearPending, persistSession])
 
   const hasRole = useCallback(
     (roles: UserRole[]) => {
@@ -148,12 +237,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isAuthenticated: !!session,
       login,
+      verifyMagicLinkSession,
       changePin,
       logout,
       hasRole,
       isLoading,
     }),
-    [session, login, changePin, logout, hasRole, isLoading]
+    [session, login, verifyMagicLinkSession, changePin, logout, hasRole, isLoading]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

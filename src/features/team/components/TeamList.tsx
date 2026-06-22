@@ -46,6 +46,7 @@ export function TeamList({
       <TableHeader>
         <TableRow>
           <TableHead>Nom</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead>Rôle</TableHead>
           <TableHead>Statut</TableHead>
           <TableHead>Dernière connexion</TableHead>
@@ -59,6 +60,14 @@ export function TeamList({
               {user.name}
               {user.id === currentUserId && (
                 <span className="ml-2 text-xs text-muted-foreground">(vous)</span>
+              )}
+            </TableCell>
+            <TableCell className="text-sm">
+              {user.email}
+              {!user.emailVerified && (
+                <Badge variant="outline" className="ml-2">
+                  Email non vérifié
+                </Badge>
               )}
             </TableCell>
             <TableCell>{roleLabels[user.role]}</TableCell>

@@ -13,6 +13,8 @@ export interface User {
   id: string
   orgId: string
   name: string
+  email: string
+  emailVerified: boolean
   role: UserRole
   isActive: boolean
   lastLoginAt: string | null

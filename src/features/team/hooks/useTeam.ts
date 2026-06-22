@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import { fetchTeamUsers, resetUserPin, updateUserActive } from '../services/teamService'
+import { createUser, fetchTeamUsers, resetUserPin, updateUserActive } from '../services/teamService'
 
 const TEAM_QUERY_KEY = 'team-users'
 
@@ -37,5 +37,18 @@ export function useResetUserPin() {
   return useMutation({
     mutationFn: ({ userId, newPin }: { userId: string; newPin: string }) =>
       resetUserPin(userId, newPin),
+  })
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  const { session } = useAuth()
+  const orgId = session?.user.orgId
+
+  return useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [TEAM_QUERY_KEY, orgId] })
+    },
   })
 }

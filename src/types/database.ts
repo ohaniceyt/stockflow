@@ -22,6 +22,8 @@ export interface Database {
           id: string
           org_id: string
           name: string
+          email: string
+          email_verified: boolean
           role: 'super_admin' | 'admin' | 'operator' | 'reader'
           pin_hash: string
           is_active: boolean

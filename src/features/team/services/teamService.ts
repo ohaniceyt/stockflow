@@ -10,6 +10,8 @@ function mapRowToUser(row: UserRow): User {
     id: row.id,
     orgId: row.org_id,
     name: row.name,
+    email: row.email,
+    emailVerified: row.email_verified,
     role: row.role,
     isActive: row.is_active,
     lastLoginAt: row.last_login_at,
@@ -61,4 +63,38 @@ export async function resetUserPin(userId: string, newPin: string): Promise<void
     const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
     throw new Error(data.error?.message ?? 'Échec de la réinitialisation du PIN')
   }
+}
+
+export async function createUser(input: {
+  name: string
+  email: string
+  role: User['role']
+}): Promise<{ tempPin: string }> {
+  const session = supabase.auth.getSession()
+  const accessToken = (await session).data.session?.access_token
+  if (!accessToken) {
+    throw new Error('Non authentifié')
+  }
+
+  const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+  const response = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      apikey: String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+    },
+    body: JSON.stringify(input),
+  })
+
+  const data = (await response.json().catch(() => ({}))) as {
+    tempPin?: string
+    error?: { message: string }
+  }
+
+  if (!response.ok || !data.tempPin) {
+    throw new Error(data.error?.message ?? 'Échec de la création')
+  }
+
+  return { tempPin: data.tempPin }
 }
