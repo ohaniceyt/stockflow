@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const operatorId = authUser.email.replace('@stockflow.local', '')
+    const operatorId = authUser.id
 
     const { data: operator, error: operatorError } = await client
       .from('users')

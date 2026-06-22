@@ -17,15 +17,57 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+    // Public login directory: the login page must show available profiles before any user
+    // is authenticated. We therefore accept requests that carry only the public anon key.
+    // TODO: redesign login flow so profiles are not exposed publicly (e.g. enter email first).
+    const authHeader = req.headers.get('authorization')
+    const apiKey = req.headers.get('apikey') ?? serviceRoleKey
+
+    const client = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        global: {
+          headers: {
+            ...(authHeader ? { Authorization: authHeader } : {}),
+            apikey: apiKey,
+          },
+        },
+      },
     })
 
-    const { data: users, error } = await adminClient
+    let orgId: string | null = null
+    let isSuperAdmin = false
+
+    if (authHeader) {
+      const {
+        data: { user: authUser },
+        error: userError,
+      } = await client.auth.getUser()
+      if (!userError && authUser?.id) {
+        const { data: operator } = await client
+          .from('users')
+          .select('role, org_id')
+          .eq('id', authUser.id)
+          .single()
+        if (operator) {
+          orgId = operator.org_id
+          isSuperAdmin = operator.role === 'super_admin'
+        }
+      }
+    }
+
+    let query = client
       .from('users')
       .select('id, name, email, email_verified, role, org_id, is_active')
       .eq('is_active', true)
       .order('name')
+
+    if (!isSuperAdmin && orgId) {
+      query = query.eq('org_id', orgId)
+    }
+
+    const { data: users, error } = await query
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

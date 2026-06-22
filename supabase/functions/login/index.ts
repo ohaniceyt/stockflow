@@ -11,6 +11,10 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const RATE_LIMIT_WINDOW_MINUTES = 15
+const MAX_FAILED_ATTEMPTS_PER_USER = 5
+const MAX_FAILED_ATTEMPTS_PER_IP = 20
+
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false
   let result = 0
@@ -39,6 +43,59 @@ async function hashPin(pin: string, saltB64: string): Promise<string> {
   return btoa(String.fromCharCode(...bytes))
 }
 
+function getClientIp(req: Request): string | null {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) {
+    return forwarded.split(',')[0].trim()
+  }
+  return req.headers.get('x-real-ip') ?? req.headers.get('cf-connecting-ip') ?? null
+}
+
+function rateLimitCutoff(): string {
+  return new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString()
+}
+
+async function countRecentFailures(
+  client: ReturnType<typeof createClient>,
+  field: 'user_id' | 'ip_address',
+  value: string | null
+): Promise<number> {
+  if (!value) return 0
+  const { count, error } = await client
+    .from('login_attempts')
+    .select('*', { count: 'exact', head: true })
+    .eq('succeeded', false)
+    .eq(field, value)
+    .gte('created_at', rateLimitCutoff())
+
+  if (error) {
+    console.error('Failed to count login attempts:', error)
+    return 0
+  }
+  return count ?? 0
+}
+
+async function recordAttempt(
+  client: ReturnType<typeof createClient>,
+  {
+    ipAddress,
+    userId,
+    succeeded,
+  }: { ipAddress: string | null; userId: string | null; succeeded: boolean }
+): Promise<void> {
+  const insert: Record<string, unknown> = {
+    ip_address: ipAddress,
+    succeeded,
+  }
+  if (userId) {
+    insert.user_id = userId
+  }
+  const { error } = await client.from('login_attempts').insert(insert)
+  if (error) {
+    console.error('Failed to record login attempt:', error)
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -55,10 +112,30 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    const clientIp = getClientIp(req)
+
     const { userId, pin }: LoginPayload = await req.json()
     if (!userId || !pin || pin.length < 4 || pin.length > 8) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Rate-limit by user
+    const userFailures = await countRecentFailures(adminClient, 'user_id', userId)
+    if (userFailures >= MAX_FAILED_ATTEMPTS_PER_USER) {
+      return new Response(JSON.stringify({ error: 'Too many attempts. Try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Rate-limit by IP
+    const ipFailures = await countRecentFailures(adminClient, 'ip_address', clientIp)
+    if (ipFailures >= MAX_FAILED_ATTEMPTS_PER_IP) {
+      return new Response(JSON.stringify({ error: 'Too many attempts from this network. Try again later.' }), {
+        status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -71,29 +148,31 @@ Deno.serve(async (req: Request) => {
       .eq('id', userId)
       .single()
 
-    const { data: org, error: orgError } = await adminClient
-      .from('organizations')
-      .select('onboarding_completed')
-      .eq('id', user?.org_id ?? '')
-      .single()
-
     if (error || !user) {
+      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (orgError) {
-      return new Response(JSON.stringify({ error: orgError.message }), {
-        status: 500,
+    if (!user.is_active) {
+      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
+      return new Response(JSON.stringify({ error: 'Account disabled' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (!user.is_active) {
-      return new Response(JSON.stringify({ error: 'Account disabled' }), {
-        status: 403,
+    const { data: org, error: orgError } = await adminClient
+      .from('organizations')
+      .select('onboarding_completed')
+      .eq('id', user.org_id ?? '')
+      .single()
+
+    if (orgError) {
+      return new Response(JSON.stringify({ error: orgError.message }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -109,6 +188,7 @@ Deno.serve(async (req: Request) => {
     const computedHash = await hashPin(pin, saltB64)
 
     if (!timingSafeEqual(computedHash, expectedHashB64)) {
+      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
       return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -119,6 +199,8 @@ Deno.serve(async (req: Request) => {
       .from('users')
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', user.id)
+
+    await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: true })
 
     const onboardingCompleted =
       ['super_admin', 'admin'].includes(user.role) && org?.onboarding_completed === true
@@ -140,7 +222,6 @@ Deno.serve(async (req: Request) => {
 
       const demoPassword = `demo-${user.id.slice(0, 8)}`
 
-      // Ensure the auth user exists and has a known password
       const { error: createError } = await adminClient.auth.admin.createUser({
         id: user.id,
         email: user.email,
