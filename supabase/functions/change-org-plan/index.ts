@@ -48,11 +48,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', claims.sub)
       .single()
 
-    if (
-      operatorError ||
-      !operator ||
-      !['super_admin', 'admin'].includes(operator.role)
-    ) {
+    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
@@ -102,13 +98,10 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Organization plan updated' }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return new Response(JSON.stringify({ success: true, message: 'Organization plan updated' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {

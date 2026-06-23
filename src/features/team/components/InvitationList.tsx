@@ -16,9 +16,7 @@ const roleLabels: Record<string, string> = {
 
 export function InvitationList({ invitations, onCancel, isLoading }: InvitationListProps) {
   if (invitations.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Aucune invitation en attente.</p>
-    )
+    return <p className="text-sm text-muted-foreground">Aucune invitation en attente.</p>
   }
 
   return (
@@ -31,7 +29,8 @@ export function InvitationList({ invitations, onCancel, isLoading }: InvitationL
           <div>
             <p className="font-medium">{invitation.email}</p>
             <p className="text-sm text-muted-foreground">
-              Rôle : <span className="capitalize">{roleLabels[invitation.role] ?? invitation.role}</span>
+              Rôle :{' '}
+              <span className="capitalize">{roleLabels[invitation.role] ?? invitation.role}</span>
             </p>
           </div>
           <div className="flex gap-2">

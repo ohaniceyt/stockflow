@@ -21,7 +21,8 @@ const features = [
   {
     icon: Package,
     title: 'Catalogue produits',
-    description: 'Gérez vos produits, catégories, seuils de stock et codes-barres en un seul endroit.',
+    description:
+      'Gérez vos produits, catégories, seuils de stock et codes-barres en un seul endroit.',
   },
   {
     icon: MapPin,
@@ -36,12 +37,14 @@ const features = [
   {
     icon: Smartphone,
     title: 'Offline-first',
-    description: 'Continuez à travailler hors ligne : les données se synchronisent automatiquement.',
+    description:
+      'Continuez à travailler hors ligne : les données se synchronisent automatiquement.',
   },
   {
     icon: Users,
     title: 'Équipe structurée',
-    description: 'Rôles (super admin, admin, opérateur, lecteur) et invitations par email sécurisées.',
+    description:
+      'Rôles (super admin, admin, opérateur, lecteur) et invitations par email sécurisées.',
   },
   {
     icon: BarChart3,
@@ -122,7 +125,7 @@ const pricingPlans = [
       'API + SLA',
       'Support sur mesure',
     ],
-    cta: 'Contacter l\'équipe',
+    cta: "Contacter l'équipe",
     href: 'mailto:team@stockflow.grandigix.com',
   },
 ]
@@ -164,23 +167,18 @@ export default function LandingPage() {
         <section className="relative overflow-hidden px-4 pb-20 pt-16 sm:px-6 lg:px-8 lg:pb-28 lg:pt-24">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-              La gestion de stock{' '}
-              <span className="text-primary">simple et moderne</span>
+              La gestion de stock <span className="text-primary">simple et moderne</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              StockFlow vNext aide les PME, boutiques et entrepôts à suivre leurs produits,
-              leurs emplacements et leurs mouvements en temps réel — même hors ligne.
+              StockFlow vNext aide les PME, boutiques et entrepôts à suivre leurs produits, leurs
+              emplacements et leurs mouvements en temps réel — même hors ligne.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" onClick={() => (window.location.href = '/signup')}>
                 Créer un compte gratuit
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => (window.location.href = '/login')}
-              >
+              <Button variant="outline" size="lg" onClick={() => (window.location.href = '/login')}>
                 Se connecter
               </Button>
             </div>
@@ -224,8 +222,8 @@ export default function LandingPage() {
               <div>
                 <h2 className="text-3xl font-bold">Sécurisé et fiable</h2>
                 <p className="mt-4 text-muted-foreground">
-                  Vos données sont isolées par organisation, protégées par authentification
-                  robuste et stockées sur une infrastructure moderne.
+                  Vos données sont isolées par organisation, protégées par authentification robuste
+                  et stockées sur une infrastructure moderne.
                 </p>
                 <ul className="mt-6 space-y-4">
                   {[

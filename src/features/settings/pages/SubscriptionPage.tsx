@@ -94,7 +94,11 @@ export default function SubscriptionPage() {
             <div className="space-y-4 pt-2">
               <UsageBar used={limits.usedUsers} max={limits.maxUsers} label="Utilisateurs" />
               <UsageBar used={limits.usedProducts} max={limits.maxProducts} label="Produits" />
-              <UsageBar used={limits.usedLocations} max={limits.maxLocations} label="Emplacements" />
+              <UsageBar
+                used={limits.usedLocations}
+                max={limits.maxLocations}
+                label="Emplacements"
+              />
               <UsageBar
                 used={limits.usedMovementsThisMonth}
                 max={limits.maxMonthlyMovements}
@@ -129,9 +133,7 @@ export default function SubscriptionPage() {
                         {isCurrent && <Badge variant="default">Actuel</Badge>}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {isFree
-                          ? 'Gratuit'
-                          : `${monthly} €/mois — ${yearly} €/an`}
+                        {isFree ? 'Gratuit' : `${monthly} €/mois — ${yearly} €/an`}
                       </p>
                       <Button
                         variant={isCurrent ? 'secondary' : 'outline'}

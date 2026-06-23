@@ -117,12 +117,14 @@ Deno.serve(async (req: Request) => {
 
     if (!authUserId) {
       const tempPassword = crypto.randomUUID()
-      const { data: newAuthUser, error: createAuthError } = await adminClient.auth.admin.createUser({
-        email: invitation.email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { org_id: invitation.org_id, role: invitation.role },
-      })
+      const { data: newAuthUser, error: createAuthError } = await adminClient.auth.admin.createUser(
+        {
+          email: invitation.email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { org_id: invitation.org_id, role: invitation.role },
+        }
+      )
 
       if (createAuthError || !newAuthUser.user) {
         return new Response(

@@ -59,7 +59,11 @@ Deno.serve(async (req: Request) => {
       .eq('id', claims.sub)
       .single()
 
-    if (operatorError || !operator || !['super_admin', 'admin', 'operator'].includes(operator.role)) {
+    if (
+      operatorError ||
+      !operator ||
+      !['super_admin', 'admin', 'operator'].includes(operator.role)
+    ) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
@@ -126,10 +130,10 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !data) {
-      return new Response(
-        JSON.stringify({ error: error?.message ?? 'Could not create product' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: error?.message ?? 'Could not create product' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     return new Response(JSON.stringify(data), {

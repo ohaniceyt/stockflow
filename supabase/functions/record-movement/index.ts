@@ -54,7 +54,11 @@ Deno.serve(async (req: Request) => {
       .eq('id', claims.sub)
       .single()
 
-    if (operatorError || !operator || !['super_admin', 'admin', 'operator'].includes(operator.role)) {
+    if (
+      operatorError ||
+      !operator ||
+      !['super_admin', 'admin', 'operator'].includes(operator.role)
+    ) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',

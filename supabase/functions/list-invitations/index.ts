@@ -44,11 +44,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', claims.sub)
       .single()
 
-    if (
-      operatorError ||
-      !operator ||
-      !['super_admin', 'admin'].includes(operator.role)
-    ) {
+    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

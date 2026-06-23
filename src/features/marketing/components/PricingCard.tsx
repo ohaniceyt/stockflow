@@ -52,9 +52,7 @@ export function PricingCard({
           {!isFree && <span className="text-sm text-muted-foreground">/mois</span>}
         </div>
         {!isFree && (
-          <p className="text-xs text-muted-foreground">
-            {yearly} €/an (économisez 2 mois)
-          </p>
+          <p className="text-xs text-muted-foreground">{yearly} €/an (économisez 2 mois)</p>
         )}
       </div>
 
@@ -67,7 +65,11 @@ export function PricingCard({
         ))}
       </ul>
 
-      <Button variant={highlighted ? 'default' : 'outline'} className="w-full" onClick={() => window.location.href = href}>
+      <Button
+        variant={highlighted ? 'default' : 'outline'}
+        className="w-full"
+        onClick={() => (window.location.href = href)}
+      >
         {cta}
       </Button>
     </div>
