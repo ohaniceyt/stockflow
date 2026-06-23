@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript((session) => {
     localStorage.setItem('stockflow-session', JSON.stringify(session))
   }, mockSession)
-  await page.goto('/')
+  await page.goto('/dashboard')
 })
 
 test('mobile bottom navigation is visible', async ({ page }) => {
@@ -63,5 +63,5 @@ test('bottom nav navigates to primary pages', async ({ page }) => {
   await expect(page).toHaveURL('/movements')
 
   await page.getByRole('link', { name: 'Dashboard' }).click()
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/dashboard')
 })
