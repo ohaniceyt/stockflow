@@ -42,7 +42,7 @@ export default function ChangePinPage() {
     }
     try {
       await changePin(currentPin, pin)
-      void navigate('/', { replace: true })
+      void navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec du changement')
     }

@@ -4,6 +4,7 @@ import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 
+const LandingPage = lazy(() => import('@/features/marketing/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const SignupPage = lazy(() => import('@/features/auth/pages/SignupPage'))
 const ChangePinPage = lazy(() => import('@/features/auth/pages/ChangePinPage'))
@@ -27,6 +28,7 @@ function App() {
     <AuthProvider>
       <Suspense fallback={fallback}>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -53,7 +55,7 @@ function App() {
               </RequireAuth>
             }
           >
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/stock" element={<StockPage />} />
             <Route path="/movements" element={<MovementsPage />} />
             <Route

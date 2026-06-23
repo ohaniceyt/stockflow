@@ -22,7 +22,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   {
-    to: '/',
+    to: '/dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
     roles: ['super_admin', 'admin', 'operator', 'reader'],

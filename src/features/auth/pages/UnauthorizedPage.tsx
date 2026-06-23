@@ -8,7 +8,7 @@ export default function UnauthorizedPage() {
         Vous n'avez pas l'autorisation d'accéder à cette page.
       </p>
       <Link
-        to="/"
+        to="/dashboard"
         className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
       >
         Retour au tableau de bord

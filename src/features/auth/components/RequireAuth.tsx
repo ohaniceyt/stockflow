@@ -30,7 +30,7 @@ export function RequireAuth({ children, roles, requirePlatformAdmin, fallback }:
   }
 
   if (location.pathname === '/onboarding' && session?.onboardingCompleted) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   if (requirePlatformAdmin && !isPlatformAdmin) {
