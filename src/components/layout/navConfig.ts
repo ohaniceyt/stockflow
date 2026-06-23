@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   Building2,
+  CreditCard,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -55,6 +56,12 @@ export const navItems: NavItem[] = [
     to: '/recap',
     label: 'Récap',
     icon: FileText,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/settings/subscription',
+    label: 'Abonnement',
+    icon: CreditCard,
     roles: ['super_admin', 'admin', 'operator', 'reader'],
   },
   { to: '/super-admin', label: 'Super Admin', icon: Building2, roles: ['super_admin'] },

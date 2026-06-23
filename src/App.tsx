@@ -16,6 +16,7 @@ const ProductsPage = lazy(() => import('@/features/products/pages/ProductsPage')
 const TeamPage = lazy(() => import('@/features/team/pages/TeamPage'))
 const LocationsPage = lazy(() => import('@/features/locations/pages/LocationsPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
+const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
 const SuperAdminPage = lazy(() => import('@/features/super-admin/pages/SuperAdminPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
@@ -88,6 +89,7 @@ function App() {
               }
             />
             <Route path="/recap" element={<RecapPage />} />
+            <Route path="/settings/subscription" element={<SubscriptionPage />} />
             <Route
               path="/super-admin"
               element={
