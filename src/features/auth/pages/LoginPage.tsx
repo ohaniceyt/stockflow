@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,23 @@ import { supabaseKey as SUPABASE_KEY } from '@/services/supabase'
 import type { User } from '@/types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+
+const PENDING_EMAIL_KEY = 'stockflow-pending-email'
+
+function hasMagicLinkHash() {
+  if (typeof window === 'undefined') return false
+  const hash = window.location.hash
+  return hash.includes('access_token=') && hash.includes('type=magiclink')
+}
+
+function loadPendingEmail(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    return localStorage.getItem(PENDING_EMAIL_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
 
 interface LookupResult {
   found: boolean
@@ -44,15 +61,17 @@ async function lookupUserByEmail(email: string): Promise<LookupResult> {
 
 export default function LoginPage() {
   const [step, setStep] = useState<'email' | 'pin'>('email')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(loadPendingEmail)
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<Pick<
     User,
     'id' | 'name' | 'role' | 'orgId'
   > | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(hasMagicLinkHash)
+  const [isVerifyingMagicLink, setIsVerifyingMagicLink] = useState(hasMagicLinkHash)
   const [lockTick, setLockTick] = useState(0)
+  const verificationCancelled = useRef(false)
   const { login, isAuthenticated, isLoading, verifyMagicLinkSession } = useAuth()
   const navigate = useNavigate()
 
@@ -61,6 +80,31 @@ export default function LoginPage() {
       void navigate('/', { replace: true })
     }
   }, [isAuthenticated, navigate])
+
+  // Automatic magic-link verification: when the user lands here after clicking
+  // the magic link, the URL hash contains the Supabase auth tokens. We verify
+  // the session immediately so the user does not have to click "Continue" or
+  // re-enter their email.
+  useEffect(() => {
+    if (!isVerifyingMagicLink) return
+
+    verificationCancelled.current = false
+    void (async () => {
+      try {
+        await verifyMagicLinkSession()
+        // AuthContext will set isAuthenticated; the effect above redirects.
+      } catch (err) {
+        if (verificationCancelled.current) return
+        setError(err instanceof Error ? err.message : 'Session invalide')
+      } finally {
+        if (!verificationCancelled.current) setIsVerifyingMagicLink(false)
+      }
+    })()
+
+    return () => {
+      verificationCancelled.current = true
+    }
+  }, [isVerifyingMagicLink, verifyMagicLinkSession])
 
   const pinLock = selectedUser ? getPinLockStatus(selectedUser.id) : null
 
@@ -115,10 +159,13 @@ export default function LoginPage() {
 
   const handleVerify = async () => {
     setError(null)
+    setIsVerifyingMagicLink(true)
     try {
       await verifyMagicLinkSession()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Session invalide')
+    } finally {
+      setIsVerifyingMagicLink(false)
     }
   }
 
@@ -143,34 +190,40 @@ export default function LoginPage() {
         {magicLinkSent ? (
           <div className="space-y-4 text-center">
             <div className="rounded-xl bg-primary/10 p-6">
-              <h3 className="mb-2 text-lg font-semibold text-primary">Vérifiez votre email</h3>
+              <h3 className="mb-2 text-lg font-semibold text-primary">
+                {isVerifyingMagicLink ? 'Connexion en cours…' : 'Vérifiez votre email'}
+              </h3>
               <p className="text-sm text-muted-foreground">
                 Un lien de connexion sécurisé a été envoyé à{' '}
                 <span className="font-medium text-foreground">{maskEmail(email)}</span>.
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Cliquez sur le lien dans l’email, puis revenez ici et cliquez sur "Continuer".
-              </p>
+              {!isVerifyingMagicLink && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Cliquez sur le lien dans l’email, puis revenez ici et cliquez sur "Continuer".
+                </p>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setMagicLinkSent(false)
-                setEmail('')
-                setSelectedUser(null)
-                setStep('email')
-              }}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Changer de compte
-            </button>
+            {!isVerifyingMagicLink && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMagicLinkSent(false)
+                  setEmail('')
+                  setSelectedUser(null)
+                  setStep('email')
+                }}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                ← Changer de compte
+              </button>
+            )}
             <button
               type="button"
               onClick={handleVerify}
-              disabled={isLoading}
+              disabled={isLoading || isVerifyingMagicLink}
               className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              {isLoading ? 'Vérification…' : 'Continuer'}
+              {isLoading || isVerifyingMagicLink ? 'Vérification…' : 'Continuer'}
             </button>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
