@@ -169,15 +169,31 @@ Deno.serve(async (req: Request) => {
 
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
-      .select('onboarding_completed')
+      .select('onboarding_completed, is_suspended, suspension_reason')
       .eq('id', user.org_id ?? '')
       .single()
+
+    const { data: platformAdminData } = await adminClient.rpc('is_platform_admin', {
+      p_user_id: user.id,
+    })
+    const isPlatformAdmin = platformAdminData === true
 
     if (orgError) {
       return new Response(JSON.stringify({ error: orgError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    if (org?.is_suspended) {
+      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
+      return new Response(
+        JSON.stringify({
+          error: 'Organization suspended',
+          message: org.suspension_reason ?? 'This organization has been suspended.',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const [algo, saltB64, expectedHashB64] = user.pin_hash.split('$')
@@ -277,6 +293,7 @@ Deno.serve(async (req: Request) => {
             email: user.email,
             emailVerified: true,
             role: user.role,
+            isPlatformAdmin,
             forcePinChange: user.force_pin_change,
             onboardingCompleted,
           },
@@ -297,6 +314,7 @@ Deno.serve(async (req: Request) => {
           email: user.email,
           emailVerified: user.email_verified,
           role: user.role,
+          isPlatformAdmin,
           forcePinChange: user.force_pin_change,
           onboardingCompleted,
         },

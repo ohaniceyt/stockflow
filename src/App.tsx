@@ -5,6 +5,7 @@ import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
+const SignupPage = lazy(() => import('@/features/auth/pages/SignupPage'))
 const ChangePinPage = lazy(() => import('@/features/auth/pages/ChangePinPage'))
 const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage'))
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
@@ -25,6 +26,7 @@ function App() {
     <AuthProvider>
       <Suspense fallback={fallback}>
         <Routes>
+          <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/change-pin"
@@ -89,7 +91,7 @@ function App() {
             <Route
               path="/super-admin"
               element={
-                <RequireAuth roles={['super_admin']}>
+                <RequireAuth requirePlatformAdmin>
                   <SuperAdminPage />
                 </RequireAuth>
               }

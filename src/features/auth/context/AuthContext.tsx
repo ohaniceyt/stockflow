@@ -31,6 +31,7 @@ interface AuthContextValue {
   changePin: (currentPin: string, newPin: string) => Promise<void>
   logout: () => void
   hasRole: (roles: UserRole[]) => boolean
+  isPlatformAdmin: boolean
   isLoading: boolean
   completeOnboarding: (updates: {
     orgName: string
@@ -359,6 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changePin,
       logout,
       hasRole,
+      isPlatformAdmin: !!session?.user.isPlatformAdmin,
       isLoading,
       completeOnboarding,
     }),

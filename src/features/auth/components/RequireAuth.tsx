@@ -5,11 +5,12 @@ import type { UserRole } from '@/types'
 interface RequireAuthProps {
   children: React.ReactNode
   roles?: UserRole[]
+  requirePlatformAdmin?: boolean
   fallback?: React.ReactNode
 }
 
-export function RequireAuth({ children, roles, fallback }: RequireAuthProps) {
-  const { isAuthenticated, hasRole, session } = useAuth()
+export function RequireAuth({ children, roles, requirePlatformAdmin, fallback }: RequireAuthProps) {
+  const { isAuthenticated, hasRole, isPlatformAdmin, session } = useAuth()
   const location = useLocation()
 
   if (!isAuthenticated) {
@@ -32,7 +33,12 @@ export function RequireAuth({ children, roles, fallback }: RequireAuthProps) {
     return <Navigate to="/" replace />
   }
 
-  if (roles && !hasRole(roles)) {
+  if (requirePlatformAdmin && !isPlatformAdmin) {
+    if (fallback) return fallback
+    return <Navigate to="/unauthorized" replace />
+  }
+
+  if (roles && !requirePlatformAdmin && !hasRole(roles)) {
     if (fallback) return fallback
     return <Navigate to="/unauthorized" replace />
   }

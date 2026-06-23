@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getOrgLimits } from '../_shared/quotas.ts'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,56 +39,28 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
+    const { data: user, error: userError } = await adminClient
       .from('users')
-      .select('role, org_id')
+      .select('org_id')
       .eq('id', claims.sub)
       .single()
 
-    if (operatorError || !operator) {
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const { data: platformAdmin } = await adminClient
-      .from('platform_admins')
-      .select('id')
-      .eq('auth_user_id', claims.sub)
-      .eq('is_active', true)
-      .maybeSingle()
-
-    const isPlatformAdmin = !!platformAdmin
-    const isAdmin = ['super_admin', 'admin'].includes(operator.role)
-
-    if (!isAdmin && !isPlatformAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    let query = adminClient
-      .from('users')
-      .select('id, name, email, email_verified, role, org_id, is_active')
-      .eq('is_active', true)
-      .order('name')
-
-    if (!isPlatformAdmin) {
-      query = query.eq('org_id', operator.org_id)
-    }
-
-    const { data: users, error } = await query
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    const limits = await getOrgLimits(adminClient, user.org_id)
+    if (!limits) {
+      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ users: users ?? [] }), {
+    return new Response(JSON.stringify(limits), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '../context/AuthContext'
 import { PinPad } from '../components/PinPad'
 import {
@@ -13,57 +16,42 @@ import type { User } from '@/types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
-async function fetchActiveUsers(): Promise<User[]> {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/list-users`, {
-    method: 'GET',
+interface LookupResult {
+  found: boolean
+  userId?: string
+  name?: string
+  role?: string
+  orgId?: string
+}
+
+async function lookupUserByEmail(email: string): Promise<LookupResult> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/lookup-user-by-email`, {
+    method: 'POST',
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ email }),
   })
 
+  const data = (await res.json()) as LookupResult & { error?: { message: string } }
   if (!res.ok) {
-    throw new Error('Could not load users')
+    throw new Error(data.error?.message ?? 'Lookup failed')
   }
-
-  const data = (await res.json()) as {
-    users?: {
-      id: string
-      name: string
-      email: string
-      email_verified: boolean
-      role: string
-      org_id: string
-      is_active: boolean
-      last_login_at?: string | null
-      created_at?: string
-      updated_at?: string
-    }[]
-  }
-
-  return (data.users ?? []).map((u) => ({
-    id: u.id,
-    orgId: u.org_id,
-    name: u.name,
-    email: u.email,
-    emailVerified: u.email_verified,
-    role: u.role as User['role'],
-    isActive: u.is_active,
-    lastLoginAt: u.last_login_at ?? null,
-    createdAt: u.created_at ?? new Date().toISOString(),
-    updatedAt: u.updated_at ?? new Date().toISOString(),
-  }))
+  return data
 }
 
 export default function LoginPage() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [users, setUsers] = useState<User[]>([])
-  const [usersLoading, setUsersLoading] = useState(true)
-  const [usersError, setUsersError] = useState<string | null>(null)
+  const [step, setStep] = useState<'email' | 'pin'>('email')
+  const [email, setEmail] = useState('')
+  const [lookupError, setLookupError] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<Pick<
+    User,
+    'id' | 'name' | 'role' | 'orgId'
+  > | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
   const [lockTick, setLockTick] = useState(0)
   const { login, isAuthenticated, isLoading, verifyMagicLinkSession } = useAuth()
   const navigate = useNavigate()
@@ -74,23 +62,6 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, navigate])
 
-  useEffect(() => {
-    let cancelled = false
-    void fetchActiveUsers()
-      .then((data) => {
-        if (!cancelled) setUsers(data)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setUsersError(err instanceof Error ? err.message : 'Erreur de chargement')
-      })
-      .finally(() => {
-        if (!cancelled) setUsersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const pinLock = selectedUser ? getPinLockStatus(selectedUser.id) : null
 
   useEffect(() => {
@@ -98,6 +69,27 @@ export default function LoginPage() {
     const timer = setInterval(() => setLockTick((t) => t + 1), 1000)
     return () => clearInterval(timer)
   }, [selectedUser, pinLock?.locked])
+
+  const handleEmailSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLookupError(null)
+    try {
+      const result = await lookupUserByEmail(email)
+      if (!result.found || !result.userId || !result.name || !result.orgId) {
+        setLookupError('Aucun compte actif trouvé pour cet email.')
+        return
+      }
+      setSelectedUser({
+        id: result.userId,
+        name: result.name,
+        role: result.role as User['role'],
+        orgId: result.orgId,
+      })
+      setStep('pin')
+    } catch (err) {
+      setLookupError(err instanceof Error ? err.message : 'Erreur de recherche')
+    }
+  }
 
   const handlePinSubmit = async (pin: string) => {
     if (!selectedUser) return
@@ -112,8 +104,8 @@ export default function LoginPage() {
     try {
       const result = await login(selectedUser.id, pin)
       resetPinLockout(selectedUser.id)
-      setPendingEmail(result.email)
       setMagicLinkSent(true)
+      setEmail(result.email)
     } catch (err) {
       recordPinFailure(selectedUser.id)
       setLockTick((t) => t + 1)
@@ -130,9 +122,9 @@ export default function LoginPage() {
     }
   }
 
-  const maskEmail = (email: string) => {
-    const [local, domain] = email.split('@')
-    if (!local || !domain) return email
+  const maskEmail = (value: string) => {
+    const [local, domain] = value.split('@')
+    if (!local || !domain) return value
     const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***'
     return `${maskedLocal}@${domain}`
   }
@@ -145,9 +137,7 @@ export default function LoginPage() {
             S
           </div>
           <h1 className="text-2xl font-bold">StockFlow vNext</h1>
-          <p className="text-sm text-muted-foreground">
-            Sélectionnez votre profil puis saisissez votre PIN
-          </p>
+          <p className="text-sm text-muted-foreground">Connectez-vous à votre organisation</p>
         </div>
 
         {magicLinkSent ? (
@@ -156,25 +146,23 @@ export default function LoginPage() {
               <h3 className="mb-2 text-lg font-semibold text-primary">Vérifiez votre email</h3>
               <p className="text-sm text-muted-foreground">
                 Un lien de connexion sécurisé a été envoyé à{' '}
-                <span className="font-medium text-foreground">
-                  {pendingEmail ? maskEmail(pendingEmail) : 'votre adresse'}
-                </span>
-                .
+                <span className="font-medium text-foreground">{maskEmail(email)}</span>.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Cliquez sur le lien dans l'email, puis revenez ici et cliquez sur "Continuer".
+                Cliquez sur le lien dans l’email, puis revenez ici et cliquez sur "Continuer".
               </p>
             </div>
             <button
               type="button"
               onClick={() => {
                 setMagicLinkSent(false)
-                setPendingEmail(null)
+                setEmail('')
                 setSelectedUser(null)
+                setStep('email')
               }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              ← Changer de profil
+              ← Changer de compte
             </button>
             <button
               type="button"
@@ -186,36 +174,30 @@ export default function LoginPage() {
             </button>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
-        ) : !selectedUser ? (
-          <div className="space-y-3">
-            <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
-              Qui êtes-vous ?
+        ) : step === 'email' ? (
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Adresse email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@exemple.com"
+                required
+              />
+            </div>
+            {lookupError && <p className="text-sm text-destructive">{lookupError}</p>}
+            <Button type="submit" className="w-full">
+              Continuer
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Pas encore de compte ?{' '}
+              <a href="/signup" className="text-primary hover:underline">
+                Créer un compte
+              </a>
             </p>
-            {usersLoading ? (
-              <p className="text-center text-sm text-muted-foreground">Chargement des profils…</p>
-            ) : usersError ? (
-              <p className="text-center text-sm text-destructive">{usersError}</p>
-            ) : users.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">Aucun utilisateur actif</p>
-            ) : (
-              users.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => setSelectedUser(user)}
-                  className="flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary hover:bg-accent"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold">
-                    {user.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{user.name}</p>
-                    <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
+          </form>
         ) : (
           <div className="space-y-4" key={lockTick}>
             <button
@@ -223,11 +205,12 @@ export default function LoginPage() {
               onClick={() => {
                 setSelectedUser(null)
                 setError(null)
+                setStep('email')
                 setLockTick((t) => t + 1)
               }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              ← Changer de profil
+              ← Utiliser un autre email
             </button>
             {pinLock?.locked && (
               <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center text-sm text-destructive">
@@ -236,10 +219,12 @@ export default function LoginPage() {
               </div>
             )}
             <PinPad
-              title={`Bonjour, ${selectedUser.name.split(' ')[0]}`}
+              title={`Bonjour, ${selectedUser?.name.split(' ')[0] ?? ''}`}
               onSubmit={handlePinSubmit}
               onCancel={() => {
                 setSelectedUser(null)
+                setError(null)
+                setStep('email')
                 setLockTick((t) => t + 1)
               }}
               error={error}

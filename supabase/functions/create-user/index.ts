@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
 interface CreateUserPayload {
   name: string
@@ -103,6 +104,21 @@ Deno.serve(async (req: Request) => {
 
     if (operator.role === 'admin' && role === 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Quota check
+    const limits = await getOrgLimits(adminClient, operator.org_id)
+    if (!limits) {
+      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (isAtLimit(limits.usedUsers, limits.maxUsers)) {
+      return new Response(JSON.stringify({ error: 'User limit reached for this plan' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

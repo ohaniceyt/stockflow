@@ -8,6 +8,8 @@ export interface Database {
           currency: string
           timezone: string
           is_active: boolean
+          is_suspended: boolean
+          suspension_reason: string | null
           onboarding_completed: boolean
           created_at: string
           updated_at: string
@@ -17,6 +19,62 @@ export interface Database {
           'id' | 'created_at' | 'updated_at'
         >
         Update: Partial<Database['public']['Tables']['organizations']['Insert']>
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          price_monthly: number
+          price_yearly: number
+          max_users: number | null
+          max_products: number | null
+          max_locations: number | null
+          max_monthly_movements: number | null
+          includes_inventory: boolean
+          includes_api: boolean
+          is_active: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['plans']['Row'], 'created_at'>
+        Update: Partial<Database['public']['Tables']['plans']['Insert']>
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          org_id: string
+          plan_id: string
+          status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'suspended'
+          billing_interval: 'month' | 'year'
+          current_period_starts_at: string
+          current_period_ends_at: string
+          trial_ends_at: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          canceled_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['subscriptions']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['subscriptions']['Insert']>
+        Relationships: []
+      }
+      platform_admins: {
+        Row: {
+          id: string
+          auth_user_id: string
+          email: string
+          name: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['platform_admins']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['platform_admins']['Insert']>
         Relationships: []
       }
       users: {
@@ -160,6 +218,18 @@ export interface Database {
       apply_inventory_session: {
         Args: { p_session_id: string }
         Returns: undefined
+      }
+      is_platform_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      current_org_plan_id: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      movements_count_this_month: {
+        Args: { p_org_id: string }
+        Returns: number
       }
     }
     Enums: Record<string, string>

@@ -6,9 +6,69 @@ export interface Organization {
   currency: string
   timezone: string
   isActive: boolean
+  isSuspended: boolean
+  suspensionReason: string | null
   onboardingCompleted: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface Plan {
+  id: string
+  name: string
+  description: string | null
+  priceMonthly: number
+  priceYearly: number
+  maxUsers: number | null
+  maxProducts: number | null
+  maxLocations: number | null
+  maxMonthlyMovements: number | null
+  includesInventory: boolean
+  includesApi: boolean
+  isActive: boolean
+  createdAt: string
+}
+
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'suspended'
+export type BillingInterval = 'month' | 'year'
+
+export interface Subscription {
+  id: string
+  orgId: string
+  planId: string
+  status: SubscriptionStatus
+  billingInterval: BillingInterval
+  currentPeriodStartsAt: string
+  currentPeriodEndsAt: string
+  trialEndsAt: string | null
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  canceledAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PlatformAdmin {
+  id: string
+  authUserId: string
+  email: string
+  name: string | null
+  isActive: boolean
+  createdAt: string
+}
+
+export interface OrgLimits {
+  orgId: string
+  planId: string
+  isSuspended: boolean
+  maxUsers: number | null
+  maxProducts: number | null
+  maxLocations: number | null
+  maxMonthlyMovements: number | null
+  usedUsers: number
+  usedProducts: number
+  usedLocations: number
+  usedMovementsThisMonth: number
 }
 
 export interface User {
@@ -19,6 +79,7 @@ export interface User {
   emailVerified: boolean
   role: UserRole
   isActive: boolean
+  isPlatformAdmin?: boolean
   lastLoginAt: string | null
   createdAt: string
   updatedAt: string
