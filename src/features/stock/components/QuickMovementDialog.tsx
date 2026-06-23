@@ -10,14 +10,27 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { useLocations } from '@/features/locations/hooks/useLocations'
 import type { StockItem } from '../services/stockService'
 
 interface QuickMovementDialogProps {
   item: StockItem | null
-  type: 'IN' | 'OUT' | null
+  type: 'IN' | 'OUT' | 'TRANSFER' | null
   onClose: () => void
-  onConfirm: (item: StockItem, type: 'IN' | 'OUT', quantity: number) => void
+  onConfirm: (
+    item: StockItem,
+    type: 'IN' | 'OUT' | 'TRANSFER',
+    quantity: number,
+    targetLocationId?: string
+  ) => void
   isLoading?: boolean
+}
+
+const typeTitles: Record<'IN' | 'OUT' | 'TRANSFER', string> = {
+  IN: 'Entrée en stock',
+  OUT: 'Sortie de stock',
+  TRANSFER: 'Transfert de stock',
 }
 
 export function QuickMovementDialog({
@@ -28,23 +41,30 @@ export function QuickMovementDialog({
   isLoading,
 }: QuickMovementDialogProps) {
   const [quantity, setQuantity] = useState(1)
+  const [targetLocationId, setTargetLocationId] = useState('')
+  const { data: locations } = useLocations()
   const open = Boolean(item && type)
+  const isTransfer = type === 'TRANSFER'
 
   const handleClose = () => {
     onClose()
     setQuantity(1)
+    setTargetLocationId('')
   }
 
   const handleConfirm = () => {
     if (!item || !type) return
-    onConfirm(item, type, quantity)
+    if (isTransfer && !targetLocationId) return
+    onConfirm(item, type, quantity, isTransfer ? targetLocationId : undefined)
   }
+
+  const targetOptions = (locations ?? []).filter((l) => l.id !== item?.locationId)
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{type === 'IN' ? 'Entrée en stock' : 'Sortie de stock'}</DialogTitle>
+          <DialogTitle>{type ? typeTitles[type] : 'Mouvement'}</DialogTitle>
           <DialogDescription>
             {item?.productName} — {item?.locationName}
           </DialogDescription>
@@ -61,13 +81,34 @@ export function QuickMovementDialog({
               onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
             />
           </div>
+
+          {isTransfer && (
+            <div className="space-y-2">
+              <Label htmlFor="target-location">Emplacement de destination</Label>
+              <Select
+                id="target-location"
+                value={targetLocationId}
+                onChange={(e) => setTargetLocationId(e.target.value)}
+              >
+                <option value="">Sélectionner un emplacement</option>
+                {targetOptions.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Annuler
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading}>
+          <Button
+            onClick={handleConfirm}
+            disabled={Boolean(isLoading) || (isTransfer && !targetLocationId)}
+          >
             {isLoading ? 'Enregistrement…' : 'Confirmer'}
           </Button>
         </DialogFooter>

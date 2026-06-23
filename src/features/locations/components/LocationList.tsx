@@ -20,17 +20,16 @@ export function LocationList({
 
   if (locations.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">Aucun emplacement. Créez-en un pour commencer.</p>
+      <p className="text-sm text-muted-foreground">
+        Aucun emplacement. Créez-en un pour commencer.
+      </p>
     )
   }
 
   return (
     <div className="space-y-2">
       {locations.map((location) => (
-        <div
-          key={location.id}
-          className="flex items-start justify-between rounded-xl border p-4"
-        >
+        <div key={location.id} className="flex items-start justify-between rounded-xl border p-4">
           <div>
             <div className="flex items-center gap-2">
               <p className="font-semibold">{location.name}</p>
@@ -60,7 +59,12 @@ export function LocationList({
                   Définir par défaut
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => onEdit(location)} disabled={isUpdating}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(location)}
+                disabled={isUpdating}
+              >
                 Modifier
               </Button>
             </div>

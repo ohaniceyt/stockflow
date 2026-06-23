@@ -13,18 +13,24 @@ export default function StockPage() {
 
   const [dialogState, setDialogState] = useState<{
     item: StockItem | null
-    type: 'IN' | 'OUT' | null
+    type: 'IN' | 'OUT' | 'TRANSFER' | null
   }>({ item: null, type: null })
 
-  const handleQuickMove = (item: StockItem, type: 'IN' | 'OUT') => {
+  const handleQuickMove = (item: StockItem, type: 'IN' | 'OUT' | 'TRANSFER') => {
     setDialogState({ item, type })
   }
 
-  const handleConfirm = (item: StockItem, type: 'IN' | 'OUT', quantity: number) => {
+  const handleConfirm = (
+    item: StockItem,
+    type: 'IN' | 'OUT' | 'TRANSFER',
+    quantity: number,
+    targetLocationId?: string
+  ) => {
     record.mutate(
       {
         productId: item.productId,
         locationId: item.locationId,
+        targetLocationId,
         type,
         quantity,
       },

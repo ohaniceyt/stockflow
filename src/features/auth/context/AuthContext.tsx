@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { supabase, supabaseKey } from '@/services/supabase'
+import { pullSync } from '@/features/offline/services/syncService'
 import type { User, UserRole } from '@/types'
 
 interface AuthSession {
@@ -69,6 +70,14 @@ function loadPendingUser():
     return JSON.parse(raw) as User & { forcePinChange: boolean; onboardingCompleted: boolean }
   } catch {
     return null
+  }
+}
+
+async function runPullSync(orgId: string) {
+  try {
+    await pullSync(orgId)
+  } catch (err) {
+    console.error('Initial pull sync failed', err)
   }
 }
 
@@ -186,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             onboardingCompleted: pendingUser.onboardingCompleted,
           }
           persistSession(next)
+          void runPullSync(pendingUser.orgId)
 
           return {
             email: data.email,
@@ -259,6 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         onboardingCompleted: pendingUser.onboardingCompleted,
       }
       persistSession(next)
+      void runPullSync(pendingUser.orgId)
       clearPending()
     } finally {
       setIsLoading(false)
@@ -320,6 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       persistSession({ ...session, onboardingCompleted: true })
+      void runPullSync(session.user.orgId)
     },
     [session, persistSession]
   )

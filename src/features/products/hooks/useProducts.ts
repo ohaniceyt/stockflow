@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import { cacheProducts, getCachedProducts } from '@/features/offline/services/cacheService'
+import { queueOperation } from '@/features/offline/services/queueService'
 import { createProduct, fetchProducts, updateProduct } from '../services/productService'
 import type { Product } from '@/types'
 
@@ -42,6 +43,11 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (input: Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>) => {
       if (!orgId) throw new Error('Organisation manquante')
+      if (!online) {
+        return queueOperation({ type: 'PRODUCT_CREATE', payload: { orgId, input } }).then(
+          () => undefined
+        )
+      }
       return createProduct(orgId, input)
     },
     onMutate: async (input) => {
@@ -86,6 +92,7 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
+  const online = useNetworkStatus()
   const orgId = session?.user.orgId
 
   return useMutation({
@@ -93,7 +100,28 @@ export function useUpdateProduct() {
       id,
       ...input
     }: { id: string } & Partial<Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) => {
+      if (!online) {
+        return queueOperation({ type: 'PRODUCT_UPDATE', payload: { id, input } }).then(
+          () => undefined
+        )
+      }
       return updateProduct(id, input)
+    },
+    onMutate: async ({ id, ...input }) => {
+      await queryClient.cancelQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })
+      const previous = queryClient.getQueryData<Product[]>([PRODUCTS_QUERY_KEY, orgId])
+
+      queryClient.setQueryData([PRODUCTS_QUERY_KEY, orgId], (old: Product[] | undefined) => {
+        if (!old) return old
+        return old.map((p) => (p.id === id ? { ...p, ...input } : p))
+      })
+
+      return { previous }
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData([PRODUCTS_QUERY_KEY, orgId], context.previous)
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })

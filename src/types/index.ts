@@ -101,10 +101,11 @@ export interface InventoryCount {
 
 export interface PendingOperation {
   id: string
-  type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE'
+  type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE' | 'PRODUCT_UPDATE' | 'INVENTORY_COUNT_UPDATE'
   payload: unknown
-  createdAt: string
+  createdAt: number
   retryCount: number
-  status: 'pending' | 'syncing' | 'failed'
+  status: 'pending' | 'syncing' | 'failed' | 'dead'
   error?: string
+  nextRetryAt?: number
 }
