@@ -1,0 +1,19 @@
+name: Cron Cleanup Rate Limits
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Cleanup rate limit logs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cleanup Edge Function
+        run: |
+          curl -sS -X POST \
+            "https://ngdvmodloxuvrdjjzxel.supabase.co/functions/v1/cleanup-rate-limits" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{}'

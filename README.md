@@ -54,6 +54,7 @@ Définies via `supabase secrets set` ou le dashboard Supabase :
 | `RESEND_API_KEY`            | Clé API Resend (`re_...`)                                                                               |
 | `RESEND_FROM_EMAIL`         | Expéditeur par défaut, ex. `StockFlow <team@updates.stockflow.grandigix.com>`                           |
 | `PUBLIC_APP_URL`            | URL publique de l’application, ex. `https://stockflow.grandigix.com`                                    |
+| `CRON_SECRET`               | Secret utilisé par le cron GitHub Actions pour appeler `cleanup-rate-limits`                            |
 | `DEMO_BYPASS`               | `true` uniquement en dev pour contourner l’email OTP sur les comptes de démo. **Jamais en production.** |
 
 ---
@@ -76,15 +77,17 @@ Définies via `supabase secrets set` ou le dashboard Supabase :
 
 ## Edge Functions
 
-| Function              | JWT requis  | Rôle                                                                        |
-| --------------------- | ----------- | --------------------------------------------------------------------------- |
-| `login`               | ❌ (public) | Valide le PIN, rate-limit par user/IP, retourne l’utilisateur               |
-| `send-magic-link`     | ❌ (public) | Envoie un magic link, rate-limit par email/IP, vérifie `public.users` actif |
-| `create-user`         | ✅          | Crée un utilisateur + envoie l’email de bienvenue (admin/super_admin)       |
-| `list-users`          | ✅          | Liste les utilisateurs de l’organisation                                    |
-| `change-pin`          | ✅          | Changement de PIN par l’utilisateur                                         |
-| `reset-pin`           | ✅          | Réinitialisation forcée du PIN (admin)                                      |
-| `complete-onboarding` | ✅          | Finalise l’onboarding de l’organisation                                     |
+| Function              | JWT requis  | Rôle                                                                            |
+| --------------------- | ----------- | ------------------------------------------------------------------------------- |
+| `login`               | ❌ (public) | Valide le PIN, rate-limit par user/IP, retourne l’utilisateur                   |
+| `send-magic-link`     | ❌ (public) | Envoie un magic link, rate-limit par email/IP, vérifie `public.users` actif     |
+| `create-user`         | ✅          | Crée un utilisateur + envoie l’email de bienvenue (admin/super_admin)           |
+| `list-users`          | ✅          | Liste les utilisateurs de l’organisation                                        |
+| `change-pin`          | ✅          | Changement de PIN par l’utilisateur                                             |
+| `reset-pin`           | ✅          | Réinitialisation forcée du PIN (admin)                                          |
+| `complete-onboarding` | ✅          | Finalise l’onboarding de l’organisation                                         |
+| `cleanup-rate-limits` | ✅          | Supprime les logs de rate-limiting de plus de 7 jours (appelée par cron)        |
+| `cleanup-rate-limits` | ❌ (cron)   | Supprime les logs de rate-limit de plus de 7 jours (protégée par `CRON_SECRET`) |
 
 ### Déploiement
 
