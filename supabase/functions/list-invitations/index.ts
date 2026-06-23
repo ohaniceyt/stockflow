@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const claims = parseJwt(token)
-    if (!claims?.sub || !claims?.email) {
+    if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -38,11 +38,27 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Pending invitations addressed to this authenticated user's email
+    const { data: operator, error: operatorError } = await adminClient
+      .from('users')
+      .select('id, role, org_id')
+      .eq('id', claims.sub)
+      .single()
+
+    if (
+      operatorError ||
+      !operator ||
+      !['super_admin', 'admin'].includes(operator.role)
+    ) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: invitations, error } = await adminClient
       .from('invitations')
-      .select('id, org_id, email, role, status, created_at, organizations(id, name)')
-      .eq('email', claims.email.toLowerCase())
+      .select('id, org_id, email, role, status, created_at, organizations(name)')
+      .eq('org_id', operator.org_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
 

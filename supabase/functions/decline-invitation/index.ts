@@ -38,10 +38,6 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
     const { invitationId }: Payload = await req.json()
     if (!invitationId) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
@@ -50,11 +46,49 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    // Admins of the invitation's organization can cancel it; invitees can decline it.
+    const { data: invitation, error: inviteError } = await adminClient
+      .from('invitations')
+      .select('id, email, org_id')
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+      .single()
+
+    if (inviteError || !invitation) {
+      return new Response(JSON.stringify({ error: 'Invitation not found or already processed' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const isInvitee = invitation.email.toLowerCase() === claims.email.toLowerCase()
+
+    let isAdmin = false
+    if (!isInvitee) {
+      const { data: operator } = await adminClient
+        .from('users')
+        .select('role')
+        .eq('id', claims.sub)
+        .eq('org_id', invitation.org_id)
+        .maybeSingle()
+      isAdmin = operator?.role === 'super_admin' || operator?.role === 'admin'
+    }
+
+    if (!isInvitee && !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { error } = await adminClient
       .from('invitations')
       .update({ status: 'declined' })
       .eq('id', invitationId)
-      .eq('email', claims.email.toLowerCase())
       .eq('status', 'pending')
 
     if (error) {

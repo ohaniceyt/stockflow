@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({
             email: data.email,
-            redirectTo: window.location.origin,
+            redirectTo: `${window.location.origin}/login`,
           }),
         })
 

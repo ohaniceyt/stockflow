@@ -54,8 +54,8 @@ export default function SubscriptionPage() {
 
   const planMutation = useMutation({
     mutationFn: changeOrganizationPlan,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['org-limits'] })
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['org-limits'], exact: true })
       setActionError(null)
     },
     onError: (err) => {

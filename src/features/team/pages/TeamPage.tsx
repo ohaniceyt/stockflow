@@ -8,7 +8,6 @@ import { InviteUserDialog } from '../components/InviteUserDialog'
 import { InvitationList } from '../components/InvitationList'
 import { OrgSwitcher } from '../components/OrgSwitcher'
 import {
-  useAcceptInvitation,
   useCreateInvitation,
   useDeclineInvitation,
   useInvitations,
@@ -27,7 +26,6 @@ export default function TeamPage() {
   const { data: invitations } = useInvitations()
   const { data: myOrganizations } = useMyOrganizations()
   const createInvitation = useCreateInvitation()
-  const acceptInvitation = useAcceptInvitation()
   const declineInvitation = useDeclineInvitation()
 
   const canCreate = hasRole(['super_admin', 'admin'])
@@ -36,7 +34,6 @@ export default function TeamPage() {
   const [resetOpen, setResetOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createdPin, setCreatedPin] = useState<string | null>(null)
-  const [acceptedPin, setAcceptedPin] = useState<string | null>(null)
 
   const handleToggleActive = (user: User) => {
     updateActive.mutate({ id: user.id, isActive: !user.isActive })
@@ -76,14 +73,6 @@ export default function TeamPage() {
     })
   }
 
-  const handleAccept = (id: string) => {
-    acceptInvitation.mutate(id, {
-      onSuccess: (data) => {
-        setAcceptedPin(data.tempPin)
-      },
-    })
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -111,25 +100,13 @@ export default function TeamPage() {
         />
       )}
 
-      {acceptedPin && (
-        <div className="rounded-xl bg-green-50 p-4 text-center">
-          <p className="text-sm text-green-700">Invitation acceptée.</p>
-          <p className="mt-2 text-xs text-muted-foreground">Votre PIN temporaire :</p>
-          <p className="text-2xl font-bold tracking-widest text-green-700">{acceptedPin}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Vous pouvez maintenant vous connecter à cette organisation. Reconnectez-vous.
-          </p>
-        </div>
-      )}
-
       {invitations && invitations.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Invitations en attente</h2>
           <InvitationList
             invitations={invitations}
-            onAccept={handleAccept}
-            onDecline={(id) => declineInvitation.mutate(id)}
-            isLoading={acceptInvitation.isPending || declineInvitation.isPending}
+            onCancel={(id) => declineInvitation.mutate(id)}
+            isLoading={declineInvitation.isPending}
           />
         </div>
       )}

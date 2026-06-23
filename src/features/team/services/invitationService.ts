@@ -29,9 +29,27 @@ export async function createInvitation(input: {
   })
 }
 
+interface RawInvitation {
+  id: string
+  org_id: string
+  email: string
+  role: UserRole
+  status: 'pending' | 'accepted' | 'declined'
+  created_at: string
+  organizations: { name: string } | null
+}
+
 export async function fetchInvitations(): Promise<Invitation[]> {
-  const data = await edgeFetch<{ invitations: Invitation[] }>('list-invitations')
-  return data.invitations
+  const data = await edgeFetch<{ invitations: RawInvitation[] }>('list-invitations')
+  return data.invitations.map((invitation) => ({
+    id: invitation.id,
+    orgId: invitation.org_id,
+    email: invitation.email,
+    role: invitation.role,
+    status: invitation.status,
+    createdAt: invitation.created_at,
+    organizationName: invitation.organizations?.name ?? '',
+  }))
 }
 
 export async function acceptInvitation(invitationId: string): Promise<{ tempPin: string }> {

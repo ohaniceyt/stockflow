@@ -110,6 +110,11 @@ export default function LocationsPage() {
             onCancel={() => handleOpenChange(false)}
             isLoading={create.isPending || update.isPending}
           />
+          {(create.error ?? update.error) && (
+            <p className="text-sm text-destructive">
+              {(create.error ?? update.error)?.message}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </div>
