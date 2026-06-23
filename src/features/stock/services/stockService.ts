@@ -1,3 +1,4 @@
+import { edgeFetch } from '@/services/edgeFunctions'
 import { supabase } from '@/services/supabase'
 import type { MovementType, Product } from '@/types'
 
@@ -57,18 +58,17 @@ export async function recordMovement(input: {
   quantity: number
   reason?: string | null
 }): Promise<string> {
-  const { data, error } = await supabase.rpc('record_movement', {
-    p_product_id: input.productId,
-    p_location_id: input.locationId,
-    p_target_location_id: input.targetLocationId ?? null,
-    p_type: input.type,
-    p_quantity: input.quantity,
-    p_reason: input.reason ?? null,
+  const data = await edgeFetch<{ movement_id: string }>('record-movement', {
+    method: 'POST',
+    body: JSON.stringify({
+      product_id: input.productId,
+      location_id: input.locationId,
+      target_location_id: input.targetLocationId ?? null,
+      type: input.type,
+      quantity: input.quantity,
+      reason: input.reason ?? null,
+    }),
   })
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  return data
+  return data.movement_id
 }

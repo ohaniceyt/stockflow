@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase'
+import { edgeFetch } from '@/services/edgeFunctions'
 import type { Product } from '@/types'
 import type { Database } from '@/types/database'
 
@@ -43,7 +44,7 @@ export async function createProduct(
   orgId: string,
   input: Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>
 ): Promise<Product> {
-  const insert: ProductInsert = {
+  const payload: ProductInsert = {
     org_id: orgId,
     name: input.name,
     category: input.category,
@@ -57,11 +58,10 @@ export async function createProduct(
     is_active: input.isActive,
   }
 
-  const { data, error } = await supabase.from('products').insert([insert]).select().single()
-
-  if (error) {
-    throw new Error(error.message)
-  }
+  const data = await edgeFetch<ProductRow>('create-product', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 
   return mapRowToProduct(data)
 }

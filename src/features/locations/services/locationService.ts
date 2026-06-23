@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase'
+import { edgeFetch } from '@/services/edgeFunctions'
 import type { Location } from '@/types'
 import type { Database } from '@/types/database'
 import type { LocationFormData } from '../schemas/locationSchema'
@@ -34,7 +35,7 @@ export async function fetchLocations(orgId: string): Promise<Location[]> {
 }
 
 export async function createLocation(orgId: string, input: LocationFormData): Promise<Location> {
-  const insert: LocationInsert = {
+  const payload: LocationInsert = {
     org_id: orgId,
     name: input.name,
     description: input.description ?? null,
@@ -42,11 +43,10 @@ export async function createLocation(orgId: string, input: LocationFormData): Pr
     is_default: false,
   }
 
-  const { data, error } = await supabase.from('locations').insert([insert]).select().single()
-
-  if (error) {
-    throw new Error(error.message)
-  }
+  const data = await edgeFetch<LocationRow>('create-location', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 
   return mapRowToLocation(data)
 }
