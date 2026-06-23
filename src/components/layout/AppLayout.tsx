@@ -13,6 +13,7 @@ import {
   FileText,
   LogOut,
   Building2,
+  MapPin,
 } from 'lucide-react'
 
 const navItems: { to: string; label: string; icon: React.ElementType; roles: UserRole[] }[] = [
@@ -41,6 +42,7 @@ const navItems: { to: string; label: string; icon: React.ElementType; roles: Use
     roles: ['super_admin', 'admin', 'operator'],
   },
   { to: '/products', label: 'Produits', icon: Warehouse, roles: ['super_admin', 'admin'] },
+  { to: '/locations', label: 'Emplacements', icon: MapPin, roles: ['super_admin', 'admin'] },
   { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
   {
     to: '/recap',

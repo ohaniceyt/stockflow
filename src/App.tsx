@@ -13,6 +13,7 @@ const MovementsPage = lazy(() => import('@/features/movements/pages/MovementsPag
 const InventoryPage = lazy(() => import('@/features/inventory/pages/InventoryPage'))
 const ProductsPage = lazy(() => import('@/features/products/pages/ProductsPage'))
 const TeamPage = lazy(() => import('@/features/team/pages/TeamPage'))
+const LocationsPage = lazy(() => import('@/features/locations/pages/LocationsPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
 const SuperAdminPage = lazy(() => import('@/features/super-admin/pages/SuperAdminPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
@@ -73,6 +74,14 @@ function App() {
               element={
                 <RequireAuth roles={['super_admin', 'admin']}>
                   <TeamPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/locations"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <LocationsPage />
                 </RequireAuth>
               }
             />

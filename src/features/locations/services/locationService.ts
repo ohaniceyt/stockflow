@@ -1,8 +1,11 @@
 import { supabase } from '@/services/supabase'
 import type { Location } from '@/types'
 import type { Database } from '@/types/database'
+import type { LocationFormData } from '../schemas/locationSchema'
 
 type LocationRow = Database['public']['Tables']['locations']['Row']
+type LocationInsert = Database['public']['Tables']['locations']['Insert']
+type LocationUpdate = Database['public']['Tables']['locations']['Update']
 
 function mapRowToLocation(row: LocationRow): Location {
   return {
@@ -28,4 +31,78 @@ export async function fetchLocations(orgId: string): Promise<Location[]> {
   }
 
   return data.map(mapRowToLocation)
+}
+
+export async function createLocation(
+  orgId: string,
+  input: LocationFormData
+): Promise<Location> {
+  const insert: LocationInsert = {
+    org_id: orgId,
+    name: input.name,
+    description: input.description ?? null,
+    address: input.address ?? null,
+    is_default: false,
+  }
+
+  const { data, error } = await supabase.from('locations').insert([insert]).select().single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return mapRowToLocation(data)
+}
+
+export async function updateLocation(
+  id: string,
+  input: LocationFormData
+): Promise<Location> {
+  const update: LocationUpdate = {
+    name: input.name,
+    description: input.description ?? null,
+    address: input.address ?? null,
+  }
+
+  const { data, error } = await supabase
+    .from('locations')
+    .update(update)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return mapRowToLocation(data)
+}
+
+export async function setDefaultLocation(id: string, orgId: string): Promise<Location> {
+  // Unset current default
+  const { error: unsetError } = await supabase
+    .from('locations')
+    .update({ is_default: false })
+    .eq('org_id', orgId)
+    .eq('is_default', true)
+    .neq('id', id)
+
+  if (unsetError) {
+    throw new Error(unsetError.message)
+  }
+
+  // Set new default
+  const { data, error } = await supabase
+    .from('locations')
+    .update({ is_default: true })
+    .eq('id', id)
+    .eq('org_id', orgId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return mapRowToLocation(data)
 }

@@ -1,237 +1,177 @@
-# StockFlow vNext — Go-Live Fast Plan
+# Plan : finalisation MVP multi-locations + offline-first
 
-**Priority: A — Core flow first, admin/super-admin later.**
+## Objectif
 
-Goal: get a safe, usable, deployable MVP in production that covers **Products → Stock → Movements → Dashboard**. Everything else stays a stub until the core loop is solid.
-
----
-
-## Phase 0 — Security & CI hygiene (must finish first)
-
-### 0.1 Rotate the exposed GitHub token
-
-- **Problem:** `git remote -v` shows a personal access token in the origin URL:
-  `https://ohaniceyt:<TOKEN_REDACTED>@github.com/ohaniceyt/stockflow.git`
-- **Risk:** token is committed to `.git/config`, may leak in backups, logs, or screenshots.
-- **Action:**
-  1. Rotate the token immediately on GitHub (`Settings → Developer settings → Personal access tokens`).
-  2. Remove the token from the origin URL locally:
-     ```bash
-     git remote set-url origin https://github.com/ohaniceyt/stockflow.git
-     ```
-  3. Use a credential helper (`gh auth login` or macOS Keychain) for pushes.
-  4. Update any CI secrets if needed.
-
-### 0.2 Fix the broken E2E test
-
-- **Problem:** `tests/e2e/login.spec.ts` expects `"Connexion par PIN"` but the login page now shows `"Sélectionnez votre profil puis saisissez votre PIN"`.
-- **Action:** update the assertion to match the actual text, or assert on the user-selection prompt instead.
-
-### 0.3 Pre-implementation health checks
-
-- Run `npm run lint`, `npm run test`, `npm run build`, `npm run test:e2e` before and after each phase.
-- Keep the green CI pipeline green.
+Durcir le MVP pour qu’il supporte vraiment le multi-locations, les transferts entre emplacements, et fonctionne de manière fiable en mode offline-first.
 
 ---
 
-## Phase 1 — Products (catalog CRUD)
+## Phase 1 — Correction base de données multi-locations
 
-### Why first
+### Problème
+La contrainte `one_default_per_org UNIQUE (org_id, is_default)` empêche d’avoir plus d’un emplacement non-défaut par organisation.
 
-Products are the master data for every other feature. Without products, stock and movements have nothing to reference.
+### Solution
+Nouvelle migration `00000000000012_fix_locations_default_constraint.sql` :
 
-### UI
+```sql
+-- Supprimer la contrainte unique incorrecte
+ALTER TABLE locations DROP CONSTRAINT IF EXISTS one_default_per_org;
 
-- `/products` page for `super_admin` and `admin`.
-- Table view: name, category, unit, threshold, cost/selling price, supplier, active status, actions.
-- Add/Edit form in a dialog/drawer (Base UI dialog or sheet).
-- Soft-delete via `is_active = false` instead of hard delete (movements keep history).
-- Search + filter by category.
+-- Index partiel : un seul emplacement par défaut par org, mais autant de non-défauts que nécessaire
+CREATE UNIQUE INDEX one_default_per_org ON locations(org_id) WHERE is_default = TRUE;
+```
 
-### Data layer
-
-- Supabase client reads: `products` table (RLS already restricts to org).
-- Admin writes: insert/update products.
-- Zod schema for product form validation.
-- Cache with TanStack Query (`staleTime: 30s`).
-- Optimistic update for toggling `is_active`.
-
-### Supabase changes needed
-
-- No migration needed; `products` table exists.
-- Optional: RPC or trigger to enforce `UNIQUE(org_id, name)` with soft-delete nuance.
-
-### Offline
-
-- Sync products into Dexie `products` table on login.
-- Read from local DB when offline; queue writes in `pendingOperations` for later sync.
+### Déploiement
+```bash
+npx supabase db push
+```
 
 ---
 
-## Phase 2 — Stock (view levels + quick adjustment)
+## Phase 2 — Page de gestion des emplacements
 
-### Why second
+### Fichiers à créer
 
-Once products exist, the next thing users need is to know what is in stock.
+- `src/features/locations/components/LocationForm.tsx`
+- `src/features/locations/components/LocationList.tsx`
+- `src/features/locations/pages/LocationsPage.tsx`
+- `src/features/locations/schemas/locationSchema.ts`
 
-### UI
+### Fichiers à modifier
 
-- `/stock` page for all roles.
-- Table: product, location, quantity, threshold, status (OK / Low / Out).
-- Quick “+ / –” buttons for `admin`/`operator` to record a movement.
-- Optional: low-stock badge.
+- `src/features/locations/services/locationService.ts` : ajouter `createLocation`, `updateLocation`, `setDefaultLocation`.
+- `src/features/locations/hooks/useLocations.ts` : ajouter les mutations correspondantes.
+- `src/App.tsx` : ajouter la route `/locations` accessible à `super_admin`/`admin`.
+- `src/components/layout/AppLayout.tsx` : ajouter un lien "Emplacements" dans la navigation.
 
-### Data layer
-
-- Reads from `stock_levels` (org-scoped via RLS).
-- Writes go through `movements` table; stock levels stay materialized by triggers.
-- For this phase we can compute `stock_levels` on the client or via RPC.
-
-### Supabase changes needed
-
-- Add trigger(s) to maintain `stock_levels`:
-  - On `IN` movement: increase quantity.
-  - On `OUT` movement: decrease quantity (reject if insufficient).
-  - On `ADJUSTMENT`/`INVENTORY`: set quantity.
-  - On `TRANSFER`: decrease source, increase target.
-- Add function `record_movement(...)` to encapsulate the atomic stock update.
-- Add trigger to auto-create `stock_levels` row when a product is created (default location).
-
-### Offline
-
-- Sync `stock_levels` and `locations` into Dexie.
-- Queue movements when offline; sync on reconnect.
+### Comportement attendu
+- Liste des emplacements de l’org.
+- Ajouter un emplacement (nom, description, adresse).
+- Définir un emplacement comme défaut (met à jour `is_default` des autres).
+- L’emplacement par défaut ne peut pas être supprimé.
+- Mise à jour du cache local après chaque mutation.
 
 ---
 
-## Phase 3 — Movements (IN / OUT / TRANSFER)
+## Phase 3 — Offline-first robuste
 
-### Why third
+### 3.1 Nettoyer le doublon Dexie
 
-Movements are the actual work: goods arrive, goods leave, goods move between depots.
+- Supprimer `src/db/localDb.ts` (non utilisé, conflit potentiel avec `src/lib/db.ts`).
+- Vérifier qu’aucun import ne pointe vers `src/db/localDb.ts`.
 
-### UI
+### 3.2 Uniformiser les types de la queue
 
-- `/movements` page for all roles; write restricted to `admin`/`operator`.
-- Form to create a movement:
-  - Type selector: IN, OUT, TRANSFER.
-  - Product selector (searchable).
-  - Location selector (source + target for transfer).
-  - Quantity.
-  - Reason / note.
-- Table of recent movements with filters (date range, type, product).
+- `PendingOperation.createdAt` est déclaré `string` dans `src/types/index.ts` mais stocké `number` dans Dexie.
+- **Décision** : utiliser `number` (timestamp) partout pour les opérations en file.
+- Modifier `src/types/index.ts` : `createdAt: number` dans `PendingOperation`.
+- Modifier `src/features/offline/services/queueService.ts` pour ne plus convertir.
 
-### Data layer
+### 3.3 Pull sync complet au login
 
-- Insert into `movements`; let the database trigger update `stock_levels`.
-- Validate quantity > 0 and sufficient stock for OUT/TRANSFER.
-- Track `operator_id = auth.uid()`.
+- Créer `src/features/offline/services/syncService.ts` avec :
+  - `pullSync(orgId)` : fetch products, locations, stockLevels, movements, inventorySessions, inventoryCounts et les met en cache Dexie.
+- Appeler `pullSync` après connexion réussie dans `src/features/auth/context/AuthContext.tsx`.
+- Appeler `pullSync` au reconnect dans `src/features/offline/hooks/useSync.ts` avant le push.
 
-### Supabase changes needed
+### 3.4 Cacher toutes les données critiques
 
-- Reuse the same movement trigger from Phase 2.
-- Add RPC `create_movement(...)` that runs as SECURITY DEFINER so it can enforce stock constraints atomically.
+- `useLocations` : `cacheLocations` après fetch.
+- `useMovements` : `cacheMovements` après fetch.
+- `useInventory` : `cacheInventorySessions` + `cacheInventoryCounts` après fetch.
+- Fallback offline dans chaque hook (`getCachedXxx`).
 
-### Offline
+### 3.5 Router toutes les mutations offline vers la queue
 
-- Queue movement creation in `pendingOperations`.
-- On sync, resolve conflicts: if stock changed since offline, surface a validation error for manual review.
+| Mutation | Action hors ligne |
+|---|---|
+| `useCreateProduct` | `queueOperation({ type: 'PRODUCT_CREATE', payload: { orgId, input } })` |
+| `useUpdateProduct` | `queueOperation({ type: 'PRODUCT_UPDATE', payload: { id, input } })` |
+| `useCreateMovement` (page Mouvements) | `queueOperation({ type: 'MOVEMENT', payload })` |
+| `useCreateInventorySession` | `queueOperation({ type: 'INVENTORY_SESSION_CREATE', payload })` |
+| `useUpdateCount` | `queueOperation({ type: 'INVENTORY_COUNT_UPDATE', payload })` |
 
----
+### 3.6 Étendre `executeOperation` dans `useSync.ts`
 
-## Phase 4 — Dashboard (metrics overview)
+- Ajouter les handlers pour `PRODUCT_UPDATE`, `INVENTORY_SESSION_CREATE`, `INVENTORY_COUNT_UPDATE`.
+- Créer un service `inventoryService.ts` côté client pour les appels synchrones si nécessaire.
 
-### Why last among core
+### 3.7 Retry intelligent
 
-Dashboard needs data from the previous modules to be meaningful.
+- Constantes : `MAX_RETRIES = 5`, `BACKOFF_BASE_MS = 1000`.
+- Une opération `failed` avec `retryCount >= MAX_RETRIES` passe en statut `dead` et n’est plus retentée automatiquement.
+- Backoff exponentiel : attendre `BACKOFF_BASE_MS * 2^retryCount` avant le prochain essai (implémenté via timestamp `nextRetryAt`).
+- Afficher les opérations en échec dans `OfflineStatus` avec bouton "Réessayer" / "Supprimer".
 
-### UI
+### 3.8 Valider les payloads de la queue
 
-- `/` dashboard page.
-- Cards: total products, total stock value, low-stock count, movements today.
-- Simple bar chart (recharts) of movements by day over last 7 days.
-- Recent movements list (top 10).
+- Créer `src/features/offline/schemas/operationSchema.ts` avec Zod pour chaque type d’opération.
+- Dans `executeOperation`, valider le payload avant exécution.
+- En cas de payload invalide, marquer `dead` avec message explicite.
 
-### Data layer
+### 3.9 Mise à jour du schéma Dexie
 
-- Aggregate queries against `products`, `stock_levels`, `movements`.
-- Use Supabase RPC for heavy aggregations to avoid fetching large datasets.
-
-### Supabase changes needed
-
-- Add RPC functions:
-  - `get_dashboard_summary(org_id)`
-  - `get_movements_by_day(org_id, days)`
-  - `get_low_stock_products(org_id)`
-
-### Offline
-
-- Dashboard can show stale cached aggregates when offline with a "dernière synchronisation" badge.
+- Passer `src/lib/db.ts` à `version(2)` pour supporter les nouveaux champs (`nextRetryAt`, `error`).
+- Index supplémentaire : `pendingOperations: 'id, type, status, createdAt, nextRetryAt'`.
 
 ---
 
-## Phase 5 — Sync engine (offline-first)
+## Phase 4 — Transfert rapide dans le stock (P1)
 
-This can be built incrementally alongside Phases 1–4, but finalized after the core flow works online.
+### Fichiers à modifier
 
-### Components
+- `src/features/stock/components/QuickMovementDialog.tsx` : accepter `'TRANSFER'` et demander l’emplacement cible.
+- `src/features/stock/pages/StockPage.tsx` : ajouter une action "Transférer" qui ouvre le dialog.
+- `src/features/stock/services/stockService.ts` : `recordMovement` supporte déjà `TRANSFER`.
 
-1. **Pull sync** on login and periodically:
-   - Fetch org, products, locations, stock_levels, recent movements.
-   - Store in Dexie.
-2. **Push sync** for pending operations:
-   - `pendingOperations` queue (type, payload, retryCount, status).
-   - Retry with exponential backoff.
-   - Mark failed after N retries; show user a sync conflict UI.
-3. **Conflict resolution**:
-   - Last-write-wins for products.
-   - Stock movements validated server-side; if conflict, flag for manual review.
+### Comportement
+- Depuis la liste de stock, l’utilisateur clique "Transférer" sur une ligne.
+- Dialogue : quantité + emplacement cible (liste des autres locations de l’org).
+- Envoie un mouvement `TRANSFER` via la queue offline si hors ligne.
 
 ---
 
-## Design decisions
+## Phase 5 — Tests & validation
 
-### UI component strategy
+### À faire après chaque phase
+- `npm run lint`
+- `npm run test`
+- `npm run test:e2e`
+- `npm run build`
+- Smoke test sur `https://stockflow.grandigix.com`
 
-- Use **Base UI** primitives already installed (`@base-ui/react`).
-- Avoid adding new heavy UI libraries.
-- Keep forms uncontrolled where possible to reduce re-renders; use Zod for validation.
-
-### State management
-
-- **TanStack Query** for server state and caching.
-- **Dexie** for offline local cache.
-- **Zustand** only if needed for global UI state (e.g., pending sync queue).
-
-### Role enforcement
-
-- Front-end hides UI elements based on `hasRole`.
-- Back-end is the real gatekeeper via RLS + RPC `SECURITY DEFINER`.
-
-### Deployment
-
-- Front-end deploys to Vercel via existing GitHub Action.
-- Supabase migrations applied via `supabase db push`.
-- Edge Functions deployed via `supabase functions deploy`.
+### Smoke test final attendu
+1. Créer 2 emplacements.
+2. Créer un produit avec prix d’achat/vente.
+3. Faire un mouvement `IN` dans l’emplacement A.
+4. Faire un `TRANSFER` de A vers B.
+5. Passer en offline (DevTools → Network → Offline).
+6. Créer un produit → vérifier qu’il apparaît localement.
+7. Faire un mouvement `OUT` → vérifier l’impact local.
+8. Repasser online → vérifier que la queue se synchronise.
+9. Rafraîchir → vérifier que les données sont persistées côté serveur.
 
 ---
 
-## Open questions for the user
+## Ordre d’exécution
 
-1. **Locations**: the seed has one default location. Do users need multiple locations for launch, or is single-warehouse OK for MVP?
-2. **Product fields**: are cost price / selling price required for launch, or can they be hidden until reporting is built?
-3. **Movements**: do you need TRANSFER for launch, or just IN/OUT?
-4. **Offline priority**: should the app be usable offline on day one, or is online-only acceptable for the first go-live?
+1. Phase 1 (migration BDD).
+2. Phase 2 (page locations).
+3. Phase 3.1 + 3.2 (cleanup + types).
+4. Phase 3.3 + 3.4 (pull sync + cache complet).
+5. Phase 3.5 + 3.6 (queue pour toutes les mutations).
+6. Phase 3.7 + 3.8 (retry + validation).
+7. Phase 4 (transfert rapide).
+8. Phase 5 (tests + smoke).
 
 ---
 
-## Suggested order of work
+## Risques & décisions
 
-1. Phase 0.1 + 0.2 (token + E2E fix).
-2. Phase 1 — Products CRUD.
-3. Phase 2 — Stock view + triggers.
-4. Phase 3 — Movements form + history.
-5. Phase 4 — Dashboard.
-6. Phase 5 — Offline sync (optional for launch).
-
-Each phase ends with: lint, unit tests, build, and a manual smoke test on the deployed preview.
+| Risque | Mitigation |
+|---|---|
+| Migration BDD sur données existantes | Test local avec `supabase db reset` avant push |
+| Conflits de sync (même produit modifié offline par 2 utilisateurs) | Dernier écrit gagne pour l’instant ; conflits manuels plus tard |
+| Perte d’opérations en file d’attente | Statut `dead` visible + bouton réessayer |
+| Performance du pull sync sur gros volume | Pagination future si besoin ; MVP volume faible |
