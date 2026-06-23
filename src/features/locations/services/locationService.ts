@@ -33,10 +33,7 @@ export async function fetchLocations(orgId: string): Promise<Location[]> {
   return data.map(mapRowToLocation)
 }
 
-export async function createLocation(
-  orgId: string,
-  input: LocationFormData
-): Promise<Location> {
+export async function createLocation(orgId: string, input: LocationFormData): Promise<Location> {
   const insert: LocationInsert = {
     org_id: orgId,
     name: input.name,
@@ -54,10 +51,7 @@ export async function createLocation(
   return mapRowToLocation(data)
 }
 
-export async function updateLocation(
-  id: string,
-  input: LocationFormData
-): Promise<Location> {
+export async function updateLocation(id: string, input: LocationFormData): Promise<Location> {
   const update: LocationUpdate = {
     name: input.name,
     description: input.description ?? null,

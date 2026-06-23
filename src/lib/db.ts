@@ -17,12 +17,13 @@ export type CachedInventoryCount = InventoryCount
 
 export interface QueuedOperation {
   id: string
-  type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE'
+  type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE' | 'PRODUCT_UPDATE' | 'INVENTORY_COUNT_UPDATE'
   payload: unknown
   createdAt: number
   retryCount: number
-  status: 'pending' | 'syncing' | 'failed'
+  status: 'pending' | 'syncing' | 'failed' | 'dead'
   error?: string
+  nextRetryAt?: number
 }
 
 export interface SyncMeta {
@@ -43,14 +44,14 @@ class StockFlowDB extends Dexie {
 
   constructor() {
     super('StockFlowDB')
-    this.version(1).stores({
+    this.version(2).stores({
       products: 'id, orgId, name, category, isActive',
       locations: 'id, orgId, name',
       stockLevels: 'id, productId, locationId, quantity',
       movements: 'id, productId, locationId, type, createdAt',
       inventorySessions: 'id, orgId, locationId, status, startedAt',
       inventoryCounts: 'id, sessionId, productId, locationId',
-      pendingOperations: 'id, type, status, createdAt',
+      pendingOperations: 'id, type, status, createdAt, nextRetryAt',
       syncMeta: 'id',
     })
   }

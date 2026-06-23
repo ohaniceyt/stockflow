@@ -1,10 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
-import {
-  cacheLocations,
-  getCachedLocations,
-} from '@/features/offline/services/cacheService'
+import { cacheLocations, getCachedLocations } from '@/features/offline/services/cacheService'
 import {
   createLocation,
   fetchLocations,

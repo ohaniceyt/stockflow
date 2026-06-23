@@ -57,17 +57,27 @@ export function useRecordMovement() {
 
       queryClient.setQueryData([STOCK_QUERY_KEY], (old: StockItem[] | undefined) => {
         if (!old) return old
-        return old.map((item) =>
-          item.productId === input.productId && item.locationId === input.locationId
-            ? {
-                ...item,
-                quantity: Math.max(
-                  0,
-                  item.quantity + (input.type === 'IN' ? input.quantity : -input.quantity)
-                ),
-              }
-            : item
-        )
+        return old.map((item) => {
+          const isSource =
+            item.productId === input.productId && item.locationId === input.locationId
+          const isTarget =
+            input.type === 'TRANSFER' &&
+            input.targetLocationId &&
+            item.productId === input.productId &&
+            item.locationId === input.targetLocationId
+
+          if (!isSource && !isTarget) return item
+
+          let delta = 0
+          if (isSource) {
+            delta = input.type === 'IN' ? input.quantity : -input.quantity
+          }
+          if (isTarget) {
+            delta = input.quantity
+          }
+
+          return { ...item, quantity: Math.max(0, item.quantity + delta) }
+        })
       })
 
       return { previousStock }

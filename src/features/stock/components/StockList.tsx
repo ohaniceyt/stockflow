@@ -8,13 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus, ArrowLeftRight } from 'lucide-react'
 import type { StockItem } from '../services/stockService'
 
 interface StockListProps {
   stock: StockItem[]
   canEdit: boolean
-  onQuickMove: (item: StockItem, type: 'IN' | 'OUT') => void
+  onQuickMove: (item: StockItem, type: 'IN' | 'OUT' | 'TRANSFER') => void
   isUpdating?: boolean
 }
 
@@ -76,6 +76,15 @@ export function StockList({ stock, canEdit, onQuickMove, isUpdating }: StockList
                     aria-label={`Ajouter ${item.productName}`}
                   >
                     <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onQuickMove(item, 'TRANSFER')}
+                    disabled={item.quantity <= 0 || Boolean(isUpdating)}
+                    aria-label={`Transférer ${item.productName}`}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
