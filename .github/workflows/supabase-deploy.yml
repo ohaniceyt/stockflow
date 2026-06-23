@@ -21,5 +21,11 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Push database migrations
         run: supabase db push
-      - name: Deploy Edge Functions
+      - name: Deploy Edge Functions (JWT-protected)
         run: supabase functions deploy
+      - name: Deploy public Edge Functions (no JWT verification)
+        run: |
+          supabase functions deploy login --no-verify-jwt
+          supabase functions deploy send-magic-link --no-verify-jwt
+          supabase functions deploy lookup-user-by-email --no-verify-jwt
+          supabase functions deploy signup --no-verify-jwt

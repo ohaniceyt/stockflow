@@ -57,6 +57,14 @@ Définies via `supabase secrets set` ou le dashboard Supabase :
 | `CRON_SECRET`               | Secret utilisé par le cron GitHub Actions pour appeler `cleanup-rate-limits`                            |
 | `DEMO_BYPASS`               | `true` uniquement en dev pour contourner l’email OTP sur les comptes de démo. **Jamais en production.** |
 
+### CI/CD (GitHub Actions)
+
+| Secret                  | Description                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `SUPABASE_ACCESS_TOKEN` | Token d’accès Supabase CLI (`sbp_...`)                                               |
+| `SUPABASE_PROJECT_ID`   | Référence du projet (`<ref>` dans `https://<ref>.supabase.co`)                       |
+| `SUPABASE_DB_PASSWORD`  | Mot de passe de la base de données du projet (disponible dans le dashboard Supabase) |
+
 ---
 
 ## Flux d’invitation / création d’utilisateur
@@ -77,17 +85,23 @@ Définies via `supabase secrets set` ou le dashboard Supabase :
 
 ## Edge Functions
 
-| Function              | JWT requis  | Rôle                                                                            |
-| --------------------- | ----------- | ------------------------------------------------------------------------------- |
-| `login`               | ❌ (public) | Valide le PIN, rate-limit par user/IP, retourne l’utilisateur                   |
-| `send-magic-link`     | ❌ (public) | Envoie un magic link, rate-limit par email/IP, vérifie `public.users` actif     |
-| `create-user`         | ✅          | Crée un utilisateur + envoie l’email de bienvenue (admin/super_admin)           |
-| `list-users`          | ✅          | Liste les utilisateurs de l’organisation                                        |
-| `change-pin`          | ✅          | Changement de PIN par l’utilisateur                                             |
-| `reset-pin`           | ✅          | Réinitialisation forcée du PIN (admin)                                          |
-| `complete-onboarding` | ✅          | Finalise l’onboarding de l’organisation                                         |
-| `cleanup-rate-limits` | ✅          | Supprime les logs de rate-limiting de plus de 7 jours (appelée par cron)        |
-| `cleanup-rate-limits` | ❌ (cron)   | Supprime les logs de rate-limit de plus de 7 jours (protégée par `CRON_SECRET`) |
+| Function                         | JWT requis  | Rôle                                                                            |
+| -------------------------------- | ----------- | ------------------------------------------------------------------------------- |
+| `login`                          | ❌ (public) | Valide le PIN, rate-limit par user/IP, retourne l’utilisateur                   |
+| `send-magic-link`                | ❌ (public) | Envoie un magic link, rate-limit par email/IP, vérifie `public.users` actif     |
+| `lookup-user-by-email`           | ❌ (public) | Recherche minimaliste d’un utilisateur par email pour le flux email-first       |
+| `signup`                         | ❌ (public) | Inscription self-service : org + location + admin + abonnement d’essai          |
+| `create-user`                    | ✅          | Crée un utilisateur + envoie l’email de bienvenue (admin/super_admin)           |
+| `list-users`                     | ✅          | Liste les utilisateurs de l’organisation                                        |
+| `change-pin`                     | ✅          | Changement de PIN par l’utilisateur                                             |
+| `reset-pin`                      | ✅          | Réinitialisation forcée du PIN (admin)                                          |
+| `complete-onboarding`            | ✅          | Finalise l’onboarding de l’organisation                                         |
+| `org-limits`                     | ✅          | Retourne les quotas et l’utilisation courante de l’organisation                 |
+| `platform-list-organizations`    | ✅          | Liste toutes les organisations (plateforme admin)                               |
+| `platform-suspend-organization`  | ✅          | Suspend / réactive une organisation (plateforme admin)                          |
+| `platform-set-organization-plan` | ✅          | Change le plan d’une organisation (plateforme admin)                            |
+| `cleanup-rate-limits`            | ✅          | Supprime les logs de rate-limiting de plus de 7 jours (appelée par cron)        |
+| `cleanup-rate-limits`            | ❌ (cron)   | Supprime les logs de rate-limit de plus de 7 jours (protégée par `CRON_SECRET`) |
 
 ### Déploiement
 
@@ -95,16 +109,14 @@ Définies via `supabase secrets set` ou le dashboard Supabase :
 # Migration BDD
 npx supabase db push
 
+# Toutes les fonctions protégées (vérification JWT par défaut)
+npx supabase functions deploy
+
 # Fonctions publiques (pas de vérification JWT)
 npx supabase functions deploy login --no-verify-jwt
 npx supabase functions deploy send-magic-link --no-verify-jwt
-
-# Fonctions protégées (vérification JWT par défaut)
-npx supabase functions deploy create-user
-npx supabase functions deploy list-users
-npx supabase functions deploy change-pin
-npx supabase functions deploy reset-pin
-npx supabase functions deploy complete-onboarding
+npx supabase functions deploy lookup-user-by-email --no-verify-jwt
+npx supabase functions deploy signup --no-verify-jwt
 ```
 
 ---
