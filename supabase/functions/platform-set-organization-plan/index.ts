@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { requirePlatformAdmin } from '../../_shared/platform.ts'
+import { requirePlatformAdmin } from '../_shared/platform.ts'
 
 interface Payload {
   orgId: string

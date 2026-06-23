@@ -1,11 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { requirePlatformAdmin } from '../../_shared/platform.ts'
-
-interface Payload {
-  orgId: string
-  isSuspended: boolean
-  reason?: string
-}
+import { requirePlatformAdmin } from '../_shared/platform.ts'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,22 +30,24 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgId, isSuspended, reason }: Payload = await req.json()
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const { error } = await adminClient
+    const { data: organizations, error } = await adminClient
       .from('organizations')
-      .update({
-        is_suspended: isSuspended,
-        suspension_reason: isSuspended ? (reason ?? null) : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', orgId)
+      .select(
+        `
+        id,
+        name,
+        currency,
+        timezone,
+        is_active,
+        is_suspended,
+        suspension_reason,
+        onboarding_completed,
+        created_at,
+        updated_at,
+        subscriptions ( plan_id, status, current_period_ends_at )
+      `
+      )
+      .order('created_at', { ascending: false })
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -60,13 +56,10 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Organization ${isSuspended ? 'suspended' : 'reactivated'}`,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ organizations: organizations ?? [] }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {

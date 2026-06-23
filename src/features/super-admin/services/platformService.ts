@@ -29,7 +29,7 @@ async function platformFetch(path: string, options?: RequestInit) {
 }
 
 export async function listOrganizations(): Promise<unknown[]> {
-  const data = (await platformFetch('/platform/list-organizations')) as {
+  const data = (await platformFetch('/platform-list-organizations')) as {
     organizations?: unknown[]
   }
   return data.organizations ?? []
@@ -40,14 +40,14 @@ export async function suspendOrganization(
   isSuspended: boolean,
   reason?: string
 ): Promise<void> {
-  await platformFetch('/platform/suspend-organization', {
+  await platformFetch('/platform-suspend-organization', {
     method: 'POST',
     body: JSON.stringify({ orgId, isSuspended, reason }),
   })
 }
 
 export async function setOrganizationPlan(orgId: string, planId: string): Promise<void> {
-  await platformFetch('/platform/set-organization-plan', {
+  await platformFetch('/platform-set-organization-plan', {
     method: 'POST',
     body: JSON.stringify({ orgId, planId }),
   })
