@@ -9,7 +9,17 @@ test('login page is accessible', async ({ page }) => {
   await expect(page.getByText('Sélectionnez votre profil puis saisissez votre PIN')).toBeVisible()
 })
 
-test('demo bypass logs in with PIN', async ({ page }) => {
+test('valid PIN requests magic link', async ({ page }) => {
+  // Stub the public send-magic-link Edge Function so the test does not depend
+  // on a real email provider or hit rate limits.
+  await page.route('**/functions/v1/send-magic-link', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, emailId: 'test-email-id' }),
+    })
+  })
+
   await page.goto('/login')
 
   await page.getByRole('button', { name: DEMO_USER_NAME }).click()
@@ -20,13 +30,22 @@ test('demo bypass logs in with PIN', async ({ page }) => {
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
-  // Wait for dashboard navigation after bypass sign-in
-  await expect(page).toHaveURL('/')
-  await expect(page.getByText('Tableau de bord')).toBeVisible()
-  await expect(page.getByText(DEMO_USER_NAME)).toBeVisible()
+  // The app now sends a magic link and asks the user to check their email.
+  await expect(page.getByText('Vérifiez votre email')).toBeVisible()
+  await expect(page.getByText(/Un lien de connexion sécurisé a été envoyé/)).toBeVisible()
 })
 
 test('invalid PIN shows error', async ({ page }) => {
+  // Stub the login Edge Function to return an authentication error so the test
+  // does not depend on backend state or rate limits.
+  await page.route('**/functions/v1/login', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'PIN incorrect' }),
+    })
+  })
+
   await page.goto('/login')
 
   await page.getByRole('button', { name: DEMO_USER_NAME }).click()
@@ -35,5 +54,5 @@ test('invalid PIN shows error', async ({ page }) => {
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
-  await expect(page.getByText(/PIN incorrect|Invalid PIN/)).toBeVisible()
+  await expect(page.getByText(/Échec de la connexion|PIN incorrect/)).toBeVisible()
 })
