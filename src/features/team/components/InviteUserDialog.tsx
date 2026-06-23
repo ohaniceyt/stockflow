@@ -15,7 +15,8 @@ import type { User } from '@/types'
 interface InviteUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (input: { name: string; email: string; role: User['role'] }) => void
+  onCreateUser: (input: { name: string; email: string; role: User['role'] }) => void
+  onInviteByEmail?: (input: { email: string; role: User['role'] }) => void
   createdPin: string | null
   isLoading?: boolean
 }
@@ -23,10 +24,12 @@ interface InviteUserDialogProps {
 export function InviteUserDialog({
   open,
   onOpenChange,
-  onSubmit,
+  onCreateUser,
+  onInviteByEmail,
   createdPin,
   isLoading,
 }: InviteUserDialogProps) {
+  const [mode, setMode] = useState<'create' | 'invite'>('create')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<User['role']>('operator')
@@ -34,7 +37,7 @@ export function InviteUserDialog({
 
   const validate = () => {
     const next: Partial<Record<'name' | 'email', string>> = {}
-    if (!name.trim()) next.name = 'Le nom est requis'
+    if (mode === 'create' && !name.trim()) next.name = 'Le nom est requis'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = 'Adresse email invalide'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -43,16 +46,35 @@ export function InviteUserDialog({
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!validate()) return
-    onSubmit({ name: name.trim(), email: email.trim().toLowerCase(), role })
+    if (mode === 'create') {
+      onCreateUser({ name: name.trim(), email: email.trim().toLowerCase(), role })
+    } else if (onInviteByEmail) {
+      onInviteByEmail({ email: email.trim().toLowerCase(), role })
+      setEmail('')
+    }
+  }
+
+  const reset = () => {
+    setMode('create')
+    setName('')
+    setEmail('')
+    setRole('operator')
+    setErrors({})
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) reset()
+        onOpenChange(nextOpen)
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Inviter un utilisateur</DialogTitle>
           <DialogDescription>
-            Créez un compte avec un PIN temporaire à communiquer.
+            Créez un compte immédiatement ou envoyez une invitation par email.
           </DialogDescription>
         </DialogHeader>
 
@@ -72,16 +94,35 @@ export function InviteUserDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="invite-name">Nom complet</Label>
-              <Input
-                id="invite-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Charlie Comptable"
-              />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+            <div className="flex rounded-lg border p-1">
+              <button
+                type="button"
+                onClick={() => setMode('create')}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${mode === 'create' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                Créer maintenant
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('invite')}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${mode === 'invite' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                Inviter par email
+              </button>
             </div>
+
+            {mode === 'create' && (
+              <div className="space-y-2">
+                <Label htmlFor="invite-name">Nom complet</Label>
+                <Input
+                  id="invite-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Charlie Comptable"
+                />
+                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="invite-email">Email</Label>
@@ -118,7 +159,7 @@ export function InviteUserDialog({
                 Annuler
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Création…' : 'Créer'}
+                {isLoading ? 'Envoi…' : mode === 'create' ? 'Créer' : 'Envoyer invitation'}
               </Button>
             </div>
           </form>

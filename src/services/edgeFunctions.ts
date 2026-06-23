@@ -32,9 +32,9 @@ export async function edgeFetch<T = unknown>(
     headers,
   })
 
-  const data = (await res.json().catch(() => ({}))) as { error?: { message: string } }
+  const data = (await res.json().catch(() => ({}))) as T & { error?: { message: string } }
   if (!res.ok) {
     throw new Error(data.error?.message ?? `Request failed: ${String(res.status)}`)
   }
-  return data as T
+  return data
 }
