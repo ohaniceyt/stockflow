@@ -154,7 +154,7 @@ Deno.serve(async (req: Request) => {
     // We do not block account creation if the email fails; we just log and surface it.
     let emailSent = false
     try {
-      const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow-ruby.vercel.app'
+      const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
       const loginUrl = `${appUrl}/login`
       await sendEmail({
         to: email,

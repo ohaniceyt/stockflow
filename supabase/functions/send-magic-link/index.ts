@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 
 interface SendMagicLinkPayload {
@@ -65,22 +64,6 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const token = getBearerToken(req)
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const claims = parseJwt(token)
-    if (!claims?.sub) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const { email, redirectTo }: SendMagicLinkPayload = await req.json()
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
@@ -98,7 +81,7 @@ Deno.serve(async (req: Request) => {
       email,
       options: {
         redirectTo:
-          redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow-ruby.vercel.app',
+          redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com',
       },
     })
 
@@ -109,9 +92,9 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const magicLink = linkData.properties.action_link
     const appUrl =
-      redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow-ruby.vercel.app'
+      redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
+    const magicLink = linkData.properties.action_link
 
     const { id } = await sendEmail({
       to: email,
