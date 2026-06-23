@@ -1,64 +1,20 @@
+import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
+import { LogOut, Menu } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
 import { cn } from '@/lib/utils'
-import type { UserRole } from '@/types'
-import {
-  LayoutDashboard,
-  Package,
-  ArrowLeftRight,
-  ClipboardList,
-  Warehouse,
-  Users,
-  FileText,
-  LogOut,
-  Building2,
-  MapPin,
-} from 'lucide-react'
-
-const navItems: { to: string; label: string; icon: React.ElementType; roles: UserRole[] }[] = [
-  {
-    to: '/',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  {
-    to: '/stock',
-    label: 'Stock',
-    icon: Package,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  {
-    to: '/movements',
-    label: 'Mouvements',
-    icon: ArrowLeftRight,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  {
-    to: '/inventory',
-    label: 'Inventaire',
-    icon: ClipboardList,
-    roles: ['super_admin', 'admin', 'operator'],
-  },
-  { to: '/products', label: 'Produits', icon: Warehouse, roles: ['super_admin', 'admin'] },
-  { to: '/locations', label: 'Emplacements', icon: MapPin, roles: ['super_admin', 'admin'] },
-  { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
-  {
-    to: '/recap',
-    label: 'Récap',
-    icon: FileText,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  { to: '/super-admin', label: 'Super Admin', icon: Building2, roles: ['super_admin'] },
-]
+import { navItems } from './navConfig'
+import { MobileNav } from './MobileNav'
+import { MobileMenuSheet } from './MobileMenuSheet'
 
 export function AppLayout() {
   const { session, logout, hasRole } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-64 flex-col border-r bg-card">
+      <aside className="hidden w-64 flex-col border-r bg-card md:flex">
         <div className="flex h-16 items-center gap-3 border-b px-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
             S
@@ -104,17 +60,31 @@ export function AppLayout() {
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur">
-          <h2 className="text-lg font-semibold">StockFlow vNext</h2>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-6">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+            aria-label="Ouvrir le menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <h2 className="text-base font-semibold md:text-lg">StockFlow vNext</h2>
+
           <div className="text-sm text-muted-foreground">
             {session?.user.role === 'super_admin' ? 'Super Admin' : session?.user.name}
           </div>
         </header>
-        <div className="p-6">
+
+        <div className="p-4 pb-24 md:p-6 md:pb-6">
           <Outlet />
-          <OfflineStatus />
         </div>
       </main>
+
+      <MobileMenuSheet open={menuOpen} onOpenChange={setMenuOpen} navItems={navItems} />
+      <MobileNav navItems={navItems} onMenuOpen={() => setMenuOpen(true)} />
+      <OfflineStatus className="bottom-20 md:bottom-4" />
     </div>
   )
 }

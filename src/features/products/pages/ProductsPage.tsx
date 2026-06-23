@@ -84,7 +84,7 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Produits</h1>
           <p className="text-muted-foreground">
@@ -93,6 +93,7 @@ export default function ProductsPage() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
           <Button
+            className="w-full sm:w-auto"
             onClick={() => {
               setEditingProduct(null)
               setIsDialogOpen(true)

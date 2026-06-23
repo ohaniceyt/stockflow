@@ -63,7 +63,7 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
         {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="category">Catégorie</Label>
           <Input
@@ -85,7 +85,7 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="threshold">Seuil d'alerte</Label>
           <Input
@@ -120,7 +120,7 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="supplier">Fournisseur</Label>
           <Input

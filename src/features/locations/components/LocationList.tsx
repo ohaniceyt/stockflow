@@ -29,10 +29,13 @@ export function LocationList({
   return (
     <div className="space-y-2">
       {locations.map((location) => (
-        <div key={location.id} className="flex items-start justify-between rounded-xl border p-4">
-          <div>
+        <div
+          key={location.id}
+          className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="font-semibold">{location.name}</p>
+              <p className="truncate font-semibold">{location.name}</p>
               {location.isDefault && (
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   Par défaut
@@ -48,9 +51,10 @@ export function LocationList({
           </div>
 
           {canManage && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-shrink-0">
               {!location.isDefault && (
                 <Button
+                  className="w-full sm:w-auto"
                   variant="outline"
                   size="sm"
                   onClick={() => onSetDefault(location)}
@@ -60,6 +64,7 @@ export function LocationList({
                 </Button>
               )}
               <Button
+                className="w-full sm:w-auto"
                 variant="outline"
                 size="sm"
                 onClick={() => onEdit(location)}
