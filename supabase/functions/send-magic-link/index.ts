@@ -6,6 +6,10 @@ interface SendMagicLinkPayload {
   redirectTo?: string
 }
 
+const RATE_LIMIT_WINDOW_MINUTES = 15
+const MAX_REQUESTS_PER_EMAIL = 3
+const MAX_REQUESTS_PER_IP = 10
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -52,6 +56,69 @@ export function buildMagicLinkEmailHtml(link: string, appUrl: string): string {
   `
 }
 
+function getClientIp(req: Request): string | null {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) {
+    return forwarded.split(',')[0].trim()
+  }
+  return req.headers.get('x-real-ip') ?? req.headers.get('cf-connecting-ip') ?? null
+}
+
+function rateLimitCutoff(): string {
+  return new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString()
+}
+
+async function countRecentRequests(
+  client: ReturnType<typeof createClient>,
+  field: 'email' | 'ip_address',
+  value: string | null
+): Promise<number> {
+  if (!value) return 0
+  const { count, error } = await client
+    .from('magic_link_requests')
+    .select('*', { count: 'exact', head: true })
+    .eq(field, value)
+    .gte('created_at', rateLimitCutoff())
+
+  if (error) {
+    console.error('Failed to count magic link requests:', error)
+    return 0
+  }
+  return count ?? 0
+}
+
+async function recordRequest(
+  client: ReturnType<typeof createClient>,
+  email: string,
+  ipAddress: string | null
+): Promise<void> {
+  const { error } = await client.from('magic_link_requests').insert({
+    email,
+    ip_address: ipAddress,
+  })
+  if (error) {
+    console.error('Failed to record magic link request:', error)
+  }
+}
+
+async function isActiveUser(
+  client: ReturnType<typeof createClient>,
+  email: string
+): Promise<boolean> {
+  const { data, error } = await client
+    .from('users')
+    .select('id')
+    .ilike('email', email)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Failed to look up user:', error)
+    return false
+  }
+  return !!data
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -76,6 +143,39 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    const clientIp = getClientIp(req)
+
+    // Rate-limit by IP to prevent enumeration / abuse.
+    const ipRequests = await countRecentRequests(adminClient, 'ip_address', clientIp)
+    if (ipRequests >= MAX_REQUESTS_PER_IP) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests from this network. Try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Rate-limit by email.
+    const emailRequests = await countRecentRequests(adminClient, 'email', email)
+    if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Only send magic links to active users. We still return a generic success
+    // response so we do not leak whether the email exists.
+    const userExists = await isActiveUser(adminClient, email)
+    if (!userExists) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'If this email belongs to an active account, a magic link has been sent.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
@@ -92,8 +192,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const appUrl =
-      redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
+    const appUrl = redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
     const magicLink = linkData.properties.action_link
 
     const { id } = await sendEmail({
@@ -102,6 +201,8 @@ Deno.serve(async (req: Request) => {
       html: buildMagicLinkEmailHtml(magicLink, appUrl),
       text: `Cliquez sur ce lien pour vous connecter à StockFlow : ${magicLink}`,
     })
+
+    await recordRequest(adminClient, email, clientIp)
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,
