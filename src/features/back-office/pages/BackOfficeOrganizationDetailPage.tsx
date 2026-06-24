@@ -68,7 +68,11 @@ export default function BackOfficeOrganizationDetailPage() {
         </Button>
       </div>
 
-      {orgQuery.error && <p className="text-destructive">{orgQuery.error.message}</p>}
+      {(orgQuery.error ?? planMutation.error ?? suspendMutation.error) && (
+        <p className="text-destructive">
+          {(orgQuery.error ?? planMutation.error ?? suspendMutation.error)?.message}
+        </p>
+      )}
 
       {org && (
         <>

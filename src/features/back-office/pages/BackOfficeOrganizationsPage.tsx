@@ -120,7 +120,11 @@ export default function BackOfficeOrganizationsPage() {
         </Select>
       </div>
 
-      {error && <p className="text-destructive">{error.message}</p>}
+      {(error ?? planMutation.error ?? suspendMutation.error) && (
+        <p className="text-destructive">
+          {(error ?? planMutation.error ?? suspendMutation.error)?.message}
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-muted-foreground">Chargement…</p>

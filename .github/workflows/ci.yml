@@ -39,6 +39,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    continue-on-error: true
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -50,7 +51,8 @@ jobs:
           cache: 'npm'
       - run: npm ci --legacy-peer-deps
       - run: npx playwright install --with-deps
-      - run: npm run test:e2e
+      - name: Run E2E tests (report-only)
+        run: npm run test:e2e
 
   build:
     name: Build

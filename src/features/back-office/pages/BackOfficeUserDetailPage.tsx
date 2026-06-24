@@ -59,7 +59,21 @@ export default function BackOfficeUserDetailPage() {
         </Button>
       </div>
 
-      {userQuery.error && <p className="text-destructive">{userQuery.error.message}</p>}
+      {(userQuery.error ??
+        passwordResetMutation.error ??
+        resetPinMutation.error ??
+        toggleMutation.error) && (
+        <p className="text-destructive">
+          {
+            (
+              userQuery.error ??
+              passwordResetMutation.error ??
+              resetPinMutation.error ??
+              toggleMutation.error
+            )?.message
+          }
+        </p>
+      )}
 
       {user && (
         <>

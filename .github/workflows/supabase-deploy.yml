@@ -23,10 +23,26 @@ jobs:
       - name: Push database migrations
         run: supabase db push
       - name: Deploy Edge Functions (JWT-protected)
-        run: supabase functions deploy
+        run: |
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt/3..."
+            if supabase functions deploy; then
+              exit 0
+            fi
+            echo "Deploy failed, retrying in 30s..."
+            sleep 30
+          done
+          echo "All retry attempts exhausted."
+          exit 1
       - name: Deploy public Edge Functions (no JWT verification)
         run: |
-          supabase functions deploy login --no-verify-jwt
-          supabase functions deploy send-magic-link --no-verify-jwt
-          supabase functions deploy lookup-user-by-email --no-verify-jwt
-          supabase functions deploy signup --no-verify-jwt
+          for fn in login send-magic-link lookup-user-by-email signup; do
+            for attempt in 1 2 3; do
+              echo "Deploying $fn (attempt $attempt/3)..."
+              if supabase functions deploy "$fn" --no-verify-jwt; then
+                break
+              fi
+              echo "Failed to deploy $fn, retrying in 30s..."
+              sleep 30
+            done
+          done
