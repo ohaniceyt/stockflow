@@ -207,12 +207,19 @@ Deno.serve(async (req: Request) => {
     }))
 
     // 4. Bulk insert products.
+    console.log('bulk-create-products: inserting', productRows.length, 'rows for org', org_id)
+    console.log('bulk-create-products: first row sample', JSON.stringify(productRows[0]))
+
     const { data: insertedProducts, error: insertError } = await adminClient
       .from('products')
       .insert(productRows)
       .select('id')
 
+    console.log('bulk-create-products: insertError', insertError)
+    console.log('bulk-create-products: insertedProducts count', insertedProducts?.length ?? 0)
+
     if (insertError) {
+      errors.push(`Erreur insertion: ${insertError.message}`)
       return jsonResponse(
         {
           error: insertError.message,
@@ -225,6 +232,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const created = insertedProducts?.length ?? 0
+    if (created === 0 && productRows.length > 0) {
+      errors.push('Aucun produit inséré : la base de données a retourné 0 lignes créées.')
+    }
 
     return jsonResponse({
       created,

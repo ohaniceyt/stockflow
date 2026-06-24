@@ -36,6 +36,7 @@ interface BulkImportResult {
   created: number
   total: number
   errors: string[]
+  error?: string
 }
 
 interface BulkProductImportProps {
@@ -416,6 +417,7 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
               <p>
                 {result.created} produit(s) créé(s) sur {result.total} ligne(s).
               </p>
+              {result.error && <p className="mt-1 font-medium">{result.error}</p>}
               {result.errors.length > 0 && (
                 <ul className="mt-1 list-disc pl-4">
                   {result.errors.map((err, i) => (
