@@ -181,7 +181,7 @@ function buildSession(
         id: '',
         orgId: '',
         userId: asString(userRaw.id),
-        role: 'admin',
+        role: 'super_admin',
         pinHash: null,
         isActive: true,
         forcePinChange: false,
@@ -649,8 +649,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
-        const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
-        throw new Error(data.error?.message ?? 'Failed to complete onboarding')
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: string | { message: string; details?: unknown }
+        }
+        let message = 'Failed to complete onboarding'
+        if (typeof data.error === 'string') {
+          message = data.error
+        } else if (data.error?.message) {
+          message = `${data.error.message}${data.error.details ? ` — ${JSON.stringify(data.error.details)}` : ''}`
+        }
+        throw new Error(message)
       }
 
       // Re-initialize the session so the real membership and organization are loaded.

@@ -22,7 +22,7 @@ const timezones = [
 ]
 
 export default function OnboardingPage() {
-  const { session, completeOnboarding, hasRole } = useAuth()
+  const { session, completeOnboarding, hasRole, signOut } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
@@ -35,6 +35,28 @@ export default function OnboardingPage() {
 
   if (!session) {
     return null
+  }
+
+  if (!session.user.emailVerified) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6 text-center">
+        <div className="w-full max-w-md space-y-4 rounded-xl border bg-card p-8 shadow-sm">
+          <h1 className="text-2xl font-bold">Vérification requise</h1>
+          <p className="text-muted-foreground">
+            Veuillez vérifier votre adresse email avant de créer une organisation. Un lien de
+            vérification vous a été envoyé.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button asChild className="w-full">
+              <a href="/login">Retour à la connexion</a>
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => void signOut()}>
+              Se déconnecter
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!hasRole(['super_admin', 'admin'])) {
