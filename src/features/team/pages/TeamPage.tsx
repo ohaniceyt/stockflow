@@ -6,58 +6,61 @@ import { TeamList } from '../components/TeamList'
 import { ResetPinDialog } from '../components/ResetPinDialog'
 import { InviteUserDialog } from '../components/InviteUserDialog'
 import { InvitationList } from '../components/InvitationList'
+import { MyInvitations } from '../components/MyInvitations'
 import { OrgSwitcher } from '../components/OrgSwitcher'
 import {
   useCreateInvitation,
   useDeclineInvitation,
   useInvitations,
+  useMyInvitations,
   useMyOrganizations,
 } from '../hooks/useInvitations'
 import { useCreateUser, useResetUserPin, useTeamUsers, useUpdateUserActive } from '../hooks/useTeam'
-import type { User } from '@/types'
+import type { TeamMember, UserRole } from '@/types'
 
 export default function TeamPage() {
-  const { session, hasRole, logout } = useAuth()
-  const { data: users, isLoading, error } = useTeamUsers()
+  const { session, hasRole, switchMembership } = useAuth()
+  const { data: members, isLoading, error } = useTeamUsers()
   const updateActive = useUpdateUserActive()
   const resetPin = useResetUserPin()
   const createUser = useCreateUser()
 
   const { data: invitations } = useInvitations()
   const { data: myOrganizations } = useMyOrganizations()
+  const { data: myInvitations } = useMyInvitations()
   const createInvitation = useCreateInvitation()
   const declineInvitation = useDeclineInvitation()
 
   const canCreate = hasRole(['super_admin', 'admin'])
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [resetOpen, setResetOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createdPin, setCreatedPin] = useState<string | null>(null)
 
-  const handleToggleActive = (user: User) => {
-    updateActive.mutate({ id: user.id, isActive: !user.isActive })
+  const handleToggleActive = (member: TeamMember) => {
+    updateActive.mutate({ id: member.membershipId, isActive: !member.isActive })
   }
 
-  const handleResetPin = (user: User) => {
-    setSelectedUser(user)
+  const handleResetPin = (member: TeamMember) => {
+    setSelectedMember(member)
     setResetOpen(true)
   }
 
   const handleConfirmReset = (newPin: string) => {
-    if (!selectedUser) return
+    if (!selectedMember) return
     resetPin.mutate(
-      { userId: selectedUser.id, newPin },
+      { membershipId: selectedMember.membershipId, newPin },
       {
         onSuccess: () => {
           setResetOpen(false)
-          setSelectedUser(null)
+          setSelectedMember(null)
         },
       }
     )
   }
 
-  const handleCreateUser = (input: { name: string; email: string; role: User['role'] }) => {
+  const handleCreateUser = (input: { name: string; email: string; role: UserRole }) => {
     createUser.mutate(input, {
       onSuccess: (data) => {
         setCreatedPin(data.tempPin)
@@ -65,12 +68,16 @@ export default function TeamPage() {
     })
   }
 
-  const handleInviteByEmail = (input: { email: string; role: User['role'] }) => {
+  const handleInviteByEmail = (input: { email: string; role: UserRole }) => {
     createInvitation.mutate(input, {
       onSuccess: () => {
         setInviteOpen(false)
       },
     })
+  }
+
+  const handleSwitchOrg = (membershipId: string) => {
+    void switchMembership(membershipId)
   }
 
   return (
@@ -88,12 +95,19 @@ export default function TeamPage() {
         )}
       </div>
 
+      {myInvitations && myInvitations.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Invitations reçues</h2>
+          <MyInvitations invitations={myInvitations} />
+        </div>
+      )}
+
       {isLoading && <p className="text-muted-foreground">Chargement de l'équipe…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
-      {!isLoading && !error && users && (
+      {!isLoading && !error && members && (
         <TeamList
-          users={users}
-          currentUserId={session?.user.id ?? ''}
+          members={members}
+          currentMembershipId={session?.membership.id ?? ''}
           onToggleActive={handleToggleActive}
           onResetPin={handleResetPin}
           isUpdating={updateActive.isPending || resetPin.isPending}
@@ -113,20 +127,12 @@ export default function TeamPage() {
 
       {myOrganizations && myOrganizations.length > 1 && (
         <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <OrgSwitcher
-            organizations={myOrganizations}
-            onSwitch={() => {
-              // Switching orgs requires re-login with the same auth user
-              // because the current session is tied to one org row.
-              logout()
-              window.location.href = '/login'
-            }}
-          />
+          <OrgSwitcher organizations={myOrganizations} onSwitch={handleSwitchOrg} />
         </div>
       )}
 
       <ResetPinDialog
-        userName={selectedUser?.name ?? null}
+        userName={selectedMember?.name ?? null}
         open={resetOpen}
         onOpenChange={setResetOpen}
         onConfirm={handleConfirmReset}

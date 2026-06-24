@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
 interface CreateLocationPayload {
@@ -46,17 +47,13 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('role, org_id')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
+    if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          debug: operatorError?.message ?? 'Operator not found or insufficient role',
+          debug: 'Operator not found or insufficient role',
         }),
         {
           status: 403,

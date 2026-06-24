@@ -78,7 +78,7 @@ export function useSync() {
       }
 
       try {
-        await pullSync(session.user.orgId)
+        await pullSync(session.membership.orgId)
       } catch (err) {
         console.error('Pull sync failed', err)
       }
@@ -160,6 +160,6 @@ async function executeOperation(op: QueuedOperation): Promise<void> {
     }
 
     default:
-      throw new Error(`Type d'opération inconnu: ${String(op.type)}`)
+      throw new Error(`Type d'opération inconnu: ${op.type}`)
   }
 }

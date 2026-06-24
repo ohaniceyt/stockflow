@@ -1,4 +1,5 @@
 export type UserRole = 'super_admin' | 'admin' | 'operator' | 'reader'
+export type PlatformAdminRole = 'super_admin' | 'moderator'
 
 export interface Organization {
   id: string
@@ -53,7 +54,26 @@ export interface PlatformAdmin {
   authUserId: string
   email: string
   name: string | null
+  role: PlatformAdminRole
   isActive: boolean
+  createdAt: string
+}
+
+export interface SudoTarget {
+  type: 'organization'
+  id: string
+  name: string
+  targetUserId?: string
+}
+
+export interface PlatformAuditLog {
+  id: string
+  actorId: string | null
+  actorRole: string | null
+  action: string
+  targetType: string | null
+  targetId: string | null
+  metadata: unknown
   createdAt: string
 }
 
@@ -73,16 +93,41 @@ export interface OrgLimits {
 
 export interface User {
   id: string
-  orgId: string
   name: string
   email: string
+  phone?: string | null
   emailVerified: boolean
+  activeOrgId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface OrganizationMembership {
+  id: string
+  orgId: string
+  userId: string
   role: UserRole
+  pinHash: string | null
   isActive: boolean
-  isPlatformAdmin?: boolean
+  forcePinChange: boolean
   lastLoginAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface UserWithMembership extends User {
+  membership: OrganizationMembership
+  organization: Organization
+}
+
+export interface TeamMember {
+  membershipId: string
+  userId: string
+  name: string
+  email: string
+  role: UserRole
+  isActive: boolean
+  lastLoginAt: string | null
 }
 
 export interface Location {
@@ -93,6 +138,14 @@ export interface Location {
   address: string | null
   isDefault: boolean
   createdAt: string
+}
+
+export interface Category {
+  id: string
+  orgId: string
+  name: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Product {
@@ -120,6 +173,23 @@ export interface StockLevel {
   updatedAt: string
 }
 
+export type ContactType = 'SUPPLIER' | 'CUSTOMER'
+
+export interface Contact {
+  id: string
+  orgId: string
+  type: ContactType
+  name: string
+  email: string | null
+  phone: string | null
+  address: string | null
+  taxId: string | null
+  notes: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type MovementType = 'IN' | 'OUT' | 'INVENTORY' | 'ADJUSTMENT' | 'TRANSFER'
 
 export interface Movement {
@@ -132,6 +202,7 @@ export interface Movement {
   stockBefore: number
   stockAfter: number
   reason: string | null
+  contactId: string | null
   operatorId: string
   referenceId: string | null
   createdAt: string
@@ -162,7 +233,14 @@ export interface InventoryCount {
 
 export interface PendingOperation {
   id: string
-  type: 'MOVEMENT' | 'INVENTORY' | 'PRODUCT_CREATE' | 'PRODUCT_UPDATE' | 'INVENTORY_COUNT_UPDATE'
+  type:
+    | 'MOVEMENT'
+    | 'INVENTORY'
+    | 'PRODUCT_CREATE'
+    | 'PRODUCT_UPDATE'
+    | 'INVENTORY_COUNT_UPDATE'
+    | 'CONTACT_CREATE'
+    | 'CONTACT_UPDATE'
   payload: unknown
   createdAt: number
   retryCount: number

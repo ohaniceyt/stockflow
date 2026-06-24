@@ -12,7 +12,7 @@ interface MobileMenuSheetProps {
 }
 
 export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuSheetProps) {
-  const { session, logout, hasRole } = useAuth()
+  const { session, signOut, hasRole, isPlatformAdmin } = useAuth()
   const location = useLocation()
 
   useEffect(() => {
@@ -21,7 +21,9 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
 
   if (!open) return null
 
-  const visibleItems = navItems.filter((item) => hasRole(item.roles))
+  const visibleItems = navItems.filter(
+    (item) => hasRole(item.roles) && (!item.platformAdminOnly || isPlatformAdmin)
+  )
 
   return (
     <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
@@ -79,7 +81,7 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
             type="button"
             onClick={() => {
               onOpenChange(false)
-              logout()
+              void signOut()
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >

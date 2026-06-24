@@ -5,12 +5,21 @@ interface PinPadProps {
   onSubmit: (pin: string) => void
   onCancel?: () => void
   title?: string
+  subtitle?: string
   error?: string | null
   maxLength?: number
   disabled?: boolean
 }
 
-export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabled }: PinPadProps) {
+export function PinPad({
+  onSubmit,
+  onCancel,
+  title,
+  subtitle,
+  error,
+  maxLength = 8,
+  disabled,
+}: PinPadProps) {
   const [pin, setPin] = useState('')
 
   const handleDigit = (digit: string) => {
@@ -40,7 +49,8 @@ export function PinPad({ onSubmit, onCancel, title, error, maxLength = 8, disabl
 
   return (
     <div className="w-full max-w-xs">
-      {title && <h3 className="mb-4 text-center text-lg font-semibold">{title}</h3>}
+      {title && <h3 className="mb-1 text-center text-lg font-semibold">{title}</h3>}
+      {subtitle && <p className="mb-4 text-center text-sm text-muted-foreground">{subtitle}</p>}
 
       <div className="mb-6 flex justify-center gap-2">
         {Array.from({ length: 4 }).map((_, i) => (

@@ -41,18 +41,18 @@ Deno.serve(async (req: Request) => {
 
     const { data: user, error: userError } = await adminClient
       .from('users')
-      .select('org_id')
+      .select('active_org_id')
       .eq('id', claims.sub)
       .single()
 
-    if (userError || !user) {
+    if (userError || !user || !user.active_org_id) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const limits = await getOrgLimits(adminClient, user.org_id)
+    const limits = await getOrgLimits(adminClient, user.active_org_id)
     if (!limits) {
       return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
         status: 500,

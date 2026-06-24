@@ -26,7 +26,7 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
-  const [orgName, setOrgName] = useState('')
+  const [orgName, setOrgName] = useState(session?.organization.name ?? '')
   const [currency, setCurrency] = useState('XOF')
   const [timezone, setTimezone] = useState('Africa/Abidjan')
   const [defaultLocationName, setDefaultLocationName] = useState('Dépôt principal')
@@ -93,7 +93,7 @@ export default function OnboardingPage() {
         timezone,
         defaultLocationName: defaultLocationName.trim(),
       })
-      void navigate('/', { replace: true })
+      void navigate('/dashboard', { replace: true })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
       setError(message)

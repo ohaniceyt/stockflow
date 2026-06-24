@@ -87,7 +87,7 @@ export default function LocationsPage() {
       {!isLoading && !error && locations && (
         <LocationList
           locations={locations}
-          currentUserRole={session?.user.role ?? 'operator'}
+          currentUserRole={session?.membership.role ?? 'operator'}
           onEdit={handleEdit}
           onSetDefault={handleSetDefault}
           isUpdating={create.isPending || update.isPending || setDefault.isPending}

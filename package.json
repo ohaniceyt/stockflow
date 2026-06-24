@@ -15,6 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:onboarding": "playwright test tests/e2e/onboarding-option-b.spec.ts",
+    "test:e2e:back-office": "playwright test tests/e2e/back-office.spec.ts",
     "prepare": "husky",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
@@ -33,7 +35,7 @@
     "date-fns": "^4.4.0",
     "dexie": "^4.4.4",
     "exceljs": "^4.4.0",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -72,6 +74,9 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

@@ -105,18 +105,17 @@ async function isActiveUser(
   client: ReturnType<typeof createClient>,
   email: string
 ): Promise<boolean> {
-  const { data, error } = await client
-    .from('users')
-    .select('id')
-    .ilike('email', email)
+  const { count, error } = await client
+    .from('organization_memberships')
+    .select('*', { count: 'exact', head: true })
+    .eq('users.email', email.toLowerCase())
     .eq('is_active', true)
-    .maybeSingle()
 
   if (error) {
     console.error('Failed to look up user:', error)
     return false
   }
-  return !!data
+  return (count ?? 0) > 0
 }
 
 Deno.serve(async (req: Request) => {

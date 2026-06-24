@@ -1,64 +1,75 @@
-import { cn } from '@/lib/utils'
-import { Package, AlertTriangle, ArrowLeftRight, Warehouse } from 'lucide-react'
+import { useAuth } from '@/features/auth/context/AuthContext'
+import type { StockItem } from '@/features/stock/services/stockService'
+import { Banknote, AlertTriangle, PackageCheck, Boxes } from 'lucide-react'
 
 interface DashboardStatsProps {
+  stock: StockItem[]
   productCount: number
-  lowStockCount: number
-  totalQuantity: number
-  movementsToday: number
 }
 
-export function DashboardStats({
-  productCount,
-  lowStockCount,
-  totalQuantity,
-  movementsToday,
-}: DashboardStatsProps) {
+export function DashboardStats({ stock, productCount }: DashboardStatsProps) {
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole(['super_admin', 'admin'])
+
+  const ruptures = stock.filter((item) => item.quantity <= 0)
+  const alertes = stock.filter((item) => item.quantity > 0 && item.quantity <= item.threshold)
+  const stockValue = stock.reduce((sum, item) => sum + item.quantity * item.costPrice, 0)
+
   const cards = [
     {
-      label: 'Produits actifs',
-      value: productCount,
-      icon: Package,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      label: 'Valeur stock',
+      value: isAdmin ? `${stockValue.toLocaleString('fr-FR')} FCFA` : '—',
+      sub: 'Valeur totale',
+      icon: Banknote,
+      colorClass: 'ca',
+      barClass: 'bg-[var(--indigo)]',
     },
     {
-      label: 'Stock faible / rupture',
-      value: lowStockCount,
+      label: 'Ruptures',
+      value: String(ruptures.length),
+      sub: 'Produits épuisés',
       icon: AlertTriangle,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
+      colorClass: 'cr',
+      barClass: 'bg-[var(--rose)]',
     },
     {
-      label: 'Quantité totale en stock',
-      value: totalQuantity,
-      icon: Warehouse,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
+      label: 'Alertes',
+      value: String(alertes.length),
+      sub: 'Stock faible',
+      icon: PackageCheck,
+      colorClass: 'cy',
+      barClass: 'bg-[var(--amber)]',
     },
     {
-      label: "Mouvements aujourd'hui",
-      value: movementsToday,
-      icon: ArrowLeftRight,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
+      label: 'Produits',
+      value: String(productCount),
+      sub: 'Références',
+      icon: Boxes,
+      colorClass: 'ca',
+      barClass: 'bg-[var(--indigo)]',
     },
   ]
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="sg">
       {cards.map((card) => (
-        <div key={card.label} className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className="mt-1 text-3xl font-bold">{card.value.toLocaleString()}</p>
-            </div>
-            <div className={cn('rounded-lg p-2', card.bg)}>
-              <card.icon className={cn('h-5 w-5', card.color)} />
-            </div>
+        <button
+          key={card.label}
+          type="button"
+          className="sc text-left transition-transform active:scale-[0.98]"
+        >
+          <span className={`sc-bar ${card.barClass}`} />
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-faint)]">
+              {card.label}
+            </span>
+            <span className={`rounded-md p-1.5 ${card.colorClass}`}>
+              <card.icon className="h-4 w-4" />
+            </span>
           </div>
-        </div>
+          <p className={`text-2xl font-bold text-[var(--text-h)] sm:text-3xl`}>{card.value}</p>
+          <p className="mt-1 text-xs text-[var(--text-faint)]">{card.sub}</p>
+        </button>
       ))}
     </div>
   )

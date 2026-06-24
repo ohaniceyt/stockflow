@@ -1,6 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 
+interface ListQuery {
+  search?: string
+  planId?: string
+  status?: 'active' | 'suspended' | 'all'
+  limit?: number
+  offset?: number
+}
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -30,10 +38,15 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: organizations, error } = await adminClient
-      .from('organizations')
-      .select(
-        `
+    const url = new URL(req.url)
+    const search = url.searchParams.get('search') ?? undefined
+    const planId = url.searchParams.get('planId') ?? undefined
+    const status = (url.searchParams.get('status') as ListQuery['status']) ?? 'all'
+    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20', 10), 100)
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+
+    let query = adminClient.from('organizations').select(
+      `
         id,
         name,
         currency,
@@ -44,10 +57,31 @@ Deno.serve(async (req: Request) => {
         onboarding_completed,
         created_at,
         updated_at,
-        subscriptions ( plan_id, status, current_period_ends_at )
-      `
-      )
-      .order('created_at', { ascending: false })
+        subscriptions ( plan_id, status, current_period_ends_at ),
+        organization_memberships ( count )
+      `,
+      { count: 'exact' }
+    )
+
+    if (search) {
+      query = query.ilike('name', `%${search}%`)
+    }
+
+    if (status === 'active') {
+      query = query.eq('is_suspended', false).eq('is_active', true)
+    } else if (status === 'suspended') {
+      query = query.eq('is_suspended', true)
+    }
+
+    if (planId) {
+      query = query.eq('subscriptions.plan_id', planId)
+    }
+
+    const {
+      data: organizations,
+      error,
+      count,
+    } = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -56,7 +90,15 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ organizations: organizations ?? [] }), {
+    const rows = (organizations ?? []).map((org) => {
+      const memberships = org.organization_memberships as unknown as { count: number }[]
+      return {
+        ...(org as Record<string, unknown>),
+        users_count: memberships?.[0]?.count ?? 0,
+      }
+    })
+
+    return new Response(JSON.stringify({ organizations: rows, total: count ?? 0, limit, offset }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -1,18 +1,18 @@
-import { format, subDays, startOfDay } from 'date-fns'
+import { format, eachDayOfInterval, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
 
 interface RecapChartProps {
   movements: MovementWithDetails[]
-  days?: number
+  startDate: Date
+  endDate: Date
 }
 
-export function RecapChart({ movements, days = 14 }: RecapChartProps) {
-  const today = startOfDay(new Date())
-  const chartDays = Array.from({ length: days }, (_, i) => subDays(today, days - 1 - i))
+export function RecapChart({ movements, startDate, endDate }: RecapChartProps) {
+  const days = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) })
 
-  const data = chartDays.map((day) => {
+  const data = days.map((day) => {
     const dayMovements = movements.filter((m) => {
       const mDate = startOfDay(new Date(m.createdAt))
       return mDate.getTime() === day.getTime()
@@ -32,22 +32,28 @@ export function RecapChart({ movements, days = 14 }: RecapChartProps) {
     }
   })
 
+  const hasData = movements.length > 0
+
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-        Mouvements sur {days} jours
-      </h3>
+    <div className="card p-4">
+      <h3 className="card-t">Flux entrées / sorties</h3>
       <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="in" name="Entrées" fill="#22c55e" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="out" name="Sorties" fill="#ef4444" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {hasData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="in" name="Entrées" fill="var(--emerald)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="out" name="Sorties" fill="var(--rose)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="dash-empty flex h-full items-center justify-center">
+            Aucune donnée pour la période sélectionnée.
+          </div>
+        )}
       </div>
     </div>
   )

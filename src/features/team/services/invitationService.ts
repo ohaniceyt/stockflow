@@ -19,6 +19,14 @@ export interface UserOrg {
   isSuspended: boolean
 }
 
+export interface MyInvitation {
+  id: string
+  orgId: string
+  organizationName: string
+  role: UserRole
+  createdAt: string
+}
+
 export async function createInvitation(input: {
   email: string
   role: UserRole
@@ -52,12 +60,39 @@ export async function fetchInvitations(): Promise<Invitation[]> {
   }))
 }
 
-export async function acceptInvitation(invitationId: string): Promise<{ tempPin: string }> {
-  const data = await edgeFetch<{ tempPin: string }>('accept-invitation', {
+export async function acceptInvitation(
+  invitationId: string
+): Promise<{ membershipId: string; tempPin?: string }> {
+  return edgeFetch<{ membershipId: string; tempPin?: string }>('accept-invitation', {
     method: 'POST',
     body: JSON.stringify({ invitationId }),
   })
-  return data
+}
+
+export async function validateInvitationToken(token: string): Promise<{
+  orgName: string
+  email: string
+  role: UserRole
+  name?: string
+}> {
+  return edgeFetch<{ orgName: string; email: string; role: UserRole; name?: string }>(
+    'validate-invitation-token',
+    {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }
+  )
+}
+
+export async function acceptInvitationByToken(input: {
+  token: string
+  name?: string
+  password?: string
+}): Promise<{ membershipId: string; message?: string }> {
+  return edgeFetch<{ membershipId: string; message?: string }>('accept-invitation', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }
 
 export async function declineInvitation(invitationId: string): Promise<void> {
@@ -82,5 +117,24 @@ export async function fetchMyOrganizations(): Promise<UserOrg[]> {
     role: u.role,
     organizationName: u.organizations.name,
     isSuspended: u.organizations.is_suspended,
+  }))
+}
+
+interface RawMyInvitation {
+  id: string
+  org_id: string
+  role: UserRole
+  created_at: string
+  organizations: { name: string } | null
+}
+
+export async function fetchMyInvitations(): Promise<MyInvitation[]> {
+  const data = await edgeFetch<{ invitations: RawMyInvitation[] }>('list-my-invitations')
+  return data.invitations.map((invitation) => ({
+    id: invitation.id,
+    orgId: invitation.org_id,
+    organizationName: invitation.organizations?.name ?? '',
+    role: invitation.role,
+    createdAt: invitation.created_at,
   }))
 }

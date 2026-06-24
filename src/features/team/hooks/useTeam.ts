@@ -6,14 +6,11 @@ const TEAM_QUERY_KEY = 'team-users'
 
 export function useTeamUsers() {
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: [TEAM_QUERY_KEY, orgId],
-    queryFn: () => {
-      if (!orgId) throw new Error('Organisation manquante')
-      return fetchTeamUsers(orgId)
-    },
+    queryFn: () => fetchTeamUsers(),
     enabled: Boolean(orgId),
     staleTime: 30 * 1000,
   })
@@ -22,7 +19,7 @@ export function useTeamUsers() {
 export function useUpdateUserActive() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
@@ -35,15 +32,15 @@ export function useUpdateUserActive() {
 
 export function useResetUserPin() {
   return useMutation({
-    mutationFn: ({ userId, newPin }: { userId: string; newPin: string }) =>
-      resetUserPin(userId, newPin),
+    mutationFn: ({ membershipId, newPin }: { membershipId: string; newPin: string }) =>
+      resetUserPin(membershipId, newPin),
   })
 }
 
 export function useCreateUser() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: createUser,

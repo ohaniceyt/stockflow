@@ -1,16 +1,23 @@
 import { db } from '@/lib/db'
 import type {
   Product,
+  Category,
   Location,
   StockLevel,
   Movement,
   InventorySession,
   InventoryCount,
+  Contact,
 } from '@/types'
 
 export async function cacheProducts(products: Product[]): Promise<void> {
   await db.products.clear()
   await db.products.bulkPut(products)
+}
+
+export async function cacheCategories(categories: Category[]): Promise<void> {
+  await db.categories.clear()
+  await db.categories.bulkPut(categories)
 }
 
 export async function cacheLocations(locations: Location[]): Promise<void> {
@@ -38,8 +45,17 @@ export async function cacheInventoryCounts(counts: InventoryCount[]): Promise<vo
   await db.inventoryCounts.bulkPut(counts)
 }
 
+export async function cacheContacts(contacts: Contact[]): Promise<void> {
+  await db.contacts.clear()
+  await db.contacts.bulkPut(contacts)
+}
+
 export async function getCachedProducts(orgId: string): Promise<Product[]> {
   return db.products.where('orgId').equals(orgId).toArray()
+}
+
+export async function getCachedCategories(orgId: string): Promise<Category[]> {
+  return db.categories.where('orgId').equals(orgId).toArray()
 }
 
 export async function getCachedLocations(orgId: string): Promise<Location[]> {
@@ -60,6 +76,10 @@ export async function getCachedInventorySessions(orgId: string): Promise<Invento
 
 export async function getCachedInventoryCounts(): Promise<InventoryCount[]> {
   return db.inventoryCounts.toArray()
+}
+
+export async function getCachedContacts(orgId: string): Promise<Contact[]> {
+  return db.contacts.where('orgId').equals(orgId).toArray()
 }
 
 export async function getLastSyncAt(): Promise<number | null> {

@@ -11,7 +11,7 @@ const PRODUCTS_QUERY_KEY = 'products'
 export function useProducts() {
   const { session } = useAuth()
   const online = useNetworkStatus()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: [PRODUCTS_QUERY_KEY, orgId],
@@ -37,7 +37,7 @@ export function useProducts() {
 export function useCreateProduct() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
   const online = useNetworkStatus()
 
   return useMutation({
@@ -93,7 +93,7 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
   const online = useNetworkStatus()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: ({

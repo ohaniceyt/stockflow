@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface OnboardingPayload {
   orgName: string
@@ -45,13 +46,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: user, error: userError2 } = await adminClient
-      .from('users')
-      .select('id, role, org_id')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (userError2 || !user || !['super_admin', 'admin'].includes(user.role)) {
+    if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -74,7 +71,7 @@ Deno.serve(async (req: Request) => {
         timezone,
         onboarding_completed: true,
       })
-      .eq('id', user.org_id)
+      .eq('id', operator.org_id)
 
     if (updateOrgError) {
       return new Response(JSON.stringify({ error: updateOrgError.message }), {
@@ -84,7 +81,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { error: locationError } = await adminClient.from('locations').insert({
-      org_id: user.org_id,
+      org_id: operator.org_id,
       name: defaultLocationName,
       description: 'Emplacement par défaut créé lors de l’onboarding',
       is_default: true,

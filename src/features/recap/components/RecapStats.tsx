@@ -1,67 +1,128 @@
-import { cn } from '@/lib/utils'
-import { Package, AlertTriangle, Warehouse, TrendingUp } from 'lucide-react'
+import {
+  Package,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Warehouse,
+  Banknote,
+  Coins,
+  PiggyBank,
+} from 'lucide-react'
 
 interface RecapStatsProps {
   productCount: number
-  lowStockCount: number
   totalQuantity: number
   stockValue: number
+  stockSellingValue: number
+  revenue: number
+  generatedMargin: number
+  inCount: number
+  outCount: number
   currency: string
 }
 
 export function RecapStats({
   productCount,
-  lowStockCount,
   totalQuantity,
   stockValue,
+  stockSellingValue,
+  revenue,
+  generatedMargin,
+  inCount,
+  outCount,
   currency,
 }: RecapStatsProps) {
+  const formatMoney = (v: number) =>
+    v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+
   const cards = [
+    {
+      label: 'Entrées',
+      value: inCount,
+      icon: ArrowDownLeft,
+      iconColor: 'text-emerald-600',
+      iconBg: 'bg-emerald-50',
+      barColor: 'bg-emerald-400',
+    },
+    {
+      label: 'Sorties',
+      value: outCount,
+      icon: ArrowUpRight,
+      iconColor: 'text-rose-600',
+      iconBg: 'bg-rose-50',
+      barColor: 'bg-rose-400',
+    },
     {
       label: 'Produits actifs',
       value: productCount,
       icon: Package,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      iconColor: 'text-sky-600',
+      iconBg: 'bg-sky-50',
+      barColor: 'bg-sky-400',
     },
     {
-      label: 'Stock faible / rupture',
-      value: lowStockCount,
-      icon: AlertTriangle,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-    {
-      label: 'Quantité totale en stock',
+      label: 'Qté totale en stock',
       value: totalQuantity,
       icon: Warehouse,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
+      iconColor: 'text-amber-600',
+      iconBg: 'bg-amber-50',
+      barColor: 'bg-amber-400',
     },
     {
       label: `Valeur du stock (${currency})`,
-      value: stockValue,
-      icon: TrendingUp,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
-      format: (v: number) =>
-        v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+      value: formatMoney(stockValue),
+      raw: stockValue,
+      icon: Coins,
+      isMoney: true,
+      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-50',
+      barColor: 'bg-violet-400',
+    },
+    {
+      label: `Valeur vente stock (${currency})`,
+      value: formatMoney(stockSellingValue),
+      raw: stockSellingValue,
+      icon: Banknote,
+      isMoney: true,
+      iconColor: 'text-indigo-600',
+      iconBg: 'bg-indigo-50',
+      barColor: 'bg-indigo-400',
+    },
+    {
+      label: `Chiffre d'affaires (${currency})`,
+      value: formatMoney(revenue),
+      raw: revenue,
+      icon: Banknote,
+      isMoney: true,
+      iconColor: 'text-teal-600',
+      iconBg: 'bg-teal-50',
+      barColor: 'bg-teal-400',
+    },
+    {
+      label: `Marge générée (${currency})`,
+      value: formatMoney(generatedMargin),
+      raw: generatedMargin,
+      icon: PiggyBank,
+      isMoney: true,
+      iconColor: 'text-fuchsia-600',
+      iconBg: 'bg-fuchsia-50',
+      barColor: 'bg-fuchsia-400',
     },
   ]
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <div key={card.label} className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className="mt-1 text-3xl font-bold">
-                {card.format ? card.format(card.value) : card.value.toLocaleString()}
+        <div key={card.label} className="sc">
+          <div className={`sc-bar ${card.barColor}`} />
+          <div className="flex items-start justify-between">
+            <div className="min-w-0">
+              <p className="text-xs text-[var(--text-faint)] truncate">{card.label}</p>
+              <p className="mt-1 text-2xl font-bold text-[var(--text-h)] truncate">
+                {card.isMoney ? card.value : card.value.toLocaleString()}
               </p>
             </div>
-            <div className={cn('rounded-lg p-2', card.bg)}>
-              <card.icon className={cn('h-5 w-5', card.color)} />
+            <div className={`rounded-lg ${card.iconBg} p-2 shrink-0`}>
+              <card.icon className={`h-5 w-5 ${card.iconColor}`} />
             </div>
           </div>
         </div>

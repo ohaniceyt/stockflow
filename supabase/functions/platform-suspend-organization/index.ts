@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient)
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
@@ -59,6 +59,15 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    await adminClient.from('platform_audit_logs').insert({
+      actor_id: platformAdmin.authUserId,
+      actor_role: platformAdmin.role,
+      action: isSuspended ? 'org_suspended' : 'org_reactivated',
+      target_type: 'organization',
+      target_id: orgId,
+      metadata: { reason },
+    })
 
     return new Response(
       JSON.stringify({

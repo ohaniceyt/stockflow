@@ -1,40 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 
-interface Payload {
-  invitationId: string
+interface AuthenticatedPayload {
+  token?: string
+  invitationId?: string
+}
+
+interface NewUserPayload {
+  token: string
+  name: string
+  password: string
 }
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
-  const encoder = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(pin),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  )
-  const derived = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
-    keyMaterial,
-    256
-  )
-  return encodeBase64(new Uint8Array(derived))
-}
-
-function generateTempPin(): string {
-  const digits = '0123456789'
-  let pin = ''
-  for (let i = 0; i < 4; i++) {
-    pin += digits[Math.floor(Math.random() * digits.length)]
-  }
-  return pin
 }
 
 Deno.serve(async (req: Request) => {
@@ -49,41 +29,34 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const token = getBearerToken(req)
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const claims = parseJwt(token)
-    if (!claims?.sub || !claims?.email) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { invitationId }: Payload = await req.json()
-    if (!invitationId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const payload = await req.json()
+    const token = (payload as { token?: string }).token
+    const invitationId = (payload as { invitationId?: string }).invitationId
+
+    if (!token && !invitationId) {
+      return new Response(JSON.stringify({ error: 'Token or invitationId required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const { data: invitation, error: inviteError } = await adminClient
+    // Load invitation
+    let query = adminClient
       .from('invitations')
-      .select('id, org_id, email, role')
-      .eq('id', invitationId)
-      .eq('email', claims.email.toLowerCase())
+      .select('id, org_id, email, role, expires_at, status, name')
       .eq('status', 'pending')
-      .single()
+
+    if (token) {
+      query = query.eq('token', token)
+    } else {
+      query = query.eq('id', invitationId)
+    }
+
+    const { data: invitation, error: inviteError } = await query.single()
 
     if (inviteError || !invitation) {
       return new Response(JSON.stringify({ error: 'Invitation not found or already processed' }), {
@@ -92,37 +65,92 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Check whether user already exists in target org
-    const { data: existingOrgUser } = await adminClient
-      .from('users')
-      .select('id')
-      .eq('org_id', invitation.org_id)
-      .eq('email', invitation.email)
-      .maybeSingle()
-
-    if (existingOrgUser) {
-      return new Response(JSON.stringify({ error: 'Already a member of this organization' }), {
-        status: 409,
+    if (invitation.expires_at && new Date(invitation.expires_at as string) < new Date()) {
+      return new Response(JSON.stringify({ error: 'Invitation expired' }), {
+        status: 410,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Look for an existing auth user with this email to reuse
-    const { data: existingAuthUsers } = await adminClient.auth.admin.listUsers()
-    const existingAuthUser = existingAuthUsers.users.find(
-      (u) => u.email?.toLowerCase() === invitation.email.toLowerCase()
-    )
+    const normalizedEmail = (invitation.email as string).toLowerCase()
 
-    let authUserId = existingAuthUser?.id
+    // Check whether a membership already exists in target org
+    const { data: existingProfile } = await adminClient
+      .from('users')
+      .select('id, name')
+      .ilike('email', normalizedEmail)
+      .maybeSingle()
 
-    if (!authUserId) {
-      const tempPassword = crypto.randomUUID()
+    if (existingProfile) {
+      const { data: existingMembership } = await adminClient
+        .from('organization_memberships')
+        .select('id')
+        .eq('org_id', invitation.org_id)
+        .eq('user_id', existingProfile.id)
+        .maybeSingle()
+
+      if (existingMembership) {
+        return new Response(JSON.stringify({ error: 'Already a member of this organization' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    const bearerToken = getBearerToken(req)
+    const claims = bearerToken ? parseJwt(bearerToken) : null
+    const isAuthenticated = !!claims?.sub && !!claims?.email
+
+    let authUserId: string | null = null
+    let profileName: string | null = null
+
+    if (isAuthenticated) {
+      // Authenticated acceptance: email must match the invitation.
+      if (claims.email!.toLowerCase() !== normalizedEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Invitation email does not match signed-in user' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      authUserId = claims.sub
+
+      if (!existingProfile) {
+        return new Response(JSON.stringify({ error: 'Authenticated user profile not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      profileName = existingProfile.name
+    } else {
+      // New-user acceptance: name and password are required.
+      const { name, password } = payload as NewUserPayload
+      if (!name?.trim() || !password || (password as string).length < 8) {
+        return new Response(
+          JSON.stringify({ error: 'Name and a password of at least 8 characters are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      profileName = name.trim()
+
+      // Refuse if a profile already exists for this email (user should log in first).
+      if (existingProfile) {
+        return new Response(
+          JSON.stringify({
+            error:
+              'An account already exists for this email. Please log in to accept the invitation.',
+            existingAccount: true,
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Create auth user. The invitation link came from the email, so we trust it.
       const { data: newAuthUser, error: createAuthError } = await adminClient.auth.admin.createUser(
         {
-          email: invitation.email,
-          password: tempPassword,
+          email: normalizedEmail,
+          password: password as string,
           email_confirm: true,
-          user_metadata: { org_id: invitation.org_id, role: invitation.role },
+          user_metadata: { name: profileName },
         }
       )
 
@@ -133,56 +161,90 @@ Deno.serve(async (req: Request) => {
         )
       }
       authUserId = newAuthUser.user.id
+
+      // Create global profile
+      const { error: insertProfileError } = await adminClient.from('users').insert({
+        id: authUserId,
+        name: profileName,
+        email: normalizedEmail,
+        email_verified: true,
+        active_org_id: invitation.org_id,
+      })
+
+      if (insertProfileError) {
+        await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
+        return new Response(JSON.stringify({ error: insertProfileError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const { data: newMembership, error: insertError } = await adminClient
+        .from('organization_memberships')
+        .insert({
+          org_id: invitation.org_id,
+          user_id: authUserId,
+          role: invitation.role,
+          pin_hash: null,
+          is_active: true,
+          force_pin_change: false,
+        })
+        .select('id')
+        .single()
+
+      if (insertError || !newMembership) {
+        await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
+        return new Response(
+          JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      await adminClient.from('invitations').update({ status: 'accepted' }).eq('id', invitation.id)
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          membershipId: newMembership.id,
+          message: 'Invitation accepted. You can now log in.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Try to find source user info (name) from any org
-    const { data: sourceUser } = await adminClient
+    // Authenticated path: create membership for existing user.
+    const { data: newMembership, error: insertError } = await adminClient
+      .from('organization_memberships')
+      .insert({
+        org_id: invitation.org_id,
+        user_id: authUserId,
+        role: invitation.role,
+        pin_hash: null,
+        is_active: true,
+        force_pin_change: false,
+      })
+      .select('id')
+      .single()
+
+    if (insertError || !newMembership) {
+      return new Response(
+        JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    await adminClient
       .from('users')
-      .select('name')
+      .update({ active_org_id: invitation.org_id })
       .eq('id', authUserId)
-      .maybeSingle()
 
-    const tempPin = generateTempPin()
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const pinHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(tempPin, salt)}`
-
-    const { error: insertError } = await adminClient.from('users').insert({
-      id: authUserId,
-      org_id: invitation.org_id,
-      name: sourceUser?.name ?? invitation.email.split('@')[0],
-      email: invitation.email,
-      email_verified: true,
-      role: invitation.role,
-      pin_hash: pinHash,
-      is_active: true,
-      force_pin_change: true,
-    })
-
-    if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const { error: updateError } = await adminClient
-      .from('invitations')
-      .update({ status: 'accepted' })
-      .eq('id', invitationId)
-
-    if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    await adminClient.from('invitations').update({ status: 'accepted' }).eq('id', invitation.id)
 
     return new Response(
       JSON.stringify({
         success: true,
-        tempPin,
-        message:
-          'Invitation accepted. Use the temporary PIN to log in; you will be prompted to set a permanent PIN.',
+        membershipId: newMembership.id,
+        message: 'Invitation accepted. You can now access the organization.',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

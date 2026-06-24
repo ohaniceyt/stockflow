@@ -66,6 +66,20 @@ export function MovementList({ movements }: MovementListProps) {
     },
     { key: 'operator', header: 'Opérateur', cell: (m) => m.operatorName ?? '—' },
     {
+      key: 'contact',
+      header: 'Contact',
+      cell: (m) => {
+        if (!m.contactName) return <span className="text-muted-foreground">—</span>
+        return (
+          <span className="text-muted-foreground">
+            {m.type === 'IN' && 'Fourni: '}
+            {m.type === 'OUT' && 'Client: '}
+            {m.contactName}
+          </span>
+        )
+      },
+    },
+    {
       key: 'reason',
       header: 'Motif',
       cell: (m) => <span className="text-muted-foreground">{m.reason ?? '—'}</span>,

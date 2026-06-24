@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface Payload {
   email: string
@@ -44,17 +45,13 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('id, role, org_id, name')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
+    if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          debug: operatorError?.message ?? 'Operator not found or insufficient role',
+          debug: 'Operator not found or insufficient role',
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -68,20 +65,28 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Do not invite existing user in same org
-    const { data: existingUser } = await adminClient
-      .from('users')
+    // Do not invite existing membership in same org
+    const { data: existingMembership } = await adminClient
+      .from('organization_memberships')
       .select('id')
       .eq('org_id', operator.org_id)
-      .eq('email', email)
+      .eq('users.email', email.toLowerCase())
       .maybeSingle()
 
-    if (existingUser) {
+    if (existingMembership) {
       return new Response(JSON.stringify({ error: 'User already exists in this organization' }), {
         status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    const { data: operatorProfile } = await adminClient
+      .from('users')
+      .select('name')
+      .eq('id', operator.user_id)
+      .single()
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
     const { data: invitation, error: insertError } = await adminClient
       .from('invitations')
@@ -90,8 +95,9 @@ Deno.serve(async (req: Request) => {
         email: email.toLowerCase(),
         role,
         invited_by: operator.id,
+        expires_at: expiresAt,
       })
-      .select('id, org_id, email, role, status, organizations(name)')
+      .select('id, org_id, email, role, status, token, expires_at, organizations(name)')
       .single()
 
     if (insertError) {
@@ -104,16 +110,20 @@ Deno.serve(async (req: Request) => {
     // Best-effort email notification
     try {
       const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
+      const token = (invitation.token as string | undefined) ?? ''
+      const inviteUrl = token
+        ? `${appUrl}/invite?token=${encodeURIComponent(token)}`
+        : `${appUrl}/login`
       await sendEmail({
         to: email,
         subject: 'Invitation à rejoindre une organisation sur StockFlow',
         html: buildInvitationHtml(
           email,
-          operator.name ?? 'Un administrateur',
+          (operatorProfile?.name as string | undefined) ?? 'Un administrateur',
           (invitation.organizations as { name: string }).name,
-          `${appUrl}/login`
+          inviteUrl
         ),
-        text: `Bonjour,\n\nVous avez été invité(e) à rejoindre ${(invitation.organizations as { name: string }).name} sur StockFlow.\n\nConnectez-vous avec votre email pour accepter l'invitation : ${appUrl}/login\n\nStockFlow vNext`,
+        text: `Bonjour,\n\nVous avez été invité(e) à rejoindre ${(invitation.organizations as { name: string }).name} sur StockFlow.\n\nAcceptez l'invitation ici : ${inviteUrl}\n\nStockFlow vNext`,
       })
     } catch (emailErr) {
       console.error('Failed to send invitation email:', emailErr)

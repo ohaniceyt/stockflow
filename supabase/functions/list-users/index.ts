@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,13 +39,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('role, org_id')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (operatorError || !operator) {
+    if (!operator) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -69,16 +66,18 @@ Deno.serve(async (req: Request) => {
     }
 
     let query = adminClient
-      .from('users')
-      .select('id, name, email, email_verified, role, org_id, is_active')
+      .from('organization_memberships')
+      .select(
+        'id, role, is_active, user_id, last_login_at, users!inner(id, name, email, email_verified)'
+      )
       .eq('is_active', true)
-      .order('name')
+      .order('users(name)')
 
     if (!isPlatformAdmin) {
       query = query.eq('org_id', operator.org_id)
     }
 
-    const { data: users, error } = await query
+    const { data: memberships, error } = await query
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -87,7 +86,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ users: users ?? [] }), {
+    return new Response(JSON.stringify({ users: memberships ?? [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

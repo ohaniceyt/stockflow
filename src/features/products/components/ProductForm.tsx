@@ -4,16 +4,28 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import type { Product } from '@/types'
+import { ProductCategorySelect } from './ProductCategorySelect'
+import type { Product, Category } from '@/types'
 
 interface ProductFormProps {
   product?: Product | null
+  categories: Category[]
   onSubmit: (data: ProductFormData) => void
   onCancel: () => void
+  onCreateCategory: (name: string) => Promise<void> | void
   isLoading?: boolean
+  isCreatingCategory?: boolean
 }
 
-export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductFormProps) {
+export function ProductForm({
+  product,
+  categories,
+  onSubmit,
+  onCancel,
+  onCreateCategory,
+  isLoading,
+  isCreatingCategory,
+}: ProductFormProps) {
   const [form, setForm] = useState<ProductFormData>({
     name: product?.name ?? '',
     category: product?.category ?? '',
@@ -64,15 +76,14 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="category">Catégorie</Label>
-          <Input
-            id="category"
-            value={form.category ?? ''}
-            onChange={(e) => updateField('category', e.target.value || null)}
-            placeholder="Ex: Matériaux"
-          />
-        </div>
+        <ProductCategorySelect
+          id="category"
+          value={form.category ?? ''}
+          onChange={(value) => updateField('category', value)}
+          categories={categories}
+          onCreateCategory={onCreateCategory}
+          isCreating={isCreatingCategory}
+        />
         <div className="space-y-2">
           <Label htmlFor="unit">Unité *</Label>
           <Input

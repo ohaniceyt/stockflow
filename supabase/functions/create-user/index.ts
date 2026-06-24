@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
 interface CreateUserPayload {
@@ -75,17 +76,13 @@ Deno.serve(async (req: Request) => {
 
     const operatorId = claims.sub
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('role, org_id')
-      .eq('id', operatorId)
-      .single()
+    const operator = await getCurrentMembership(adminClient, operatorId)
 
-    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
+    if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          debug: operatorError?.message ?? 'Operator not found or insufficient role',
+          debug: 'Operator not found or insufficient role',
         }),
         {
           status: 403,
@@ -124,43 +121,92 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    // Do not create a duplicate membership in the same org
+    const normalizedEmail = email.toLowerCase()
+    const { data: existingMembership } = await adminClient
+      .from('organization_memberships')
+      .select('id')
+      .eq('org_id', operator.org_id)
+      .eq('users.email', normalizedEmail)
+      .maybeSingle()
+
+    if (existingMembership) {
+      return new Response(JSON.stringify({ error: 'User already exists in this organization' }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const tempPin = generateTempPin()
     const salt = crypto.getRandomValues(new Uint8Array(16))
     const pinHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(tempPin, salt)}`
 
-    const { data: createAuthData, error: createAuthError } =
-      await adminClient.auth.admin.createUser({
-        email,
-        password: crypto.randomUUID(),
-        // We manage email verification ourselves (welcome + magic-link emails via Resend),
-        // so confirm the email immediately to avoid Supabase sending its own confirmation email.
-        email_confirm: true,
-        user_metadata: { org_id: operator.org_id, role, name },
+    let authUserId: string | null = null
+
+    // Look for an existing global profile with this email
+    const { data: existingProfile } = await adminClient
+      .from('users')
+      .select('id')
+      .ilike('email', normalizedEmail)
+      .maybeSingle()
+
+    if (existingProfile) {
+      authUserId = existingProfile.id
+    } else {
+      const { data: createAuthData, error: createAuthError } =
+        await adminClient.auth.admin.createUser({
+          email: normalizedEmail,
+          password: crypto.randomUUID(),
+          email_confirm: true,
+          user_metadata: { org_id: operator.org_id, role, name },
+        })
+
+      if (createAuthError || !createAuthData.user) {
+        return new Response(
+          JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      authUserId = createAuthData.user.id
+
+      const { error: insertProfileError } = await adminClient.from('users').insert({
+        id: authUserId,
+        name,
+        email: normalizedEmail,
+        email_verified: false,
       })
 
-    if (createAuthError || !createAuthData.user) {
-      return new Response(
-        JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (insertProfileError) {
+        await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
+        return new Response(JSON.stringify({ error: insertProfileError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
-    const { error: insertError } = await adminClient.from('users').insert({
-      id: createAuthData.user.id,
-      org_id: operator.org_id,
-      name,
-      email,
-      email_verified: false,
-      role,
-      pin_hash: pinHash,
-      is_active: true,
-      force_pin_change: true,
-    })
+    const { error: insertMembershipError } = await adminClient
+      .from('organization_memberships')
+      .insert({
+        org_id: operator.org_id,
+        user_id: authUserId,
+        role,
+        pin_hash: pinHash,
+        is_active: true,
+        force_pin_change: true,
+      })
 
-    if (insertError) {
-      // Best-effort cleanup of auth user
-      await adminClient.auth.admin.deleteUser(createAuthData.user.id)
-      return new Response(JSON.stringify({ error: insertError.message }), {
+    if (insertMembershipError) {
+      if (!existingProfile && authUserId) {
+        await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
+        await adminClient
+          .from('users')
+          .delete()
+          .eq('id', authUserId)
+          .catch(() => {})
+      }
+      return new Response(JSON.stringify({ error: insertMembershipError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

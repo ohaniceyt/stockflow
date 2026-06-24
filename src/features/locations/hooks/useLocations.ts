@@ -15,7 +15,7 @@ const LOCATIONS_QUERY_KEY = 'locations'
 export function useLocations() {
   const { session } = useAuth()
   const online = useNetworkStatus()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: [LOCATIONS_QUERY_KEY, orgId],
@@ -41,7 +41,7 @@ export function useLocations() {
 export function useCreateLocation() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: (input: LocationFormData) => {
@@ -57,7 +57,7 @@ export function useCreateLocation() {
 export function useUpdateLocation() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: ({ id, ...input }: { id: string } & LocationFormData) => {
@@ -72,7 +72,7 @@ export function useUpdateLocation() {
 export function useSetDefaultLocation() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useMutation({
     mutationFn: (id: string) => {

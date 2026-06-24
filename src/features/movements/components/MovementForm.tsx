@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import type { Location, MovementType, Product } from '@/types'
+import type { Contact, Location, MovementType, Product } from '@/types'
 
 interface MovementFormProps {
   products: Product[]
   locations: Location[]
+  contacts: Contact[]
   onSubmit: (input: {
     productId: string
     locationId: string
@@ -15,6 +16,7 @@ interface MovementFormProps {
     type: MovementType
     quantity: number
     reason: string | null
+    contactId: string | null
   }) => void
   onCancel: () => void
   isLoading?: boolean
@@ -23,6 +25,7 @@ interface MovementFormProps {
 export function MovementForm({
   products,
   locations,
+  contacts,
   onSubmit,
   onCancel,
   isLoading,
@@ -33,10 +36,16 @@ export function MovementForm({
   const [targetLocationId, setTargetLocationId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [reason, setReason] = useState('')
+  const [contactId, setContactId] = useState('')
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
 
   const activeProducts = products.filter((p) => p.isActive)
   const defaultLocation = locations.find((l) => l.isDefault)
+
+  const contactType = type === 'IN' ? 'SUPPLIER' : type === 'OUT' ? 'CUSTOMER' : null
+  const filteredContacts = contactType
+    ? contacts.filter((c) => c.type === contactType && c.isActive)
+    : []
 
   const validate = () => {
     const next: Partial<Record<string, string>> = {}
@@ -59,6 +68,7 @@ export function MovementForm({
       type,
       quantity,
       reason: reason.trim() || null,
+      contactId: contactId || null,
     })
   }
 
@@ -126,6 +136,20 @@ export function MovementForm({
           {errors.targetLocationId && (
             <p className="text-xs text-destructive">{errors.targetLocationId}</p>
           )}
+        </div>
+      )}
+
+      {contactType && filteredContacts.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="contactId">{type === 'IN' ? 'Fournisseur' : 'Client'}</Label>
+          <Select id="contactId" value={contactId} onChange={(e) => setContactId(e.target.value)}>
+            <option value="">{`Choisir un ${type === 'IN' ? 'fournisseur' : 'client'} (optionnel)`}</option>
+            {filteredContacts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
         </div>
       )}
 

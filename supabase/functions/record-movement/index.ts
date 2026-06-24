@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
 interface RecordMovementPayload {
@@ -9,6 +10,7 @@ interface RecordMovementPayload {
   type: 'IN' | 'OUT' | 'INVENTORY' | 'ADJUSTMENT' | 'TRANSFER'
   quantity: number
   reason?: string | null
+  contact_id?: string | null
 }
 
 export const corsHeaders = {
@@ -48,21 +50,13 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('id, role, org_id')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (
-      operatorError ||
-      !operator ||
-      !['super_admin', 'admin', 'operator'].includes(operator.role)
-    ) {
+    if (!operator || !['super_admin', 'admin', 'operator'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          debug: operatorError?.message ?? 'Operator not found or insufficient role',
+          debug: 'Operator not found or insufficient role',
         }),
         {
           status: 403,
@@ -115,6 +109,7 @@ Deno.serve(async (req: Request) => {
       p_type: payload.type,
       p_quantity: payload.quantity,
       p_reason: payload.reason ?? null,
+      p_contact_id: payload.contact_id ?? null,
     })
 
     if (error) {

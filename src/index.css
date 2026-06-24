@@ -47,6 +47,24 @@
   --input: #e2e8f0;
   --ring: #2563eb;
   --radius: 0.75rem;
+
+  /* Custom design tokens for Stock / SaaS modules */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --text-h: #0f172a;
+  --text: #334155;
+  --text-faint: #64748b;
+  --emerald: #059669;
+  --emerald-light: #d1fae5;
+  --amber: #d97706;
+  --amber-light: #fef3c7;
+  --rose: #e11d48;
+  --rose-light: #ffe4e6;
+  --indigo: #4f46e5;
+  --indigo-light: #e0e7ff;
+  --r-md: 10px;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .dark {
@@ -83,4 +101,107 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@layer base {
+  html {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+  }
+}
+
+@utility btn-o {
+  @apply inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] text-sm font-medium transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-p {
+  @apply inline-flex items-center justify-center rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-medium transition-colors hover:bg-[var(--primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-sm {
+  @apply h-8 px-3 gap-1.5;
+}
+@utility btn-ic {
+  @apply h-8 w-8 p-0;
+}
+
+@utility card {
+  @apply rounded-[var(--r-md)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)];
+}
+@utility sk {
+  @apply card flex flex-col overflow-hidden transition-transform active:scale-[0.98];
+}
+
+@utility badge {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
+}
+@utility bd-g {
+  @apply badge bg-[var(--emerald-light)] text-[var(--emerald)];
+}
+@utility bd-y {
+  @apply badge bg-[var(--amber-light)] text-[var(--amber)];
+}
+@utility bd-r {
+  @apply badge bg-[var(--rose-light)] text-[var(--rose)];
+}
+
+@utility stock-grid {
+  @apply grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4;
+}
+
+@utility ov {
+  @apply fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4;
+}
+@utility ov-panel {
+  @apply w-full max-w-lg rounded-t-[var(--r-md)] bg-[var(--surface)] p-5 shadow-xl sm:rounded-[var(--r-md)];
+}
+
+@utility status-bar {
+  @apply h-0.5 w-full shrink-0;
+}
+@utility progress-track {
+  @apply h-1 w-full overflow-hidden rounded-full bg-[var(--surface-2)];
+}
+
+@utility sg {
+  @apply grid grid-cols-2 gap-3;
+}
+
+@utility sc {
+  @apply card relative flex flex-col p-4 text-left;
+}
+
+@utility sc-bar {
+  @apply absolute left-0 right-0 top-0 h-0.5 rounded-t-[calc(var(--r-md)-1px)];
+}
+
+@utility card-t {
+  @apply mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-faint)];
+}
+
+@utility ca {
+  @apply text-[var(--indigo)] bg-[var(--indigo-light)];
+}
+
+@utility cr {
+  @apply text-[var(--rose)] bg-[var(--rose-light)];
+}
+
+@utility cy {
+  @apply text-[var(--amber)] bg-[var(--amber-light)];
+}
+
+@utility dash-empty {
+  @apply py-8 text-center text-sm text-[var(--text-faint)];
+}
+
+.ch-dash,
+.ch-trend {
+  width: 100%;
+  height: 100%;
+}
+
+.ch-dash canvas,
+.ch-trend canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

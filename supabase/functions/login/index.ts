@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 
 interface LoginPayload {
-  userId: string
+  membershipId: string
   pin: string
 }
 
@@ -114,16 +114,41 @@ Deno.serve(async (req: Request) => {
 
     const clientIp = getClientIp(req)
 
-    const { userId, pin }: LoginPayload = await req.json()
-    if (!userId || !pin || pin.length < 4 || pin.length > 8) {
+    const { membershipId, pin }: LoginPayload = await req.json()
+    if (!membershipId || !pin || pin.length < 4 || pin.length > 8) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    const { data: membership, error: membershipError } = await adminClient
+      .from('organization_memberships')
+      .select(
+        'id, org_id, user_id, role, pin_hash, is_active, force_pin_change, users!inner(id, name, email, email_verified)'
+      )
+      .eq('id', membershipId)
+      .eq('is_active', true)
+      .single()
+
+    if (membershipError || !membership) {
+      await recordAttempt(adminClient, { ipAddress: clientIp, userId: null, succeeded: false })
+      return new Response(JSON.stringify({ error: 'Invalid membership' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const authUserId = membership.user_id as string
+    const profile = membership.users as unknown as {
+      id: string
+      name: string
+      email: string
+      email_verified: boolean
+    }
+
     // Rate-limit by user
-    const userFailures = await countRecentFailures(adminClient, 'user_id', userId)
+    const userFailures = await countRecentFailures(adminClient, 'user_id', authUserId)
     if (userFailures >= MAX_FAILED_ATTEMPTS_PER_USER) {
       return new Response(JSON.stringify({ error: 'Too many attempts. Try again later.' }), {
         status: 429,
@@ -143,38 +168,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { data: user, error } = await adminClient
-      .from('users')
-      .select(
-        'id, org_id, name, email, email_verified, role, pin_hash, is_active, force_pin_change'
-      )
-      .eq('id', userId)
-      .single()
-
-    if (error || !user) {
-      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (!user.is_active) {
-      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
-      return new Response(JSON.stringify({ error: 'Account disabled' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
-      .select('onboarding_completed, is_suspended, suspension_reason')
-      .eq('id', user.org_id ?? '')
+      .select('name, onboarding_completed, is_suspended, suspension_reason')
+      .eq('id', membership.org_id)
       .single()
 
     const { data: platformAdminData } = await adminClient.rpc('is_platform_admin', {
-      p_user_id: user.id,
+      p_user_id: authUserId,
     })
     const isPlatformAdmin = platformAdminData === true
 
@@ -186,7 +187,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (org?.is_suspended) {
-      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
+      await recordAttempt(adminClient, {
+        ipAddress: clientIp,
+        userId: authUserId,
+        succeeded: false,
+      })
       return new Response(
         JSON.stringify({
           error: 'Organization suspended',
@@ -196,7 +201,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const [algo, saltB64, expectedHashB64] = user.pin_hash.split('$')
+    const [algo, saltB64, expectedHashB64] = (membership.pin_hash as string).split('$')
     if (algo !== 'pbkdf2' || !saltB64 || !expectedHashB64) {
       return new Response(JSON.stringify({ error: 'Invalid pin format' }), {
         status: 500,
@@ -207,22 +212,32 @@ Deno.serve(async (req: Request) => {
     const computedHash = await hashPin(pin, saltB64)
 
     if (!timingSafeEqual(computedHash, expectedHashB64)) {
-      await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: false })
+      await recordAttempt(adminClient, {
+        ipAddress: clientIp,
+        userId: authUserId,
+        succeeded: false,
+      })
       return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    // Activate this org/membership for the session
     await adminClient
       .from('users')
+      .update({ active_org_id: membership.org_id })
+      .eq('id', authUserId)
+    await adminClient
+      .from('organization_memberships')
       .update({ last_login_at: new Date().toISOString() })
-      .eq('id', user.id)
+      .eq('id', membershipId)
 
-    await recordAttempt(adminClient, { ipAddress: clientIp, userId, succeeded: true })
+    await recordAttempt(adminClient, { ipAddress: clientIp, userId: authUserId, succeeded: true })
 
     const onboardingCompleted =
-      ['super_admin', 'admin'].includes(user.role) && org?.onboarding_completed === true
+      ['super_admin', 'admin'].includes(membership.role as string) &&
+      org?.onboarding_completed === true
 
     // Dev-only bypass for demo accounts when Supabase email rate limits block OTP.
     // Controlled by the DEMO_BYPASS environment variable; never enable in production.
@@ -231,26 +246,31 @@ Deno.serve(async (req: Request) => {
     const isDemoAccount =
       demoBypass &&
       anonKey &&
-      (user.id === '584a7634-fbed-41ad-a947-b104d013ee96' ||
-        user.id === '0c14cf03-5341-4b95-bb9e-eb0fbcd16836')
+      (authUserId === '584a7634-fbed-41ad-a947-b104d013ee96' ||
+        authUserId === '0c14cf03-5341-4b95-bb9e-eb0fbcd16836')
 
     if (isDemoAccount) {
       const anonClient = createClient(supabaseUrl, anonKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       })
 
-      const demoPassword = `demo-${user.id.slice(0, 8)}`
+      const demoPassword = `demo-${authUserId.slice(0, 8)}`
 
       const { error: createError } = await adminClient.auth.admin.createUser({
-        id: user.id,
-        email: user.email,
+        id: authUserId,
+        email: profile.email,
         password: demoPassword,
         email_confirm: true,
-        user_metadata: { org_id: user.org_id, role: user.role, name: user.name },
+        user_metadata: {
+          org_id: membership.org_id,
+          role: membership.role,
+          name: profile.name,
+          membership_id: membership.id,
+        },
       })
 
       if (createError) {
-        const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
+        const { error: updateError } = await adminClient.auth.admin.updateUserById(authUserId, {
           password: demoPassword,
         })
         if (updateError) {
@@ -262,7 +282,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const { data: signInData, error: signInError } = await anonClient.auth.signInWithPassword({
-        email: user.email,
+        email: profile.email,
         password: demoPassword,
       })
 
@@ -277,8 +297,8 @@ Deno.serve(async (req: Request) => {
 
       return new Response(
         JSON.stringify({
-          email: user.email,
-          forcePinChange: user.force_pin_change,
+          email: profile.email,
+          forcePinChange: membership.force_pin_change,
           onboardingCompleted,
           session: {
             access_token: signInData.session.access_token,
@@ -287,14 +307,16 @@ Deno.serve(async (req: Request) => {
             expires_at: signInData.session.expires_at,
           },
           user: {
-            id: user.id,
-            orgId: user.org_id,
-            name: user.name,
-            email: user.email,
-            emailVerified: true,
-            role: user.role,
+            id: authUserId,
+            membershipId: membership.id,
+            orgId: membership.org_id,
+            orgName: org?.name ?? '',
+            name: profile.name,
+            email: profile.email,
+            emailVerified: profile.email_verified,
+            role: membership.role,
             isPlatformAdmin,
-            forcePinChange: user.force_pin_change,
+            forcePinChange: membership.force_pin_change,
             onboardingCompleted,
           },
         }),
@@ -304,18 +326,20 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        email: user.email,
-        forcePinChange: user.force_pin_change,
+        email: profile.email,
+        forcePinChange: membership.force_pin_change,
         onboardingCompleted,
         user: {
-          id: user.id,
-          orgId: user.org_id,
-          name: user.name,
-          email: user.email,
-          emailVerified: user.email_verified,
-          role: user.role,
+          id: authUserId,
+          membershipId: membership.id,
+          orgId: membership.org_id,
+          orgName: org?.name ?? '',
+          name: profile.name,
+          email: profile.email,
+          emailVerified: profile.email_verified,
+          role: membership.role,
           isPlatformAdmin,
-          forcePinChange: user.force_pin_change,
+          forcePinChange: membership.force_pin_change,
           onboardingCompleted,
         },
       }),

@@ -3,13 +3,14 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { LogOut, Menu } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
+import { SudoBanner } from '@/features/back-office/components/SudoBanner'
 import { cn } from '@/lib/utils'
 import { navItems } from './navConfig'
 import { MobileNav } from './MobileNav'
 import { MobileMenuSheet } from './MobileMenuSheet'
 
 export function AppLayout() {
-  const { session, logout, hasRole } = useAuth()
+  const { session, signOut, hasRole, isPlatformAdmin } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -27,11 +28,12 @@ export function AppLayout() {
 
         <nav className="flex-1 space-y-1 p-3">
           {navItems
-            .filter((item) => hasRole(item.roles))
+            .filter((item) => hasRole(item.roles) && (!item.platformAdminOnly || isPlatformAdmin))
             .map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                data-testid={`nav-${item.to.replace(/^\//, '').replace(/\//g, '-')}`}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -50,7 +52,7 @@ export function AppLayout() {
         <div className="border-t p-3">
           <button
             type="button"
-            onClick={logout}
+            onClick={() => void signOut()}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
@@ -73,11 +75,12 @@ export function AppLayout() {
           <h2 className="text-base font-semibold md:text-lg">StockFlow vNext</h2>
 
           <div className="text-sm text-muted-foreground">
-            {session?.user.role === 'super_admin' ? 'Super Admin' : session?.user.name}
+            {session?.membership.role === 'super_admin' ? 'Super Admin' : session?.user.name}
           </div>
         </header>
 
         <div className="p-4 pb-24 md:p-6 md:pb-6">
+          <SudoBanner />
           <Outlet />
         </div>
       </main>

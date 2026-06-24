@@ -4,12 +4,12 @@ import type { UserOrg } from '../services/invitationService'
 
 interface OrgSwitcherProps {
   organizations: UserOrg[]
-  onSwitch: (orgId: string) => void
+  onSwitch: (membershipId: string) => void
 }
 
 export function OrgSwitcher({ organizations, onSwitch }: OrgSwitcherProps) {
   const { session } = useAuth()
-  const currentOrgId = session?.user.orgId
+  const currentMembershipId = session?.membership.id
 
   return (
     <div className="space-y-2">
@@ -19,12 +19,12 @@ export function OrgSwitcher({ organizations, onSwitch }: OrgSwitcherProps) {
       <div className="space-y-1">
         {organizations.map((org) => (
           <button
-            key={org.orgId}
+            key={org.id}
             type="button"
-            disabled={org.orgId === currentOrgId || org.isSuspended}
-            onClick={() => onSwitch(org.orgId)}
+            disabled={org.id === currentMembershipId || org.isSuspended}
+            onClick={() => onSwitch(org.id)}
             className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              org.orgId === currentOrgId
+              org.id === currentMembershipId
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             } ${org.isSuspended ? 'opacity-50' : ''}`}
@@ -33,7 +33,7 @@ export function OrgSwitcher({ organizations, onSwitch }: OrgSwitcherProps) {
               <Building2 className="h-4 w-4" />
               {org.organizationName}
             </span>
-            {org.orgId === currentOrgId && <Check className="h-4 w-4" />}
+            {org.id === currentMembershipId && <Check className="h-4 w-4" />}
           </button>
         ))}
       </div>

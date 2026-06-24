@@ -16,6 +16,7 @@ function mapRowToMovement(row: MovementRow): Movement {
     stockBefore: row.stock_before,
     stockAfter: row.stock_after,
     reason: row.reason,
+    contactId: row.contact_id,
     operatorId: row.operator_id,
     referenceId: row.reference_id,
     createdAt: row.created_at,
@@ -27,6 +28,7 @@ export interface MovementWithDetails extends Movement {
   locationName?: string
   targetLocationName?: string
   operatorName?: string
+  contactName?: string
 }
 
 export async function fetchMovements(): Promise<MovementWithDetails[]> {
@@ -35,21 +37,25 @@ export async function fetchMovements(): Promise<MovementWithDetails[]> {
     { data: products, error: productsError },
     { data: locations, error: locationsError },
     { data: users, error: usersError },
+    { data: contacts, error: contactsError },
   ] = await Promise.all([
     supabase.from('movements').select('*').order('created_at', { ascending: false }).limit(200),
     supabase.from('products').select('id, name'),
     supabase.from('locations').select('id, name'),
     supabase.from('users').select('id, name'),
+    supabase.from('contacts').select('id, name'),
   ])
 
   if (movementsError) throw new Error(movementsError.message)
   if (productsError) throw new Error(productsError.message)
   if (locationsError) throw new Error(locationsError.message)
   if (usersError) throw new Error(usersError.message)
+  if (contactsError) throw new Error(contactsError.message)
 
   const productMap = new Map(products.map((p) => [p.id, p.name]))
   const locationMap = new Map(locations.map((l) => [l.id, l.name]))
   const userMap = new Map(users.map((u) => [u.id, u.name]))
+  const contactMap = new Map(contacts.map((c) => [c.id, c.name]))
 
   return movements.map((row) => ({
     ...mapRowToMovement(row),
@@ -59,6 +65,50 @@ export async function fetchMovements(): Promise<MovementWithDetails[]> {
       ? locationMap.get(row.target_location_id)
       : undefined,
     operatorName: userMap.get(row.operator_id),
+    contactName: row.contact_id ? contactMap.get(row.contact_id) : undefined,
+  }))
+}
+
+export async function fetchMovementsByProduct(productId: string): Promise<MovementWithDetails[]> {
+  const [
+    { data: movements, error: movementsError },
+    { data: products, error: productsError },
+    { data: locations, error: locationsError },
+    { data: users, error: usersError },
+    { data: contacts, error: contactsError },
+  ] = await Promise.all([
+    supabase
+      .from('movements')
+      .select('*')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase.from('products').select('id, name'),
+    supabase.from('locations').select('id, name'),
+    supabase.from('users').select('id, name'),
+    supabase.from('contacts').select('id, name'),
+  ])
+
+  if (movementsError) throw new Error(movementsError.message)
+  if (productsError) throw new Error(productsError.message)
+  if (locationsError) throw new Error(locationsError.message)
+  if (usersError) throw new Error(usersError.message)
+  if (contactsError) throw new Error(contactsError.message)
+
+  const productMap = new Map(products.map((p) => [p.id, p.name]))
+  const locationMap = new Map(locations.map((l) => [l.id, l.name]))
+  const userMap = new Map(users.map((u) => [u.id, u.name]))
+  const contactMap = new Map(contacts.map((c) => [c.id, c.name]))
+
+  return movements.map((row) => ({
+    ...mapRowToMovement(row),
+    productName: productMap.get(row.product_id),
+    locationName: locationMap.get(row.location_id),
+    targetLocationName: row.target_location_id
+      ? locationMap.get(row.target_location_id)
+      : undefined,
+    operatorName: userMap.get(row.operator_id),
+    contactName: row.contact_id ? contactMap.get(row.contact_id) : undefined,
   }))
 }
 
@@ -69,6 +119,7 @@ export async function createMovement(input: {
   type: MovementType
   quantity: number
   reason?: string | null
+  contactId?: string | null
 }): Promise<void> {
   await edgeFetch('record-movement', {
     method: 'POST',
@@ -79,6 +130,7 @@ export async function createMovement(input: {
       type: input.type,
       quantity: input.quantity,
       reason: input.reason ?? null,
+      contact_id: input.contactId ?? null,
     }),
   })
 }

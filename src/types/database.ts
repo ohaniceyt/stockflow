@@ -80,22 +80,35 @@ export interface Database {
       users: {
         Row: {
           id: string
-          org_id: string
           name: string
           email: string
           email_verified: boolean
+          active_org_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['users']['Row'], 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Relationships: []
+      }
+      organization_memberships: {
+        Row: {
+          id: string
+          org_id: string
+          user_id: string
           role: 'super_admin' | 'admin' | 'operator' | 'reader'
           pin_hash: string
           is_active: boolean
+          force_pin_change: boolean
           last_login_at: string | null
           created_at: string
           updated_at: string
         }
         Insert: Omit<
-          Database['public']['Tables']['users']['Row'],
+          Database['public']['Tables']['organization_memberships']['Row'],
           'id' | 'created_at' | 'updated_at'
         >
-        Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Update: Partial<Database['public']['Tables']['organization_memberships']['Insert']>
         Relationships: []
       }
       products: {
@@ -120,6 +133,21 @@ export interface Database {
           'id' | 'created_at' | 'updated_at'
         >
         Update: Partial<Database['public']['Tables']['products']['Insert']>
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          id: string
+          org_id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['categories']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['categories']['Insert']>
         Relationships: []
       }
       locations: {
@@ -159,12 +187,35 @@ export interface Database {
           stock_before: number
           stock_after: number
           reason: string | null
+          contact_id: string | null
           operator_id: string
           reference_id: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['movements']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['movements']['Insert']>
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          id: string
+          org_id: string
+          type: 'SUPPLIER' | 'CUSTOMER'
+          name: string
+          email: string | null
+          phone: string | null
+          address: string | null
+          tax_id: string | null
+          notes: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['contacts']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['contacts']['Insert']>
         Relationships: []
       }
       inventory_sessions: {
@@ -212,6 +263,7 @@ export interface Database {
           p_type: 'IN' | 'OUT' | 'INVENTORY' | 'ADJUSTMENT' | 'TRANSFER'
           p_quantity: number
           p_reason: string | null
+          p_contact_id: string | null
         }
         Returns: string
       }

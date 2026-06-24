@@ -1,72 +1,85 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import { StockList } from '../components/StockList'
-import { QuickMovementDialog } from '../components/QuickMovementDialog'
-import { useRecordMovement, useStock } from '../hooks/useStock'
+import { useStock } from '../hooks/useStock'
+import { StockHeader } from '../components/StockHeader'
+import { StockGrid } from '../components/StockGrid'
+import { StockDetailOverlay } from '../components/StockDetailOverlay'
+import { PullToRefresh } from '../components/PullToRefresh'
 import type { StockItem } from '../services/stockService'
+import { exportStockToExcel, exportStockToPdf, shareStockOnWhatsApp } from '../utils/stockExport'
 
 export default function StockPage() {
-  const { data: stock, isLoading, error } = useStock()
-  const record = useRecordMovement()
-  const { hasRole } = useAuth()
-  const canEdit = hasRole(['super_admin', 'admin', 'operator'])
+  const { data: stock, isPending, error, refetch } = useStock()
+  const { session } = useAuth()
+  const queryClient = useQueryClient()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
 
-  const [dialogState, setDialogState] = useState<{
-    item: StockItem | null
-    type: 'IN' | 'OUT' | 'TRANSFER' | null
-  }>({ item: null, type: null })
+  const orgName = session?.organization.name ?? 'StockFlow'
 
-  const handleQuickMove = (item: StockItem, type: 'IN' | 'OUT' | 'TRANSFER') => {
-    setDialogState({ item, type })
+  const filteredStock = useMemo(() => {
+    if (!stock) return []
+    if (!searchQuery.trim()) return stock
+    const q = searchQuery.toLowerCase()
+    return stock.filter(
+      (item) =>
+        item.productName.toLowerCase().includes(q) ||
+        (item.category?.toLowerCase().includes(q) ?? false) ||
+        (item.barcode?.toLowerCase().includes(q) ?? false) ||
+        item.locationName.toLowerCase().includes(q)
+    )
+  }, [stock, searchQuery])
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['stock'] })
+    await refetch()
   }
 
-  const handleConfirm = (
-    item: StockItem,
-    type: 'IN' | 'OUT' | 'TRANSFER',
-    quantity: number,
-    targetLocationId?: string
-  ) => {
-    record.mutate(
-      {
-        productId: item.productId,
-        locationId: item.locationId,
-        targetLocationId,
-        type,
-        quantity,
-      },
-      {
-        onSuccess: () => {
-          setDialogState({ item: null, type: null })
-        },
-      }
-    )
+  const handleExportPdf = () => {
+    void exportStockToPdf(filteredStock, orgName)
+  }
+
+  const handleExportExcel = () => {
+    void exportStockToExcel(filteredStock, orgName)
+  }
+
+  const handleShareWhatsApp = () => {
+    shareStockOnWhatsApp(filteredStock, orgName)
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Stock</h1>
-        <p className="text-muted-foreground">Visualisation des niveaux de stock par emplacement.</p>
-      </div>
-
-      {isLoading && <p className="text-muted-foreground">Chargement du stock…</p>}
-      {error && <p className="text-destructive">{error.message}</p>}
-      {!isLoading && !error && stock && (
-        <StockList
-          stock={stock}
-          canEdit={canEdit}
-          onQuickMove={handleQuickMove}
-          isUpdating={record.isPending}
+    <PullToRefresh onRefresh={handleRefresh} disabled={isPending}>
+      <div className="space-y-4 pb-6">
+        <StockHeader
+          totalProducts={filteredStock.length}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onRefresh={handleRefresh}
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+          onShareWhatsApp={handleShareWhatsApp}
+          isRefreshing={isPending}
         />
-      )}
 
-      <QuickMovementDialog
-        item={dialogState.item}
-        type={dialogState.type}
-        onClose={() => setDialogState({ item: null, type: null })}
-        onConfirm={handleConfirm}
-        isLoading={record.isPending}
-      />
-    </div>
+        {error && (
+          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+            {error.message}
+          </p>
+        )}
+
+        {isPending ? (
+          <p className="py-8 text-center text-sm text-[var(--text-faint)]">Chargement du stock…</p>
+        ) : (
+          <StockGrid
+            stock={filteredStock}
+            searchQuery={searchQuery}
+            onItemClick={setSelectedItem}
+          />
+        )}
+
+        <StockDetailOverlay item={selectedItem} onClose={() => setSelectedItem(null)} />
+      </div>
+    </PullToRefresh>
   )
 }

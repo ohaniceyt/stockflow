@@ -3,11 +3,18 @@ import { Suspense, lazy } from 'react'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { AppLock } from '@/features/auth/components/AppLock'
 
 const LandingPage = lazy(() => import('@/features/marketing/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
+const BackOfficeLoginPage = lazy(() => import('@/features/auth/pages/BackOfficeLoginPage'))
 const SignupPage = lazy(() => import('@/features/auth/pages/SignupPage'))
+const AuthVerificationPage = lazy(() => import('@/features/auth/pages/AuthVerificationPage'))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage'))
+const ResetPinPage = lazy(() => import('@/features/auth/pages/ResetPinPage'))
 const ChangePinPage = lazy(() => import('@/features/auth/pages/ChangePinPage'))
+const SetPinPage = lazy(() => import('@/features/auth/pages/SetPinPage'))
 const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage'))
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
 const StockPage = lazy(() => import('@/features/stock/pages/StockPage'))
@@ -16,10 +23,34 @@ const InventoryPage = lazy(() => import('@/features/inventory/pages/InventoryPag
 const ProductsPage = lazy(() => import('@/features/products/pages/ProductsPage'))
 const TeamPage = lazy(() => import('@/features/team/pages/TeamPage'))
 const LocationsPage = lazy(() => import('@/features/locations/pages/LocationsPage'))
+const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage'))
+const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
-const SuperAdminPage = lazy(() => import('@/features/super-admin/pages/SuperAdminPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
+
+const BackOfficeLayout = lazy(() => import('@/features/back-office/components/BackOfficeLayout'))
+const BackOfficeOverviewPage = lazy(
+  () => import('@/features/back-office/pages/BackOfficeOverviewPage')
+)
+const BackOfficeOrganizationsPage = lazy(
+  () => import('@/features/back-office/pages/BackOfficeOrganizationsPage')
+)
+const BackOfficeOrganizationDetailPage = lazy(
+  () => import('@/features/back-office/pages/BackOfficeOrganizationDetailPage')
+)
+const BackOfficeUsersPage = lazy(() => import('@/features/back-office/pages/BackOfficeUsersPage'))
+const BackOfficeUserDetailPage = lazy(
+  () => import('@/features/back-office/pages/BackOfficeUserDetailPage')
+)
+const BackOfficeAuditLogsPage = lazy(
+  () => import('@/features/back-office/pages/BackOfficeAuditLogsPage')
+)
+const RequirePlatformAdmin = lazy(() =>
+  import('@/features/back-office/components/RequirePlatformAdmin').then((mod) => ({
+    default: mod.RequirePlatformAdmin,
+  }))
+)
 
 const fallback = <div className="p-8">Chargement...</div>
 
@@ -31,11 +62,25 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/back-office" element={<BackOfficeLoginPage />} />
+          <Route path="/auth/verification" element={<AuthVerificationPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/auth/reset-pin" element={<ResetPinPage />} />
+
           <Route
             path="/change-pin"
             element={
               <RequireAuth>
                 <ChangePinPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/set-pin"
+            element={
+              <RequireAuth>
+                <SetPinPage />
               </RequireAuth>
             }
           />
@@ -90,22 +135,49 @@ function App() {
                 </RequireAuth>
               }
             />
-            <Route path="/recap" element={<RecapPage />} />
-            <Route path="/settings/subscription" element={<SubscriptionPage />} />
             <Route
-              path="/super-admin"
+              path="/suppliers"
               element={
-                <RequireAuth requirePlatformAdmin>
-                  <SuperAdminPage />
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <SuppliersPage />
                 </RequireAuth>
               }
             />
+            <Route
+              path="/customers"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <CustomersPage />
+                </RequireAuth>
+              }
+            />
+            <Route path="/recap" element={<RecapPage />} />
+            <Route path="/settings/subscription" element={<SubscriptionPage />} />
+          </Route>
+
+          <Route
+            element={
+              <RequirePlatformAdmin>
+                <BackOfficeLayout />
+              </RequirePlatformAdmin>
+            }
+          >
+            <Route path="/back-office" element={<BackOfficeOverviewPage />} />
+            <Route path="/back-office/organizations" element={<BackOfficeOrganizationsPage />} />
+            <Route
+              path="/back-office/organizations/:orgId"
+              element={<BackOfficeOrganizationDetailPage />}
+            />
+            <Route path="/back-office/users" element={<BackOfficeUsersPage />} />
+            <Route path="/back-office/users/:userId" element={<BackOfficeUserDetailPage />} />
+            <Route path="/back-office/audit-logs" element={<BackOfficeAuditLogsPage />} />
           </Route>
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <AppLock />
     </AuthProvider>
   )
 }

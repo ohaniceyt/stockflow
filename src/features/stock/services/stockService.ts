@@ -1,13 +1,17 @@
 import { edgeFetch } from '@/services/edgeFunctions'
 import { supabase } from '@/services/supabase'
-import type { MovementType, Product } from '@/types'
+import type { MovementType } from '@/types'
 
 export interface StockItem {
   id: string
   productId: string
   productName: string
   productUnit: string
+  category: string | null
+  barcode: string | null
   threshold: number
+  costPrice: number
+  sellingPrice: number
   locationId: string
   locationName: string
   quantity: number
@@ -21,7 +25,9 @@ export async function fetchStock(): Promise<StockItem[]> {
     { data: locations, error: locationsError },
   ] = await Promise.all([
     supabase.from('stock_levels').select('*').order('updated_at'),
-    supabase.from('products').select('id, name, unit, threshold'),
+    supabase
+      .from('products')
+      .select('id, name, unit, category, barcode, threshold, cost_price, selling_price'),
     supabase.from('locations').select('id, name'),
   ])
 
@@ -30,7 +36,19 @@ export async function fetchStock(): Promise<StockItem[]> {
   if (locationsError) throw new Error(locationsError.message)
 
   const productMap = new Map(
-    products.map((p) => [p.id, p as Pick<Product, 'id' | 'name' | 'unit' | 'threshold'>])
+    products.map((p) => [
+      p.id,
+      {
+        id: p.id,
+        name: p.name,
+        unit: p.unit,
+        category: p.category,
+        barcode: p.barcode,
+        threshold: p.threshold,
+        costPrice: (p as { cost_price?: number }).cost_price ?? 0,
+        sellingPrice: (p as { selling_price?: number }).selling_price ?? 0,
+      },
+    ])
   )
   const locationMap = new Map(locations.map((l) => [l.id, l.name]))
 
@@ -41,7 +59,11 @@ export async function fetchStock(): Promise<StockItem[]> {
       productId: row.product_id,
       productName: product?.name ?? 'Inconnu',
       productUnit: product?.unit ?? 'unité',
+      category: product?.category ?? null,
+      barcode: product?.barcode ?? null,
       threshold: product?.threshold ?? 0,
+      costPrice: product?.costPrice ?? 0,
+      sellingPrice: product?.sellingPrice ?? 0,
       locationId: row.location_id,
       locationName: locationMap.get(row.location_id) ?? 'Inconnu',
       quantity: row.quantity,

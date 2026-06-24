@@ -5,34 +5,69 @@ import {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react'
 import { supabase, supabaseKey } from '@/services/supabase'
 import { pullSync } from '@/features/offline/services/syncService'
-import type { User, UserRole } from '@/types'
+import type {
+  Organization,
+  OrganizationMembership,
+  PlatformAdminRole,
+  SudoTarget,
+  User,
+  UserRole,
+} from '@/types'
+import {
+  clearAppLockPin,
+  clearStoredLockEmail,
+  hasAppLockPin,
+  setAppLockPin,
+  setStoredLockEmail,
+  verifyAppLockPin,
+} from '../utils/appLock'
 
 interface AuthSession {
   user: User
+  membership: OrganizationMembership
+  organization: Organization
   accessToken: string
   refreshToken: string
   expiresAt: number
-  forcePinChange: boolean
+  isPlatformAdmin: boolean
+  platformAdminRole: PlatformAdminRole | null
   onboardingCompleted: boolean
+  sudoTarget?: SudoTarget | null
+}
+
+interface SignUpInput {
+  name: string
+  email: string
+  password: string
+  phone?: string
 }
 
 interface AuthContextValue {
   session: AuthSession | null
   isAuthenticated: boolean
-  login: (
-    userId: string,
-    pin: string
-  ) => Promise<{ email: string; forcePinChange: boolean; onboardingCompleted: boolean }>
-  verifyMagicLinkSession: () => Promise<void>
+  isLoading: boolean
+  isLocked: boolean
+  signUp: (input: SignUpInput) => Promise<void>
+  signIn: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  requestPinReset: (email: string) => Promise<void>
+  setPin: (pin: string) => Promise<void>
   changePin: (currentPin: string, newPin: string) => Promise<void>
-  logout: () => void
+  unlockApp: (pin: string) => Promise<boolean>
+  lockApp: () => void
+  switchMembership: (membershipId: string) => Promise<void>
   hasRole: (roles: UserRole[]) => boolean
   isPlatformAdmin: boolean
-  isLoading: boolean
+  platformAdminRole: PlatformAdminRole | null
+  sudoTarget: SudoTarget | null
+  enterSudo: (target: SudoTarget) => Promise<void>
+  exitSudo: () => Promise<void>
   completeOnboarding: (updates: {
     orgName: string
     currency: string
@@ -44,8 +79,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 const SESSION_KEY = 'stockflow-session'
-const PENDING_EMAIL_KEY = 'stockflow-pending-email'
-const PENDING_USER_KEY = 'stockflow-pending-user'
+const SUDO_TARGET_KEY = 'stockflow-sudo-target'
 
 function loadSession(): AuthSession | null {
   try {
@@ -62,13 +96,11 @@ function loadSession(): AuthSession | null {
   }
 }
 
-function loadPendingUser():
-  | (User & { forcePinChange: boolean; onboardingCompleted: boolean })
-  | null {
+function loadSudoTarget(): SudoTarget | null {
   try {
-    const raw = localStorage.getItem(PENDING_USER_KEY)
+    const raw = localStorage.getItem(SUDO_TARGET_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as User & { forcePinChange: boolean; onboardingCompleted: boolean }
+    return JSON.parse(raw) as SudoTarget
   } catch {
     return null
   }
@@ -82,9 +114,106 @@ async function runPullSync(orgId: string) {
   }
 }
 
+function asString(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return fallback
+  if (typeof value === 'object') return fallback
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint' ||
+    typeof value === 'symbol'
+  ) {
+    return String(value)
+  }
+  return fallback
+}
+
+interface RawInitializeResponse {
+  user?: Record<string, unknown>
+  membership?: Record<string, unknown>
+  organization?: Record<string, unknown>
+  isPlatformAdmin?: boolean
+  platformAdminRole?: string
+  onboardingCompleted?: boolean
+  error?: { message: string }
+}
+
+function buildSession(
+  raw: RawInitializeResponse,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: number
+): AuthSession {
+  const now = new Date().toISOString()
+  const userRaw = raw.user ?? {}
+  const membershipRaw = raw.membership ?? {}
+  const organizationRaw = raw.organization ?? {}
+
+  const user: User = {
+    id: asString(userRaw.id),
+    name: asString(userRaw.name),
+    email: asString(userRaw.email),
+    phone: userRaw.phone ? asString(userRaw.phone) : null,
+    emailVerified: Boolean(userRaw.emailVerified),
+    activeOrgId: typeof userRaw.activeOrgId === 'string' ? userRaw.activeOrgId : null,
+    createdAt: typeof userRaw.createdAt === 'string' ? userRaw.createdAt : now,
+    updatedAt: typeof userRaw.updatedAt === 'string' ? userRaw.updatedAt : now,
+  }
+
+  const membership: OrganizationMembership = {
+    id: asString(membershipRaw.id),
+    orgId: asString(membershipRaw.orgId),
+    userId: asString(membershipRaw.userId),
+    role: asString(membershipRaw.role) as UserRole,
+    pinHash: typeof membershipRaw.pinHash === 'string' ? membershipRaw.pinHash : null,
+    isActive: Boolean(membershipRaw.isActive ?? true),
+    forcePinChange: Boolean(membershipRaw.forcePinChange),
+    lastLoginAt: typeof membershipRaw.lastLoginAt === 'string' ? membershipRaw.lastLoginAt : null,
+    createdAt: typeof membershipRaw.createdAt === 'string' ? membershipRaw.createdAt : now,
+    updatedAt: typeof membershipRaw.updatedAt === 'string' ? membershipRaw.updatedAt : now,
+  }
+
+  const organization: Organization = {
+    id: asString(organizationRaw.id),
+    name: asString(organizationRaw.name),
+    currency: asString(organizationRaw.currency),
+    timezone: asString(organizationRaw.timezone),
+    isActive: Boolean(organizationRaw.isActive ?? true),
+    isSuspended: Boolean(organizationRaw.isSuspended),
+    suspensionReason:
+      typeof organizationRaw.suspensionReason === 'string'
+        ? organizationRaw.suspensionReason
+        : null,
+    onboardingCompleted: Boolean(organizationRaw.onboardingCompleted),
+    createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
+    updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
+  }
+
+  const platformAdminRole: PlatformAdminRole | null =
+    raw.platformAdminRole === 'super_admin' || raw.platformAdminRole === 'moderator'
+      ? raw.platformAdminRole
+      : null
+
+  return {
+    user,
+    membership,
+    organization,
+    accessToken,
+    refreshToken,
+    expiresAt,
+    isPlatformAdmin: Boolean(raw.isPlatformAdmin),
+    platformAdminRole,
+    onboardingCompleted: Boolean(raw.onboardingCompleted),
+    sudoTarget: loadSudoTarget(),
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(loadSession())
   const [isLoading, setIsLoading] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
+  const lastInitializedToken = useRef<string | null>(null)
 
   const persistSession = useCallback((next: AuthSession | null) => {
     if (next) {
@@ -95,215 +224,378 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(next)
   }, [])
 
-  const clearPending = useCallback(() => {
-    localStorage.removeItem(PENDING_EMAIL_KEY)
-    localStorage.removeItem(PENDING_USER_KEY)
-  }, [])
+  const clearSession = useCallback(() => {
+    persistSession(null)
+    clearAppLockPin()
+    clearStoredLockEmail()
+    setIsLocked(false)
+  }, [persistSession])
 
-  // Listen to magic link / OAuth callbacks
+  const initializeSession = useCallback(
+    async (supabaseSession: {
+      access_token: string
+      refresh_token: string
+      expires_at?: number
+      expires_in?: number
+    }) => {
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/initialize-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseSession.access_token}`,
+        },
+      })
+
+      const data = (await response.json()) as RawInitializeResponse
+      if (!response.ok) {
+        throw new Error(data.error?.message ?? 'Failed to initialize session')
+      }
+
+      const expiresAt =
+        supabaseSession.expires_at ??
+        (supabaseSession.expires_in
+          ? Math.floor(Date.now() / 1000) + supabaseSession.expires_in
+          : 0)
+
+      const next = buildSession(
+        data,
+        supabaseSession.access_token,
+        supabaseSession.refresh_token,
+        expiresAt
+      )
+      persistSession(next)
+      lastInitializedToken.current = supabaseSession.access_token
+
+      setStoredLockEmail(next.user.email)
+
+      if (next.membership.forcePinChange) {
+        // Admin forced a reset: clear local PIN and do not lock until the user sets a new one.
+        clearAppLockPin()
+        setIsLocked(false)
+      } else {
+        // Lock only if this device has previously stored a PIN.
+        setIsLocked(hasAppLockPin())
+      }
+
+      void runPullSync(next.organization.id)
+    },
+    [persistSession]
+  )
+
+  // Initialize from persisted Supabase session on mount
+  useEffect(() => {
+    let mounted = true
+
+    void (async () => {
+      const { data, error } = await supabase.auth.getSession()
+      // mounted can be set to false by the cleanup if the component unmounts before this runs
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!mounted) return
+
+      if (error) {
+        console.error('getSession error', error)
+        clearSession()
+        return
+      }
+
+      if (data.session) {
+        try {
+          await initializeSession(data.session)
+        } catch (err) {
+          console.error('Initialize session failed', err)
+          clearSession()
+        }
+      } else if (loadSession()) {
+        // Stale custom session with no Supabase session: clear it.
+        clearSession()
+      }
+    })()
+
+    return () => {
+      mounted = false
+    }
+  }, [initializeSession, clearSession])
+
+  // Listen to auth state changes (verification links, magic links, password recovery)
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, authSession) => {
       if (event === 'SIGNED_IN' && authSession) {
-        const pendingUser = loadPendingUser()
-        if (!pendingUser) return
-
-        // Verify email matches pending user
-        if (authSession.user.email?.toLowerCase() !== pendingUser.email.toLowerCase()) {
-          await supabase.auth.signOut()
-          clearPending()
-          return
+        if (lastInitializedToken.current !== authSession.access_token) {
+          try {
+            await initializeSession(authSession)
+          } catch (err) {
+            console.error('Auth state SIGNED_IN initialize failed', err)
+            clearSession()
+          }
         }
-
-        const next: AuthSession = {
-          user: pendingUser,
+      } else if (event === 'TOKEN_REFRESHED' && authSession && session) {
+        persistSession({
+          ...session,
           accessToken: authSession.access_token,
           refreshToken: authSession.refresh_token,
-          expiresAt: Date.now() / 1000 + authSession.expires_in,
-          forcePinChange: pendingUser.forcePinChange,
-          onboardingCompleted: pendingUser.onboardingCompleted,
-        }
-        persistSession(next)
-        clearPending()
+          expiresAt:
+            authSession.expires_at ??
+            // expires_in can be omitted by Supabase types at build time but still be missing at runtime
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            Math.floor(Date.now() / 1000) + (authSession.expires_in ?? 3600),
+        })
+      } else if (event === 'SIGNED_OUT') {
+        clearSession()
       }
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [clearPending, persistSession])
+  }, [initializeSession, clearSession, session, persistSession])
 
-  const login = useCallback(
-    async (
-      userId: string,
-      pin: string
-    ): Promise<{ email: string; forcePinChange: boolean; onboardingCompleted: boolean }> => {
+  const signUp = useCallback(async ({ name, email, password, phone }: SignUpInput) => {
+    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+    const response = await fetch(`${supabaseUrl}/functions/v1/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ name, email, password, phone }),
+    })
+
+    const data = (await response.json()) as { success?: boolean; error?: { message: string } }
+    if (!response.ok || !data.success) {
+      throw new Error(data.error?.message ?? 'Signup failed')
+    }
+  }, [])
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
       setIsLoading(true)
       try {
-        const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
-        const response = await fetch(`${supabaseUrl}/functions/v1/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({ userId, pin }),
-        })
-
-        const data = (await response.json()) as {
-          email?: string
-          forcePinChange?: boolean
-          onboardingCompleted?: boolean
-          session?: {
-            access_token: string
-            refresh_token: string
-            expires_in: number
-            expires_at?: number
-          }
-          user?: User & { forcePinChange?: boolean; onboardingCompleted?: boolean }
-          error?: { message: string }
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        // Supabase types mark data.session as non-nullish, but it can be missing on error
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (error || !data.session) {
+          throw new Error(error?.message ?? 'Sign in failed')
         }
-
-        if (!response.ok || !data.email || !data.user) {
-          throw new Error(data.error?.message ?? 'Échec de la connexion')
-        }
-
-        const pendingUser: User & { forcePinChange: boolean; onboardingCompleted: boolean } = {
-          ...data.user,
-          forcePinChange: data.forcePinChange ?? false,
-          onboardingCompleted: data.onboardingCompleted ?? true,
-        }
-
-        // Dev-only bypass: the Edge Function returned a session directly.
-        if (data.session) {
-          const { error: setSessionError } = await supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          })
-
-          if (setSessionError) {
-            throw new Error(setSessionError.message)
-          }
-
-          const next: AuthSession = {
-            user: pendingUser,
-            accessToken: data.session.access_token,
-            refreshToken: data.session.refresh_token,
-            expiresAt: data.session.expires_at ?? Date.now() / 1000 + data.session.expires_in,
-            forcePinChange: pendingUser.forcePinChange,
-            onboardingCompleted: pendingUser.onboardingCompleted,
-          }
-          persistSession(next)
-          void runPullSync(pendingUser.orgId)
-
-          return {
-            email: data.email,
-            forcePinChange: data.forcePinChange ?? false,
-            onboardingCompleted: data.onboardingCompleted ?? true,
-          }
-        }
-
-        localStorage.setItem(PENDING_EMAIL_KEY, data.email)
-        localStorage.setItem(PENDING_USER_KEY, JSON.stringify(pendingUser))
-
-        // Send magic link via Resend-backed Edge Function instead of Supabase's default OTP email.
-        const magicLinkResponse = await fetch(`${supabaseUrl}/functions/v1/send-magic-link`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({
-            email: data.email,
-            redirectTo: `${window.location.origin}/login`,
-          }),
-        })
-
-        if (!magicLinkResponse.ok) {
-          const magicLinkData = (await magicLinkResponse.json().catch(() => ({}))) as {
-            error?: { message: string }
-          }
-          clearPending()
-          throw new Error(magicLinkData.error?.message ?? "Échec de l'envoi du lien magique")
-        }
-
-        return {
-          email: data.email,
-          forcePinChange: data.forcePinChange ?? false,
-          onboardingCompleted: data.onboardingCompleted ?? true,
-        }
+        await initializeSession(data.session)
       } finally {
         setIsLoading(false)
       }
     },
-    [clearPending, persistSession]
+    [initializeSession]
   )
 
-  const verifyMagicLinkSession = useCallback(async () => {
+  const signOut = useCallback(async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.auth.getSession()
-      if (error || !data.session) {
-        throw new Error('Aucune session active')
-      }
-
-      const pendingUser = loadPendingUser()
-      if (!pendingUser) {
-        throw new Error('Aucune connexion en attente')
-      }
-
-      if (data.session.user.email?.toLowerCase() !== pendingUser.email.toLowerCase()) {
-        await supabase.auth.signOut()
-        clearPending()
-        throw new Error("L'email ne correspond pas")
-      }
-
-      const next: AuthSession = {
-        user: pendingUser,
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-        expiresAt: Date.now() / 1000 + data.session.expires_in,
-        forcePinChange: pendingUser.forcePinChange,
-        onboardingCompleted: pendingUser.onboardingCompleted,
-      }
-      persistSession(next)
-      void runPullSync(pendingUser.orgId)
-      clearPending()
+      await supabase.auth.signOut()
+      clearSession()
     } finally {
       setIsLoading(false)
     }
-  }, [clearPending, persistSession])
+  }, [clearSession])
+
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+    if (error) {
+      throw new Error(error.message)
+    }
+  }, [])
+
+  const requestPinReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/reset-pin`,
+      },
+    })
+    if (error) {
+      throw new Error(error.message)
+    }
+  }, [])
+
+  const setPin = useCallback(
+    async (pin: string) => {
+      if (!session) throw new Error('Not authenticated')
+      if (!/^\d{4,8}$/.test(pin)) throw new Error('PIN must be 4 to 8 digits')
+
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+          apikey: supabaseKey,
+        },
+        body: JSON.stringify({ newPin: pin }),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
+        throw new Error(data.error?.message ?? 'Failed to set PIN')
+      }
+
+      await setAppLockPin(pin)
+      persistSession({
+        ...session,
+        membership: {
+          ...session.membership,
+          pinHash: session.membership.pinHash ?? 'set',
+          forcePinChange: false,
+        },
+      })
+    },
+    [session, persistSession]
+  )
 
   const changePin = useCallback(
     async (currentPin: string, newPin: string) => {
-      if (!session) throw new Error('Non authentifié')
-      setIsLoading(true)
+      if (!session) throw new Error('Not authenticated')
+      if (!/^\d{4,8}$/.test(newPin)) throw new Error('New PIN must be 4 to 8 digits')
+
+      // A forced reset lets the user choose a new PIN without knowing the old one.
+      if (!session.membership.forcePinChange) {
+        const currentOk = await verifyAppLockPin(currentPin)
+        if (!currentOk) {
+          throw new Error('Current PIN is incorrect')
+        }
+      }
+
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+          apikey: supabaseKey,
+        },
+        body: JSON.stringify({ currentPin, newPin }),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
+        throw new Error(data.error?.message ?? 'Failed to change PIN')
+      }
+
+      await setAppLockPin(newPin)
+      persistSession({
+        ...session,
+        membership: {
+          ...session.membership,
+          pinHash: session.membership.pinHash ?? 'set',
+          forcePinChange: false,
+        },
+      })
+    },
+    [session, persistSession]
+  )
+
+  const unlockApp = useCallback(async (pin: string) => {
+    const ok = await verifyAppLockPin(pin)
+    if (ok) {
+      setIsLocked(false)
+    }
+    return ok
+  }, [])
+
+  const lockApp = useCallback(() => {
+    if (hasAppLockPin()) {
+      setIsLocked(true)
+    }
+  }, [])
+
+  const enterSudo = useCallback(
+    async (target: SudoTarget) => {
+      if (!session) throw new Error('Not authenticated')
+      if (!session.platformAdminRole) throw new Error('Not a platform admin')
+
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/platform-impersonate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+          apikey: supabaseKey,
+        },
+        body: JSON.stringify({
+          orgId: target.id,
+          userId: target.targetUserId,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string }
+        throw new Error(data.error ?? 'Failed to enter sudo context')
+      }
+
+      const data = (await response.json()) as { sudoTarget?: SudoTarget }
+      const sudoTarget = data.sudoTarget ?? target
+      localStorage.setItem(SUDO_TARGET_KEY, JSON.stringify(sudoTarget))
+      persistSession({ ...session, sudoTarget })
+    },
+    [session, persistSession]
+  )
+
+  const exitSudo = useCallback(async () => {
+    if (!session) throw new Error('Not authenticated')
+
+    const targetId = session.sudoTarget?.id
+    if (targetId) {
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
       try {
-        const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
-        const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
+        await fetch(`${supabaseUrl}/functions/v1/platform-exit-impersonation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.accessToken}`,
             apikey: supabaseKey,
           },
-          body: JSON.stringify({ currentPin, newPin }),
+          body: JSON.stringify({ targetId }),
         })
-
-        if (!response.ok) {
-          const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
-          throw new Error(data.error?.message ?? 'Échec du changement de PIN')
-        }
-
-        persistSession({ ...session, forcePinChange: false })
-      } finally {
-        setIsLoading(false)
+      } catch (err) {
+        console.error('Failed to log sudo exit', err)
       }
+    }
+
+    localStorage.removeItem(SUDO_TARGET_KEY)
+    persistSession({ ...session, sudoTarget: null })
+  }, [session, persistSession])
+
+  const switchMembership = useCallback(
+    async (membershipId: string) => {
+      if (!session) throw new Error('Not authenticated')
+
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/switch-membership`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+          apikey: supabaseKey,
+        },
+        body: JSON.stringify({ membershipId }),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
+        throw new Error(data.error?.message ?? 'Failed to switch organization')
+      }
+
+      const { data, error } = await supabase.auth.getSession()
+      if (error || !data.session) {
+        throw new Error(error?.message ?? 'Session lost')
+      }
+
+      await initializeSession(data.session)
     },
-    [session, persistSession]
+    [session, initializeSession]
   )
 
   const completeOnboarding = useCallback(
@@ -313,7 +605,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timezone: string
       defaultLocationName: string
     }) => {
-      if (!session) throw new Error('Non authentifié')
+      if (!session) throw new Error('Not authenticated')
 
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
       const response = await fetch(`${supabaseUrl}/functions/v1/complete-onboarding`, {
@@ -328,25 +620,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: { message: string } }
-        throw new Error(data.error?.message ?? 'Échec de la finalisation')
+        throw new Error(data.error?.message ?? 'Failed to complete onboarding')
       }
 
-      persistSession({ ...session, onboardingCompleted: true })
-      void runPullSync(session.user.orgId)
+      persistSession({
+        ...session,
+        onboardingCompleted: true,
+        organization: {
+          ...session.organization,
+          name: input.orgName,
+          currency: input.currency,
+          timezone: input.timezone,
+          onboardingCompleted: true,
+        },
+      })
+      void runPullSync(session.membership.orgId)
     },
     [session, persistSession]
   )
 
-  const logout = useCallback(() => {
-    void supabase.auth.signOut()
-    persistSession(null)
-    clearPending()
-  }, [clearPending, persistSession])
-
   const hasRole = useCallback(
     (roles: UserRole[]) => {
       if (!session) return false
-      return roles.includes(session.user.role)
+      return roles.includes(session.membership.role)
     },
     [session]
   )
@@ -355,23 +651,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       isAuthenticated: !!session,
-      login,
-      verifyMagicLinkSession,
-      changePin,
-      logout,
-      hasRole,
-      isPlatformAdmin: !!session?.user.isPlatformAdmin,
       isLoading,
+      isLocked,
+      signUp,
+      signIn,
+      signOut,
+      resetPassword,
+      requestPinReset,
+      setPin,
+      changePin,
+      unlockApp,
+      lockApp,
+      switchMembership,
+      hasRole,
+      isPlatformAdmin: !!session?.isPlatformAdmin,
+      platformAdminRole: session?.platformAdminRole ?? null,
+      sudoTarget: session?.sudoTarget ?? null,
+      enterSudo,
+      exitSudo,
       completeOnboarding,
     }),
     [
       session,
-      login,
-      verifyMagicLinkSession,
-      changePin,
-      logout,
-      hasRole,
       isLoading,
+      isLocked,
+      signUp,
+      signIn,
+      signOut,
+      resetPassword,
+      requestPinReset,
+      setPin,
+      changePin,
+      unlockApp,
+      lockApp,
+      switchMembership,
+      hasRole,
+      enterSudo,
+      exitSudo,
       completeOnboarding,
     ]
   )

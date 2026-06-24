@@ -91,12 +91,13 @@ Deno.serve(async (req: Request) => {
 
     const normalizedEmail = email.trim().toLowerCase()
 
-    const { data: user, error } = await adminClient
-      .from('users')
-      .select('id, name, role, org_id')
-      .ilike('email', normalizedEmail)
+    const { data: memberships, error } = await adminClient
+      .from('organization_memberships')
+      .select(
+        'id, role, org_id, user_id, users!inner(id, name, email), organizations!inner(name, is_suspended)'
+      )
+      .ilike('users.email', normalizedEmail)
       .eq('is_active', true)
-      .maybeSingle()
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -107,7 +108,7 @@ Deno.serve(async (req: Request) => {
 
     await recordRequest(adminClient, normalizedEmail, clientIp)
 
-    if (!user) {
+    if (!memberships || memberships.length === 0) {
       // Generic response to avoid user enumeration
       return new Response(JSON.stringify({ found: false }), {
         status: 200,
@@ -115,30 +116,37 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Check if org is suspended
-    const { data: org, error: orgError } = await adminClient
-      .from('organizations')
-      .select('is_suspended')
-      .eq('id', user.org_id)
-      .single()
+    const available = (
+      memberships as unknown as Array<{
+        id: string
+        role: string
+        org_id: string
+        user_id: string
+        users: { id: string; name: string; email: string }
+        organizations: { name: string; is_suspended: boolean }
+      }>
+    )
+      .filter((m) => !m.organizations.is_suspended)
+      .map((m) => ({
+        membershipId: m.id,
+        userId: m.user_id,
+        name: m.users.name,
+        role: m.role,
+        orgId: m.org_id,
+        orgName: m.organizations.name,
+      }))
 
-    if (orgError || org?.is_suspended) {
+    if (available.length === 0) {
       return new Response(JSON.stringify({ found: false }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(
-      JSON.stringify({
-        found: true,
-        userId: user.id,
-        name: user.name,
-        role: user.role,
-        orgId: user.org_id,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ found: true, options: available }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {

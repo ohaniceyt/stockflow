@@ -57,7 +57,11 @@ export async function getOrgLimits(
     { count: locationsCount, error: locationsError },
     { data: movementsData, error: movementsError },
   ] = await Promise.all([
-    adminClient.from('users').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_active', true),
+    adminClient
+      .from('organization_memberships')
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .eq('is_active', true),
     adminClient.from('products').select('*', { count: 'exact', head: true }).eq('org_id', orgId).eq('is_active', true),
     adminClient.from('locations').select('*', { count: 'exact', head: true }).eq('org_id', orgId),
     adminClient.rpc('movements_count_this_month', { p_org_id: orgId }),

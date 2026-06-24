@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import {
+  cacheContacts,
   cacheMovements,
+  getCachedContacts,
+  getCachedLocations,
   getCachedMovements,
   getCachedProducts,
-  getCachedLocations,
 } from '@/features/offline/services/cacheService'
 import { queueOperation } from '@/features/offline/services/queueService'
 import {
@@ -13,13 +15,14 @@ import {
   fetchMovements,
   type MovementWithDetails,
 } from '../services/movementService'
+import { fetchContacts } from '@/features/contacts/services/contactService'
 
 const MOVEMENTS_QUERY_KEY = 'movements'
 
 export function useMovements() {
   const { session } = useAuth()
   const online = useNetworkStatus()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: [MOVEMENTS_QUERY_KEY],
@@ -27,18 +30,24 @@ export function useMovements() {
       try {
         const data = await fetchMovements()
         await cacheMovements(data)
+        if (orgId) {
+          const contacts = await fetchContacts(orgId)
+          await cacheContacts(contacts)
+        }
         return data
       } catch (err) {
         if (!online && orgId) {
-          const [cached, products, locations] = await Promise.all([
+          const [cached, products, locations, contacts] = await Promise.all([
             getCachedMovements(),
             getCachedProducts(orgId),
             getCachedLocations(orgId),
+            getCachedContacts(orgId),
           ])
 
           if (cached.length > 0) {
             const productMap = new Map(products.map((p) => [p.id, p.name]))
             const locationMap = new Map(locations.map((l) => [l.id, l.name]))
+            const contactMap = new Map(contacts.map((c) => [c.id, c.name]))
 
             return cached.map(
               (m): MovementWithDetails => ({
@@ -49,6 +58,7 @@ export function useMovements() {
                   ? locationMap.get(m.targetLocationId)
                   : undefined,
                 operatorName: undefined,
+                contactName: m.contactId ? contactMap.get(m.contactId) : undefined,
               })
             )
           }
@@ -85,6 +95,7 @@ export function useCreateMovement() {
         stockBefore: 0,
         stockAfter: 0,
         reason: input.reason ?? null,
+        contactId: input.contactId ?? null,
         operatorId: '',
         referenceId: null,
         createdAt: new Date().toISOString(),
@@ -92,6 +103,7 @@ export function useCreateMovement() {
         locationName: undefined,
         targetLocationName: undefined,
         operatorName: undefined,
+        contactName: undefined,
       }
 
       queryClient.setQueryData([MOVEMENTS_QUERY_KEY], (old: MovementWithDetails[] | undefined) => {

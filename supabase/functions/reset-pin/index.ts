@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface ResetPinPayload {
   userId: string
@@ -62,13 +63,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: operator, error: operatorError } = await adminClient
-      .from('users')
-      .select('role, org_id')
-      .eq('id', claims.sub)
-      .single()
+    const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (operatorError || !operator || !['super_admin', 'admin'].includes(operator.role)) {
+    if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -83,20 +80,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: targetUser, error: targetError } = await adminClient
-      .from('users')
+    const { data: targetMembership, error: targetError } = await adminClient
+      .from('organization_memberships')
       .select('id, org_id, role')
       .eq('id', userId)
       .single()
 
-    if (targetError || !targetUser || targetUser.org_id !== operator.org_id) {
+    if (targetError || !targetMembership || targetMembership.org_id !== operator.org_id) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (operator.role === 'admin' && targetUser.role === 'super_admin') {
+    if (operator.role === 'admin' && targetMembership.role === 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -107,7 +104,7 @@ Deno.serve(async (req: Request) => {
     const newHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(newPin, salt)}`
 
     const { error: updateError } = await adminClient
-      .from('users')
+      .from('organization_memberships')
       .update({
         pin_hash: newHash,
         force_pin_change: forcePinChange,

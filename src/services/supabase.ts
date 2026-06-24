@@ -13,10 +13,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 if (!import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
-  console.warn(
-    'VITE_SUPABASE_ANON_KEY is not set. Falling back to VITE_SUPABASE_PUBLISHABLE_KEY. ' +
-      'Authenticated Supabase queries may fail until the anon/public JWT key is configured.'
-  )
+  console.warn('VITE_SUPABASE_ANON_KEY is not set. Falling back to VITE_SUPABASE_PUBLISHABLE_KEY.')
 }
 
 export const supabaseKey = supabaseAnonKey

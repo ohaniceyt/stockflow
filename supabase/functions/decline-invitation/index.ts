@@ -70,10 +70,11 @@ Deno.serve(async (req: Request) => {
     let isAdmin = false
     if (!isInvitee) {
       const { data: operator } = await adminClient
-        .from('users')
+        .from('organization_memberships')
         .select('role')
-        .eq('id', claims.sub)
+        .eq('user_id', claims.sub)
         .eq('org_id', invitation.org_id)
+        .eq('is_active', true)
         .maybeSingle()
       isAdmin = operator?.role === 'super_admin' || operator?.role === 'admin'
     }

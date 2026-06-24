@@ -1,0 +1,224 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase env vars')
+    }
+
+    const token = getBearerToken(req)
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const claims = parseJwt(token)
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    const authUserId = claims.sub
+
+    // Sync email verification status from auth.users
+    const { data: authUser, error: authUserError } =
+      await adminClient.auth.admin.getUserById(authUserId)
+    if (authUserError || !authUser.user) {
+      return new Response(JSON.stringify({ error: 'User not found in auth' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const emailVerified = authUser.user.email_confirmed_at != null
+    const normalizedEmail = (authUser.user.email ?? '').toLowerCase()
+
+    // Load or create global profile
+    let { data: profile } = await adminClient
+      .from('users')
+      .select('*')
+      .eq('id', authUserId)
+      .maybeSingle()
+
+    if (!profile) {
+      // Edge case: auth user exists but public profile does not. Create a minimal shell profile
+      // without an organization. The frontend will ask the user to complete setup.
+      const metadataName = authUser.user.user_metadata?.name ?? ''
+      const metadataPhone = authUser.user.user_metadata?.phone ?? null
+      const { data: newProfile, error: createError } = await adminClient
+        .from('users')
+        .insert({
+          id: authUserId,
+          name: metadataName,
+          email: normalizedEmail,
+          phone: metadataPhone,
+          email_verified: emailVerified,
+        })
+        .select('*')
+        .single()
+
+      if (createError || !newProfile) {
+        return new Response(
+          JSON.stringify({ error: createError?.message ?? 'Could not create profile' }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      profile = newProfile
+    }
+
+    if (profile.email_verified !== emailVerified) {
+      await adminClient.from('users').update({ email_verified: emailVerified }).eq('id', authUserId)
+      profile.email_verified = emailVerified
+    }
+
+    // Determine active org/membership
+    let activeOrgId = profile.active_org_id as string | null
+    if (!activeOrgId) {
+      const { data: firstMembership } = await adminClient
+        .from('organization_memberships')
+        .select('org_id')
+        .eq('user_id', authUserId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (firstMembership) {
+        activeOrgId = firstMembership.org_id
+        await adminClient.from('users').update({ active_org_id: activeOrgId }).eq('id', authUserId)
+      }
+    }
+
+    if (!activeOrgId) {
+      return new Response(JSON.stringify({ error: 'No organization found for this user' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { data: membership, error: membershipError } = await adminClient
+      .from('organization_memberships')
+      .select('id, org_id, user_id, role, pin_hash, is_active, force_pin_change, last_login_at')
+      .eq('user_id', authUserId)
+      .eq('org_id', activeOrgId)
+      .eq('is_active', true)
+      .single()
+
+    if (membershipError || !membership) {
+      return new Response(JSON.stringify({ error: 'Active membership not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { data: org, error: orgError } = await adminClient
+      .from('organizations')
+      .select('id, name, currency, timezone, onboarding_completed, is_suspended, suspension_reason')
+      .eq('id', activeOrgId)
+      .single()
+
+    if (orgError || !org) {
+      return new Response(JSON.stringify({ error: 'Organization not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (org.is_suspended) {
+      return new Response(
+        JSON.stringify({
+          error: 'Organization suspended',
+          message: org.suspension_reason ?? 'This organization has been suspended.',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: platformAdminData } = await adminClient
+      .from('platform_admins')
+      .select('role')
+      .eq('auth_user_id', authUserId)
+      .eq('is_active', true)
+      .maybeSingle()
+    const isPlatformAdmin = !!platformAdminData
+    const platformAdminRole =
+      (platformAdminData?.role as 'super_admin' | 'moderator' | undefined) ?? null
+
+    await adminClient
+      .from('organization_memberships')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', membership.id)
+
+    const onboardingCompleted =
+      ['super_admin', 'admin'].includes(membership.role as string) &&
+      org.onboarding_completed === true
+
+    return new Response(
+      JSON.stringify({
+        user: {
+          id: authUserId,
+          name: profile.name,
+          email: normalizedEmail,
+          phone: profile.phone,
+          emailVerified,
+          activeOrgId,
+          createdAt: profile.created_at,
+          updatedAt: profile.updated_at,
+        },
+        membership: {
+          id: membership.id,
+          orgId: membership.org_id,
+          userId: membership.user_id,
+          role: membership.role,
+          pinHash: membership.pin_hash,
+          isActive: membership.is_active,
+          forcePinChange: membership.force_pin_change,
+          lastLoginAt: membership.last_login_at,
+        },
+        organization: {
+          id: org.id,
+          name: org.name,
+          currency: org.currency,
+          timezone: org.timezone,
+          onboardingCompleted: org.onboarding_completed,
+          isActive: !org.is_suspended,
+          isSuspended: org.is_suspended,
+          suspensionReason: org.suspension_reason,
+        },
+        isPlatformAdmin,
+        platformAdminRole,
+        onboardingCompleted,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})

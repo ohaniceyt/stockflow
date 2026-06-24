@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
+import { useContacts } from '@/features/contacts/hooks/useContacts'
 import { MovementForm } from '../components/MovementForm'
 import { MovementList } from '../components/MovementList'
 import { useCreateMovement, useMovements } from '../hooks/useMovements'
@@ -19,13 +20,14 @@ export default function MovementsPage() {
   const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
   const { data: products, isLoading: productsLoading } = useProducts()
   const { data: locations, isLoading: locationsLoading } = useLocations()
+  const { data: contacts, isLoading: contactsLoading } = useContacts()
   const create = useCreateMovement()
   const { hasRole } = useAuth()
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const isLoading = movementsLoading || productsLoading || locationsLoading
+  const isLoading = movementsLoading || productsLoading || locationsLoading || contactsLoading
 
   const handleSubmit = (input: {
     productId: string
@@ -34,6 +36,7 @@ export default function MovementsPage() {
     type: import('@/types').MovementType
     quantity: number
     reason: string | null
+    contactId: string | null
   }) => {
     create.mutate(input, {
       onSuccess: () => {
@@ -62,10 +65,11 @@ export default function MovementsPage() {
                   Enregistrez une entrée, sortie, transfert ou ajustement.
                 </DialogDescription>
               </DialogHeader>
-              {products && locations && (
+              {products && locations && contacts && (
                 <MovementForm
                   products={products}
                   locations={locations}
+                  contacts={contacts}
                   onSubmit={handleSubmit}
                   onCancel={() => setIsDialogOpen(false)}
                   isLoading={create.isPending}

@@ -10,13 +10,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import type { User } from '@/types'
+import type { UserRole } from '@/types'
 
 interface InviteUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreateUser: (input: { name: string; email: string; role: User['role'] }) => void
-  onInviteByEmail?: (input: { email: string; role: User['role'] }) => void
+  onCreateUser: (input: { name: string; email: string; role: UserRole }) => void
+  onInviteByEmail?: (input: { email: string; role: UserRole }) => void
   createdPin: string | null
   isLoading?: boolean
 }
@@ -32,7 +32,7 @@ export function InviteUserDialog({
   const [mode, setMode] = useState<'create' | 'invite'>('create')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<User['role']>('operator')
+  const [role, setRole] = useState<UserRole>('operator')
   const [errors, setErrors] = useState<Partial<Record<'name' | 'email', string>>>({})
 
   const validate = () => {
@@ -141,7 +141,7 @@ export function InviteUserDialog({
               <Select
                 id="invite-role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as User['role'])}
+                onChange={(e) => setRole(e.target.value as UserRole)}
               >
                 <option value="admin">Admin</option>
                 <option value="operator">Opérateur</option>

@@ -10,9 +10,11 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
-  const { hasRole } = useAuth()
+  const { hasRole, isPlatformAdmin } = useAuth()
 
-  const visibleItems = navItems.filter((item) => hasRole(item.roles))
+  const visibleItems = navItems.filter(
+    (item) => hasRole(item.roles) && (!item.platformAdminOnly || isPlatformAdmin)
+  )
   const primaryItems = visibleItems.filter((item) => item.primary)
 
   return (

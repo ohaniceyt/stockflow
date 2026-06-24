@@ -38,10 +38,11 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: users, error } = await adminClient
-      .from('users')
+    const { data: memberships, error } = await adminClient
+      .from('organization_memberships')
       .select('id, org_id, role, organizations(id, name, is_suspended)')
-      .eq('id', claims.sub)
+      .eq('user_id', claims.sub)
+      .eq('is_active', true)
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -50,7 +51,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ organizations: users ?? [] }), {
+    return new Response(JSON.stringify({ organizations: memberships ?? [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

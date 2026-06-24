@@ -1,18 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { KeyRound, Power, PowerOff } from 'lucide-react'
-import type { User } from '@/types'
+import type { TeamMember } from '@/types'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
 
 interface TeamListProps {
-  users: User[]
-  currentUserId: string
-  onToggleActive: (user: User) => void
-  onResetPin: (user: User) => void
+  members: TeamMember[]
+  currentMembershipId: string
+  onToggleActive: (member: TeamMember) => void
+  onResetPin: (member: TeamMember) => void
   isUpdating?: boolean
 }
 
-const roleLabels: Record<User['role'], string> = {
+const roleLabels: Record<TeamMember['role'], string> = {
   super_admin: 'Super Admin',
   admin: 'Admin',
   operator: 'Opérateur',
@@ -20,20 +20,20 @@ const roleLabels: Record<User['role'], string> = {
 }
 
 export function TeamList({
-  users,
-  currentUserId,
+  members,
+  currentMembershipId,
   onToggleActive,
   onResetPin,
   isUpdating,
 }: TeamListProps) {
-  const columns: ResponsiveColumn<User>[] = [
+  const columns: ResponsiveColumn<TeamMember>[] = [
     {
       key: 'name',
       header: 'Nom',
-      cell: (user) => (
+      cell: (member) => (
         <>
-          {user.name}
-          {user.id === currentUserId && (
+          {member.name}
+          {member.membershipId === currentMembershipId && (
             <span className="ml-2 text-xs text-muted-foreground">(vous)</span>
           )}
         </>
@@ -43,24 +43,15 @@ export function TeamList({
     {
       key: 'email',
       header: 'Email',
-      cell: (user) => (
-        <>
-          {user.email}
-          {!user.emailVerified && (
-            <Badge variant="outline" className="ml-2">
-              Email non vérifié
-            </Badge>
-          )}
-        </>
-      ),
+      cell: (member) => member.email,
       className: 'text-sm',
     },
-    { key: 'role', header: 'Rôle', cell: (user) => roleLabels[user.role] },
+    { key: 'role', header: 'Rôle', cell: (member) => roleLabels[member.role] },
     {
       key: 'status',
       header: 'Statut',
-      cell: (user) =>
-        user.isActive ? (
+      cell: (member) =>
+        member.isActive ? (
           <Badge variant="default">Actif</Badge>
         ) : (
           <Badge variant="secondary">Inactif</Badge>
@@ -69,21 +60,21 @@ export function TeamList({
     {
       key: 'lastLogin',
       header: 'Dernière connexion',
-      cell: (user) =>
-        user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('fr-FR') : 'Jamais',
+      cell: (member) =>
+        member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleString('fr-FR') : 'Jamais',
     },
     {
       key: 'actions',
       header: 'Actions',
       className: 'text-right',
-      cell: (user) => (
+      cell: (member) => (
         <div className="flex justify-end gap-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => onResetPin(user)}
-            disabled={Boolean(isUpdating) || user.id === currentUserId}
-            aria-label={`Réinitialiser le PIN de ${user.name}`}
+            onClick={() => onResetPin(member)}
+            disabled={Boolean(isUpdating) || member.membershipId === currentMembershipId}
+            aria-label={`Réinitialiser le PIN de ${member.name}`}
             title="Réinitialiser le PIN"
           >
             <KeyRound className="h-4 w-4" />
@@ -91,12 +82,12 @@ export function TeamList({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => onToggleActive(user)}
-            disabled={Boolean(isUpdating) || user.id === currentUserId}
-            aria-label={user.isActive ? `Désactiver ${user.name}` : `Activer ${user.name}`}
-            title={user.isActive ? 'Désactiver' : 'Activer'}
+            onClick={() => onToggleActive(member)}
+            disabled={Boolean(isUpdating) || member.membershipId === currentMembershipId}
+            aria-label={member.isActive ? `Désactiver ${member.name}` : `Activer ${member.name}`}
+            title={member.isActive ? 'Désactiver' : 'Activer'}
           >
-            {user.isActive ? (
+            {member.isActive ? (
               <PowerOff className="h-4 w-4 text-destructive" />
             ) : (
               <Power className="h-4 w-4 text-green-600" />
@@ -115,11 +106,11 @@ export function TeamList({
 
   return (
     <ResponsiveTable
-      data={users}
+      data={members}
       columns={columns}
-      keyExtractor={(user) => user.id}
+      keyExtractor={(member) => member.membershipId}
       empty={empty}
-      mobileCardTitle={(user) => user.name}
+      mobileCardTitle={(member) => member.name}
     />
   )
 }

@@ -27,7 +27,7 @@ const INVENTORY_QUERY_KEY = 'inventory-sessions'
 export function useInventorySessions() {
   const { session } = useAuth()
   const online = useNetworkStatus()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: [INVENTORY_QUERY_KEY, orgId],
@@ -66,7 +66,7 @@ export function useInventorySessions() {
 export function useSessionCounts(sessionId: string | null) {
   const online = useNetworkStatus()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
 
   return useQuery({
     queryKey: ['inventory-counts', sessionId],
@@ -108,7 +108,7 @@ export function useSessionCounts(sessionId: string | null) {
 export function useCreateInventorySession() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
   const operatorId = session?.user.id
   const { data: products } = useProducts()
   const { data: stock } = useStock()
@@ -179,7 +179,7 @@ export function useUpdateCount(sessionId: string) {
 export function useApplyInventorySession() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const orgId = session?.user.orgId
+  const orgId = session?.membership.orgId
   const online = useNetworkStatus()
 
   return useMutation({
