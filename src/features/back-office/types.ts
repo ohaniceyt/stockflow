@@ -20,6 +20,7 @@ export interface Paginated<T> {
 export interface BackOfficeOrganization {
   id: string
   name: string
+  slug: string
   currency: string
   timezone: string
   is_active: boolean
@@ -54,7 +55,7 @@ export interface BackOfficeMembership {
   force_pin_change: boolean
   last_login_at: string | null
   created_at: string
-  organizations: { id: string; name: string } | null
+  organizations: { id: string; name: string; slug: string } | null
 }
 
 export interface BackOfficeUser {

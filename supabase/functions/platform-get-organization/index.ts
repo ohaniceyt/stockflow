@@ -45,6 +45,7 @@ Deno.serve(async (req: Request) => {
         `
         id,
         name,
+        slug,
         currency,
         timezone,
         is_active,

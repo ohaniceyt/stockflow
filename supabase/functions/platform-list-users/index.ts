@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
           is_active,
           force_pin_change,
           last_login_at,
-          organizations!inner ( id, name )
+          organizations!inner ( id, name, slug )
         )
       `,
       { count: 'exact' }

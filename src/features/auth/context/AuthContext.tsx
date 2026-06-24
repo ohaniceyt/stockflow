@@ -71,6 +71,7 @@ interface AuthContextValue {
   exitSudo: () => Promise<void>
   completeOnboarding: (updates: {
     orgName: string
+    orgSlug: string
     currency: string
     timezone: string
     defaultLocationName: string
@@ -194,6 +195,7 @@ function buildSession(
     ? {
         id: asString(organizationRaw.id),
         name: asString(organizationRaw.name),
+        slug: asString(organizationRaw.slug),
         currency: asString(organizationRaw.currency),
         timezone: asString(organizationRaw.timezone),
         isActive: Boolean(organizationRaw.isActive ?? true),
@@ -209,6 +211,7 @@ function buildSession(
     : {
         id: '',
         name: '',
+        slug: '',
         currency: 'XOF',
         timezone: 'Africa/Abidjan',
         isActive: true,
@@ -631,6 +634,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeOnboarding = useCallback(
     async (input: {
       orgName: string
+      orgSlug: string
       currency: string
       timezone: string
       defaultLocationName: string

@@ -153,7 +153,9 @@ Deno.serve(async (req: Request) => {
 
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
-      .select('id, name, currency, timezone, onboarding_completed, is_suspended, suspension_reason')
+      .select(
+        'id, name, slug, currency, timezone, onboarding_completed, is_suspended, suspension_reason'
+      )
       .eq('id', activeOrgId)
       .single()
 
@@ -216,6 +218,7 @@ Deno.serve(async (req: Request) => {
         organization: {
           id: org.id,
           name: org.name,
+          slug: org.slug,
           currency: org.currency,
           timezone: org.timezone,
           onboardingCompleted: org.onboarding_completed,

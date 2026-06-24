@@ -4,6 +4,7 @@ export type PlatformAdminRole = 'super_admin' | 'moderator'
 export interface Organization {
   id: string
   name: string
+  slug: string
   currency: string
   timezone: string
   isActive: boolean

@@ -1,9 +1,10 @@
 -- Seed data for local development and initial Supabase setup
 
-INSERT INTO organizations (id, name, currency, timezone, onboarding_completed)
+INSERT INTO organizations (id, name, slug, currency, timezone, onboarding_completed)
 VALUES (
   '00000000-0000-0000-0000-000000000000',
   'StockFlow Demo',
+  'stockflow-demo',
   'XOF',
   'Africa/Abidjan',
   TRUE

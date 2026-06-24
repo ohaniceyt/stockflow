@@ -21,16 +21,32 @@ const timezones = [
   { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
 ]
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50)
+}
+
+function isValidSlug(value: string): boolean {
+  return /^[a-z0-9-]+$/.test(value) && value.length >= 2 && value.length <= 50
+}
+
 export default function OnboardingPage() {
   const { session, completeOnboarding, hasRole, signOut } = useAuth()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState(session?.organization.name ?? '')
+  const [orgSlug, setOrgSlug] = useState(session?.organization.slug ?? '')
   const [currency, setCurrency] = useState('XOF')
   const [timezone, setTimezone] = useState('Africa/Abidjan')
   const [defaultLocationName, setDefaultLocationName] = useState('Dépôt principal')
   const [error, setError] = useState<string | null>(null)
+  const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!session) {
@@ -72,11 +88,31 @@ export default function OnboardingPage() {
     )
   }
 
+  const handleOrgNameChange = (value: string) => {
+    setOrgName(value)
+    if (!orgSlug || orgSlug === slugify(orgName)) {
+      setOrgSlug(slugify(value))
+    }
+    setError(null)
+    setSuggestedSlug(null)
+  }
+
   const validateStep = () => {
     setError(null)
+    setSuggestedSlug(null)
     if (step === 1) {
       if (!orgName.trim()) {
         setError('Le nom de l’organisation est requis')
+        return false
+      }
+      if (!orgSlug.trim()) {
+        setError('L’identifiant (slug) de l’organisation est requis')
+        return false
+      }
+      if (!isValidSlug(orgSlug)) {
+        setError(
+          'L’identifiant doit contenir entre 2 et 50 caractères, uniquement des minuscules, chiffres et tirets.'
+        )
         return false
       }
     }
@@ -102,6 +138,12 @@ export default function OnboardingPage() {
   const handleBack = () => {
     setStep((s) => Math.max(1, s - 1))
     setError(null)
+    setSuggestedSlug(null)
+  }
+
+  const extractSuggestedSlug = (message: string): string | null => {
+    const match = /suggestion["']?\s*[:=]\s*["']?([a-z0-9-]+)/i.exec(message)
+    return match?.[1] ?? null
   }
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
@@ -111,6 +153,7 @@ export default function OnboardingPage() {
     try {
       await completeOnboarding({
         orgName: orgName.trim(),
+        orgSlug: orgSlug.trim(),
         currency,
         timezone,
         defaultLocationName: defaultLocationName.trim(),
@@ -119,8 +162,20 @@ export default function OnboardingPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
       setError(message)
+      const suggestion = extractSuggestedSlug(message)
+      if (suggestion) {
+        setSuggestedSlug(suggestion)
+      }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const applySuggestedSlug = () => {
+    if (suggestedSlug) {
+      setOrgSlug(suggestedSlug)
+      setSuggestedSlug(null)
+      setError(null)
     }
   }
 
@@ -155,9 +210,30 @@ export default function OnboardingPage() {
                 <Input
                   id="org-name"
                   value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
+                  onChange={(e) => handleOrgNameChange(e.target.value)}
                   placeholder="Ex: Ma Boutique"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="org-slug">
+                  Identifiant unique du portail{' '}
+                  <span className="text-muted-foreground">(ex: ma-boutique)</span>
+                </Label>
+                <Input
+                  id="org-slug"
+                  value={orgSlug}
+                  onChange={(e) => {
+                    setOrgSlug(e.target.value)
+                    setError(null)
+                    setSuggestedSlug(null)
+                  }}
+                  placeholder="ma-boutique"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lettres minuscules, chiffres et tirets uniquement. Cet identifiant sera utilisé
+                  pour le portail public de votre organisation.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -224,6 +300,10 @@ export default function OnboardingPage() {
                   <span className="font-medium">{orgName}</span>
                 </p>
                 <p>
+                  <span className="text-muted-foreground">Identifiant :</span>{' '}
+                  <span className="font-medium">{orgSlug}</span>
+                </p>
+                <p>
                   <span className="text-muted-foreground">Devise :</span>{' '}
                   <span className="font-medium">{currency}</span>
                 </p>
@@ -240,6 +320,21 @@ export default function OnboardingPage() {
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {suggestedSlug && (
+            <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+              <p className="font-medium">Identifiant suggéré : {suggestedSlug}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={applySuggestedSlug}
+              >
+                Utiliser cet identifiant
+              </Button>
+            </div>
+          )}
 
           <div className="text-center text-sm text-muted-foreground">
             Vous avez reçu une invitation pour rejoindre une organisation ?{' '}
