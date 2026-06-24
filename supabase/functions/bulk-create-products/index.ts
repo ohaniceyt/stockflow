@@ -35,6 +35,13 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   })
 }
 
+function errorResponse(message: string, details?: Record<string, unknown>, status = 500) {
+  return jsonResponse(
+    { error: { message, details }, created: 0, total: 0, errors: [message] },
+    status
+  )
+}
+
 function normalizeName(value: unknown): string | null {
   if (value === undefined || value === null) return null
   const str = String(value).trim()
@@ -191,7 +198,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 3. Build product rows.
+    // 3. Build product rows and detect duplicates against existing products.
     const productRows = validProducts.map((p) => ({
       org_id,
       name: p.name,
@@ -206,33 +213,53 @@ Deno.serve(async (req: Request) => {
       is_active: p.is_active,
     }))
 
-    // 4. Bulk insert products.
-    console.log('bulk-create-products: inserting', productRows.length, 'rows for org', org_id)
-    console.log('bulk-create-products: first row sample', JSON.stringify(productRows[0]))
+    const productNames = productRows.map((p) => p.name)
+    const { data: existingProducts } = await adminClient
+      .from('products')
+      .select('name')
+      .eq('org_id', org_id)
+      .in('name', productNames)
+
+    const existingNames = new Set((existingProducts ?? []).map((p) => p.name))
+
+    const newRows = productRows.filter((p) => !existingNames.has(p.name))
+    const duplicateCount = productRows.length - newRows.length
+
+    if (duplicateCount > 0) {
+      errors.push(
+        `${duplicateCount} produit(s) ignoré(s) car le nom existe déjà dans cette organisation.`
+      )
+    }
+
+    if (newRows.length === 0) {
+      return jsonResponse({
+        created: 0,
+        total: products.length,
+        errors,
+      })
+    }
+
+    // 4. Bulk insert only new products.
+    console.log('bulk-create-products: inserting', newRows.length, 'new rows for org', org_id)
+    console.log('bulk-create-products: first row sample', JSON.stringify(newRows[0]))
 
     const { data: insertedProducts, error: insertError } = await adminClient
       .from('products')
-      .insert(productRows)
+      .insert(newRows)
       .select('id')
 
     console.log('bulk-create-products: insertError', insertError)
     console.log('bulk-create-products: insertedProducts count', insertedProducts?.length ?? 0)
 
     if (insertError) {
-      errors.push(`Erreur insertion: ${insertError.message}`)
-      return jsonResponse(
-        {
-          error: insertError.message,
-          created: 0,
-          total: products.length,
-          errors,
-        },
-        500
-      )
+      return errorResponse(`Erreur lors de l'insertion des produits: ${insertError.message}`, {
+        code: insertError.code,
+        hint: insertError.hint,
+      })
     }
 
     const created = insertedProducts?.length ?? 0
-    if (created === 0 && productRows.length > 0) {
+    if (created === 0 && newRows.length > 0) {
       errors.push('Aucun produit inséré : la base de données a retourné 0 lignes créées.')
     }
 
@@ -243,6 +270,7 @@ Deno.serve(async (req: Request) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    return jsonResponse({ error: message }, 500)
+    console.error('bulk-create-products: unhandled exception', err)
+    return errorResponse(message, { stack: err instanceof Error ? err.stack : undefined })
   }
 })
