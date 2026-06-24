@@ -103,6 +103,7 @@ export default function InventoryPage() {
           onOpenChange={setCreateOpen}
           onSubmit={handleCreate}
           isLoading={create.isPending}
+          error={create.error}
         />
       )}
 
@@ -114,6 +115,7 @@ export default function InventoryPage() {
         onUpdateCount={handleUpdateCount}
         onApply={handleApply}
         isLoading={countsLoading || updateCount.isPending || apply.isPending}
+        error={apply.error ?? updateCount.error}
       />
     </div>
   )

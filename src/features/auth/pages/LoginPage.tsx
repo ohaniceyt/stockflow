@@ -8,16 +8,16 @@ import { useAuth } from '@/features/auth/context/AuthContext'
 export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { signIn, isAuthenticated, isLoading } = useAuth()
+  const { signIn, isAuthenticated, isLoading, session } = useAuth()
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !session?.needsOrganization) {
       void navigate('/dashboard', { replace: true })
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, session?.needsOrganization, navigate])
 
   const banner = useMemo(() => {
     if (searchParams.get('verified')) {

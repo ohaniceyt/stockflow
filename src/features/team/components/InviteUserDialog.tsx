@@ -19,6 +19,7 @@ interface InviteUserDialogProps {
   onInviteByEmail?: (input: { email: string; role: UserRole }) => void
   createdPin: string | null
   isLoading?: boolean
+  error?: Error | null
 }
 
 export function InviteUserDialog({
@@ -28,6 +29,7 @@ export function InviteUserDialog({
   onInviteByEmail,
   createdPin,
   isLoading,
+  error,
 }: InviteUserDialogProps) {
   const [mode, setMode] = useState<'create' | 'invite'>('create')
   const [name, setName] = useState('')
@@ -162,6 +164,7 @@ export function InviteUserDialog({
                 {isLoading ? 'Envoi…' : mode === 'create' ? 'Créer' : 'Envoyer invitation'}
               </Button>
             </div>
+            {error && <p className="text-sm text-destructive">{error.message}</p>}
           </form>
         )}
       </DialogContent>

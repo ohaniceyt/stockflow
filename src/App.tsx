@@ -27,6 +27,7 @@ const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage
 const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
+const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
 const BackOfficeLayout = lazy(() => import('@/features/back-office/components/BackOfficeLayout'))
@@ -67,6 +68,7 @@ function App() {
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/auth/reset-pin" element={<ResetPinPage />} />
+          <Route path="/invite" element={<InvitePage />} />
 
           <Route
             path="/change-pin"

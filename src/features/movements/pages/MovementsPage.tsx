@@ -75,6 +75,7 @@ export default function MovementsPage() {
                   isLoading={create.isPending}
                 />
               )}
+              {create.error && <p className="text-sm text-destructive">{create.error.message}</p>}
             </DialogContent>
           </Dialog>
         )}

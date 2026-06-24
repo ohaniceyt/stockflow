@@ -20,6 +20,7 @@ interface SessionDetailDialogProps {
   onUpdateCount: (countId: string, countedQuantity: number) => void
   onApply: () => void
   isLoading?: boolean
+  error?: Error | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -36,6 +37,7 @@ export function SessionDetailDialog({
   onUpdateCount,
   onApply,
   isLoading,
+  error,
 }: SessionDetailDialogProps) {
   const [editingCountId, setEditingCountId] = useState<string | null>(null)
   const [draftQuantity, setDraftQuantity] = useState(0)
@@ -177,6 +179,7 @@ export function SessionDetailDialog({
             </Button>
           </div>
         )}
+        {error && <p className="text-sm text-destructive">{error.message}</p>}
       </DialogContent>
     </Dialog>
   )

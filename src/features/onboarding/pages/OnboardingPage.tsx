@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Building2, MapPin, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -218,6 +218,13 @@ export default function OnboardingPage() {
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="text-center text-sm text-muted-foreground">
+            Vous avez reçu une invitation pour rejoindre une organisation ?{' '}
+            <Link to="/invite" className="text-primary hover:underline">
+              Rejoindre avec un lien d’invitation
+            </Link>
+          </div>
 
           <div className="flex justify-between pt-2">
             {step > 1 ? (

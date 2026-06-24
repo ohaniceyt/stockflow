@@ -65,6 +65,16 @@ test.describe('Onboarding Option B - email/password + AppLock PIN', () => {
     await page.getByLabel('Mot de passe').fill(TEST_USER.password)
     await page.getByRole('button', { name: /Se connecter/ }).click()
 
+    // New accounts without an organization are redirected to the onboarding wizard.
+    await page.waitForURL(`${BASE_URL}/onboarding`)
+    await expect(page.getByRole('heading', { name: /Bienvenue sur StockFlow/ })).toBeVisible()
+
+    await page.getByLabel('Nom de l’organisation').fill('Boutique E2E')
+    await page.getByRole('button', { name: /Suivant/ }).click()
+    await page.getByLabel('Nom de l’emplacement').fill('Magasin principal')
+    await page.getByRole('button', { name: /Suivant/ }).click()
+    await page.getByRole('button', { name: /Terminer/ }).click()
+
     await page.waitForURL(`${BASE_URL}/dashboard`)
     await expect(page.getByRole('heading', { name: /Tableau de bord/ })).toBeVisible()
 

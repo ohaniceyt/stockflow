@@ -37,6 +37,7 @@ interface AuthSession {
   isPlatformAdmin: boolean
   platformAdminRole: PlatformAdminRole | null
   onboardingCompleted: boolean
+  needsOrganization: boolean
   sudoTarget?: SudoTarget | null
 }
 
@@ -136,6 +137,7 @@ interface RawInitializeResponse {
   isPlatformAdmin?: boolean
   platformAdminRole?: string
   onboardingCompleted?: boolean
+  needsOrganization?: boolean
   error?: { message: string }
 }
 
@@ -161,34 +163,61 @@ function buildSession(
     updatedAt: typeof userRaw.updatedAt === 'string' ? userRaw.updatedAt : now,
   }
 
-  const membership: OrganizationMembership = {
-    id: asString(membershipRaw.id),
-    orgId: asString(membershipRaw.orgId),
-    userId: asString(membershipRaw.userId),
-    role: asString(membershipRaw.role) as UserRole,
-    pinHash: typeof membershipRaw.pinHash === 'string' ? membershipRaw.pinHash : null,
-    isActive: Boolean(membershipRaw.isActive ?? true),
-    forcePinChange: Boolean(membershipRaw.forcePinChange),
-    lastLoginAt: typeof membershipRaw.lastLoginAt === 'string' ? membershipRaw.lastLoginAt : null,
-    createdAt: typeof membershipRaw.createdAt === 'string' ? membershipRaw.createdAt : now,
-    updatedAt: typeof membershipRaw.updatedAt === 'string' ? membershipRaw.updatedAt : now,
-  }
+  const membership: OrganizationMembership = raw.membership
+    ? {
+        id: asString(membershipRaw.id),
+        orgId: asString(membershipRaw.orgId),
+        userId: asString(membershipRaw.userId),
+        role: asString(membershipRaw.role) as UserRole,
+        pinHash: typeof membershipRaw.pinHash === 'string' ? membershipRaw.pinHash : null,
+        isActive: Boolean(membershipRaw.isActive ?? true),
+        forcePinChange: Boolean(membershipRaw.forcePinChange),
+        lastLoginAt:
+          typeof membershipRaw.lastLoginAt === 'string' ? membershipRaw.lastLoginAt : null,
+        createdAt: typeof membershipRaw.createdAt === 'string' ? membershipRaw.createdAt : now,
+        updatedAt: typeof membershipRaw.updatedAt === 'string' ? membershipRaw.updatedAt : now,
+      }
+    : {
+        id: '',
+        orgId: '',
+        userId: asString(userRaw.id),
+        role: 'admin',
+        pinHash: null,
+        isActive: true,
+        forcePinChange: false,
+        lastLoginAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }
 
-  const organization: Organization = {
-    id: asString(organizationRaw.id),
-    name: asString(organizationRaw.name),
-    currency: asString(organizationRaw.currency),
-    timezone: asString(organizationRaw.timezone),
-    isActive: Boolean(organizationRaw.isActive ?? true),
-    isSuspended: Boolean(organizationRaw.isSuspended),
-    suspensionReason:
-      typeof organizationRaw.suspensionReason === 'string'
-        ? organizationRaw.suspensionReason
-        : null,
-    onboardingCompleted: Boolean(organizationRaw.onboardingCompleted),
-    createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
-    updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
-  }
+  const organization: Organization = raw.organization
+    ? {
+        id: asString(organizationRaw.id),
+        name: asString(organizationRaw.name),
+        currency: asString(organizationRaw.currency),
+        timezone: asString(organizationRaw.timezone),
+        isActive: Boolean(organizationRaw.isActive ?? true),
+        isSuspended: Boolean(organizationRaw.isSuspended),
+        suspensionReason:
+          typeof organizationRaw.suspensionReason === 'string'
+            ? organizationRaw.suspensionReason
+            : null,
+        onboardingCompleted: Boolean(organizationRaw.onboardingCompleted),
+        createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
+        updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
+      }
+    : {
+        id: '',
+        name: '',
+        currency: 'XOF',
+        timezone: 'Africa/Abidjan',
+        isActive: true,
+        isSuspended: false,
+        suspensionReason: null,
+        onboardingCompleted: false,
+        createdAt: now,
+        updatedAt: now,
+      }
 
   const platformAdminRole: PlatformAdminRole | null =
     raw.platformAdminRole === 'super_admin' || raw.platformAdminRole === 'moderator'
@@ -205,6 +234,7 @@ function buildSession(
     isPlatformAdmin: Boolean(raw.isPlatformAdmin),
     platformAdminRole,
     onboardingCompleted: Boolean(raw.onboardingCompleted),
+    needsOrganization: Boolean(raw.needsOrganization),
     sudoTarget: loadSudoTarget(),
   }
 }
@@ -623,20 +653,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error?.message ?? 'Failed to complete onboarding')
       }
 
-      persistSession({
-        ...session,
-        onboardingCompleted: true,
-        organization: {
-          ...session.organization,
-          name: input.orgName,
-          currency: input.currency,
-          timezone: input.timezone,
-          onboardingCompleted: true,
-        },
-      })
-      void runPullSync(session.membership.orgId)
+      // Re-initialize the session so the real membership and organization are loaded.
+      const { data: supabaseSession, error } = await supabase.auth.getSession()
+      if (error || !supabaseSession.session) {
+        throw new Error(error?.message ?? 'Session lost')
+      }
+      await initializeSession(supabaseSession.session)
     },
-    [session, persistSession]
+    [session, initializeSession]
   )
 
   const hasRole = useCallback(
@@ -667,6 +691,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isPlatformAdmin: !!session?.isPlatformAdmin,
       platformAdminRole: session?.platformAdminRole ?? null,
       sudoTarget: session?.sudoTarget ?? null,
+      needsOrganization: session?.needsOrganization ?? false,
       enterSudo,
       exitSudo,
       completeOnboarding,

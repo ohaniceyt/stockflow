@@ -255,6 +255,14 @@ export default function ProductsPage() {
                     createCategory.isPending || updateCategory.isPending || deleteCategory.isPending
                   }
                 />
+                {(createCategory.error ?? updateCategory.error ?? deleteCategory.error) && (
+                  <p className="text-sm text-destructive">
+                    {
+                      (createCategory.error ?? updateCategory.error ?? deleteCategory.error)
+                        ?.message
+                    }
+                  </p>
+                )}
               </DialogContent>
             </Dialog>
           </div>

@@ -61,8 +61,6 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (!profile) {
-      // Edge case: auth user exists but public profile does not. Create a minimal shell profile
-      // without an organization. The frontend will ask the user to complete setup.
       const metadataName = authUser.user.user_metadata?.name ?? ''
       const metadataPhone = authUser.user.user_metadata?.phone ?? null
       const { data: newProfile, error: createError } = await adminClient
@@ -73,6 +71,7 @@ Deno.serve(async (req: Request) => {
           email: normalizedEmail,
           phone: metadataPhone,
           email_verified: emailVerified,
+          active_org_id: null,
         })
         .select('*')
         .single()
@@ -112,11 +111,29 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // No organization yet: return a shell session so the frontend can redirect to onboarding.
     if (!activeOrgId) {
-      return new Response(JSON.stringify({ error: 'No organization found for this user' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: authUserId,
+            name: profile.name,
+            email: normalizedEmail,
+            phone: profile.phone,
+            emailVerified,
+            activeOrgId: null,
+            createdAt: profile.created_at,
+            updatedAt: profile.updated_at,
+          },
+          membership: null,
+          organization: null,
+          isPlatformAdmin: false,
+          platformAdminRole: null,
+          onboardingCompleted: false,
+          needsOrganization: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const { data: membership, error: membershipError } = await adminClient
@@ -172,9 +189,7 @@ Deno.serve(async (req: Request) => {
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', membership.id)
 
-    const onboardingCompleted =
-      ['super_admin', 'admin'].includes(membership.role as string) &&
-      org.onboarding_completed === true
+    const onboardingCompleted = org.onboarding_completed === true
 
     return new Response(
       JSON.stringify({
@@ -211,6 +226,7 @@ Deno.serve(async (req: Request) => {
         isPlatformAdmin,
         platformAdminRole,
         onboardingCompleted,
+        needsOrganization: false,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

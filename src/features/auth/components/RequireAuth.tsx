@@ -17,6 +17,10 @@ export function RequireAuth({ children, roles, requirePlatformAdmin, fallback }:
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  if (session?.needsOrganization && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />
+  }
+
   if (session?.membership.forcePinChange && location.pathname !== '/change-pin') {
     return <Navigate to="/change-pin" replace />
   }

@@ -151,6 +151,7 @@ export default function TeamPage() {
         onInviteByEmail={handleInviteByEmail}
         createdPin={createdPin}
         isLoading={createUser.isPending || createInvitation.isPending}
+        error={createUser.error ?? createInvitation.error}
       />
     </div>
   )

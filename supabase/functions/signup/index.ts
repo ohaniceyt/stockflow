@@ -113,10 +113,9 @@ Deno.serve(async (req: Request) => {
     const redirectTo = `${appUrl}/auth/verification`
 
     let authUserId: string | null = null
-    let orgId: string | null = null
 
     try {
-      // Create auth user without confirming email. The confirmation link will be sent below.
+      // Create auth user without confirming email. The confirmation link is sent below.
       const { data: createAuthData, error: createAuthError } =
         await adminClient.auth.admin.createUser({
           email: normalizedEmail,
@@ -130,66 +129,17 @@ Deno.serve(async (req: Request) => {
       }
       authUserId = createAuthData.user.id
 
-      // Create a "shell" organization to be configured later from the dashboard.
-      const { data: org, error: orgError } = await adminClient
-        .from('organizations')
-        .insert({
-          name: 'Mon organisation',
-          currency: 'XOF',
-          timezone: 'Africa/Abidjan',
-          onboarding_completed: false,
-        })
-        .select('id')
-        .single()
-
-      if (orgError || !org) {
-        throw new Error(orgError?.message ?? 'Could not create organization')
-      }
-      orgId = org.id
-
       const { error: insertUserError } = await adminClient.from('users').insert({
         id: authUserId,
         name: name.trim(),
         email: normalizedEmail,
         phone: phone?.trim() ?? null,
         email_verified: false,
-        active_org_id: orgId,
+        active_org_id: null,
       })
 
       if (insertUserError) {
         throw new Error(insertUserError.message)
-      }
-
-      const { data: membership, error: membershipError } = await adminClient
-        .from('organization_memberships')
-        .insert({
-          org_id: orgId,
-          user_id: authUserId,
-          role: 'admin',
-          pin_hash: null,
-          is_active: true,
-          force_pin_change: false,
-        })
-        .select('id')
-        .single()
-
-      if (membershipError || !membership) {
-        throw new Error(membershipError?.message ?? 'Could not create membership')
-      }
-
-      const { error: subError } = await adminClient.from('subscriptions').insert({
-        org_id: orgId,
-        plan_id: 'free',
-        status: 'active',
-        billing_interval: 'month',
-        current_period_starts_at: new Date().toISOString(),
-        current_period_ends_at: new Date(
-          Date.now() + 100 * 365 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-      })
-
-      if (subError) {
-        throw new Error(subError.message)
       }
 
       // Generate Supabase email confirmation link and send it through Resend.
@@ -222,13 +172,6 @@ Deno.serve(async (req: Request) => {
       // Best-effort rollback
       if (authUserId) {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
-      }
-      if (orgId) {
-        await adminClient
-          .from('organizations')
-          .delete()
-          .eq('id', orgId)
-          .catch(() => {})
       }
 
       const message = err instanceof Error ? err.message : 'Unknown error'

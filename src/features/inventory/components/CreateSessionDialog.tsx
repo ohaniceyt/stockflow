@@ -18,6 +18,7 @@ interface CreateSessionDialogProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (input: { name: string; locationId: string }) => void
   isLoading?: boolean
+  error?: Error | null
 }
 
 export function CreateSessionDialog({
@@ -26,6 +27,7 @@ export function CreateSessionDialog({
   onOpenChange,
   onSubmit,
   isLoading,
+  error,
 }: CreateSessionDialogProps) {
   const [name, setName] = useState('')
   const [locationId, setLocationId] = useState(locations[0]?.id ?? '')
@@ -95,6 +97,7 @@ export function CreateSessionDialog({
               {isLoading ? 'Création…' : 'Créer'}
             </Button>
           </div>
+          {error && <p className="text-sm text-destructive">{error.message}</p>}
         </form>
       </DialogContent>
     </Dialog>
