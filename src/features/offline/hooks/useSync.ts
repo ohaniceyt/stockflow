@@ -78,7 +78,10 @@ export function useSync() {
       }
 
       try {
-        await pullSync(session.membership.orgId)
+        const orgId = session.membership.orgId
+        if (orgId) {
+          await pullSync(orgId)
+        }
       } catch (err) {
         console.error('Pull sync failed', err)
       }

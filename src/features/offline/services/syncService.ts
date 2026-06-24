@@ -26,6 +26,10 @@ export interface PullSyncResult {
 }
 
 export async function pullSync(orgId: string): Promise<PullSyncResult> {
+  if (!orgId) {
+    throw new Error('Cannot pull sync without an organization id')
+  }
+
   const [products, locations, stockItems, movements, sessions] = await Promise.all([
     fetchProducts(orgId),
     fetchLocations(orgId),

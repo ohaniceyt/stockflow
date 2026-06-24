@@ -313,7 +313,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLocked(hasAppLockPin())
       }
 
-      void runPullSync(next.organization.id)
+      if (next.organization.id) {
+        void runPullSync(next.organization.id)
+      }
     },
     [persistSession]
   )
