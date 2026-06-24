@@ -17,6 +17,7 @@ interface ResetPinDialogProps {
   onOpenChange: (open: boolean) => void
   onConfirm: (newPin: string) => void
   isLoading?: boolean
+  error?: Error | null
 }
 
 export function ResetPinDialog({
@@ -25,6 +26,7 @@ export function ResetPinDialog({
   onOpenChange,
   onConfirm,
   isLoading,
+  error,
 }: ResetPinDialogProps) {
   const [pin, setPin] = useState('')
 
@@ -60,6 +62,8 @@ export function ResetPinDialog({
             />
           </div>
         </div>
+
+        {error && <p className="text-sm text-destructive">{error.message}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>

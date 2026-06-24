@@ -137,6 +137,7 @@ export default function TeamPage() {
         onOpenChange={setResetOpen}
         onConfirm={handleConfirmReset}
         isLoading={resetPin.isPending}
+        error={resetPin.error}
       />
 
       <InviteUserDialog

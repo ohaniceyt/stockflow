@@ -206,6 +206,7 @@ export default function ProductsPage() {
                   onCreateCategory={handleCreateCategory}
                   isLoading={create.isPending || update.isPending}
                   isCreatingCategory={createCategory.isPending}
+                  error={create.error ?? update.error}
                 />
               </DialogContent>
             </Dialog>

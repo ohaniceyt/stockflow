@@ -15,6 +15,7 @@ interface ProductFormProps {
   onCreateCategory: (name: string) => Promise<void> | void
   isLoading?: boolean
   isCreatingCategory?: boolean
+  error?: Error | null
 }
 
 export function ProductForm({
@@ -25,6 +26,7 @@ export function ProductForm({
   onCreateCategory,
   isLoading,
   isCreatingCategory,
+  error,
 }: ProductFormProps) {
   const [form, setForm] = useState<ProductFormData>({
     name: product?.name ?? '',
@@ -173,6 +175,8 @@ export function ProductForm({
           <option value="false">Inactif</option>
         </Select>
       </div>
+
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
