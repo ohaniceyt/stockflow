@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, parseJwt } from './auth.ts'
 
 export type PlatformAdminRole = 'super_admin' | 'moderator'

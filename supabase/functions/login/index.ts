@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 
 interface LoginPayload {
