@@ -51,6 +51,15 @@ export function RecapStats({
       sub: `${String(inCount)} entrées · ${String(outCount)} sorties`,
     },
     {
+      label: 'QTÉ TOTALE EN STOCK',
+      value: totalQuantity,
+      icon: Warehouse,
+      iconColor: 'text-amber-600',
+      iconBg: 'bg-amber-50',
+      barColor: 'bg-amber-400',
+      isMoney: false,
+    },
+    {
       label: `VALEUR STOCK (${currency})`,
       value: formatMoney(stockValue),
       raw: stockValue,
@@ -59,15 +68,6 @@ export function RecapStats({
       iconColor: 'text-violet-600',
       iconBg: 'bg-violet-50',
       barColor: 'bg-violet-400',
-    },
-    {
-      label: 'QTÉ TOTALE EN STOCK',
-      value: totalQuantity,
-      icon: Warehouse,
-      iconColor: 'text-amber-600',
-      iconBg: 'bg-amber-50',
-      barColor: 'bg-amber-400',
-      isMoney: false,
     },
     {
       label: `VALEUR VENTE STOCK (${currency})`,
