@@ -13,7 +13,9 @@ export async function fetchOrganization(orgId: string): Promise<Organization> {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, created_at, updated_at')
+    .select(
+      'id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, created_at, updated_at'
+    )
     .eq('id', orgId)
     .single()
 
@@ -50,11 +52,13 @@ export async function updateOrganization(
       timezone: input.timezone,
     })
     .eq('id', orgId)
-    .select('id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, created_at, updated_at')
+    .select(
+      'id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, created_at, updated_at'
+    )
     .single()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (error || !data) throw new Error(error?.message ?? "Mise à jour échouée")
+  if (error || !data) throw new Error(error?.message ?? 'Mise à jour échouée')
 
   return {
     id: data.id,

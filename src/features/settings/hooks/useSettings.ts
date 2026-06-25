@@ -24,7 +24,10 @@ export function useUpdateCurrentUserProfile() {
     onSuccess: (user) => {
       void queryClient.invalidateQueries({ queryKey: [PROFILE_QUERY_KEY] })
       if (session) {
-        persistSession({ ...session, user: { ...session.user, name: user.name, phone: user.phone } })
+        persistSession({
+          ...session,
+          user: { ...session.user, name: user.name, phone: user.phone },
+        })
       }
     },
   })

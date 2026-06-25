@@ -102,12 +102,7 @@ export default function ProfilePage() {
         <p className="text-sm text-muted-foreground">
           Déconnectez-vous de StockFlow sur cet appareil.
         </p>
-        <Button
-          type="button"
-          variant="destructive"
-          className="mt-4"
-          onClick={() => void signOut()}
-        >
+        <Button type="button" variant="destructive" className="mt-4" onClick={() => void signOut()}>
           Se déconnecter
         </Button>
       </div>

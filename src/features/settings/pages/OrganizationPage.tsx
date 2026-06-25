@@ -100,8 +100,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
 
       <div className="space-y-2">
         <Label htmlFor="org-slug">
-          Identifiant unique{' '}
-          <span className="text-muted-foreground">(ex: ma-boutique)</span>
+          Identifiant unique <span className="text-muted-foreground">(ex: ma-boutique)</span>
         </Label>
         <Input
           id="org-slug"
@@ -187,7 +186,9 @@ export default function OrganizationPage() {
           </div>
           <div>
             <h2 className="font-semibold">Organisation</h2>
-            <p className="text-sm text-muted-foreground">Nom, identifiant, devise et fuseau horaire.</p>
+            <p className="text-sm text-muted-foreground">
+              Nom, identifiant, devise et fuseau horaire.
+            </p>
           </div>
         </div>
 
