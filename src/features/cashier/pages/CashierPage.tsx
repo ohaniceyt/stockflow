@@ -419,7 +419,7 @@ export default function CashierPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Caisse</h1>
-          <p className="text-muted-foreground">Ventes rapides pour {session?.organization.name}.</p>
+          <p className="text-muted-foreground">Ventes rapides pour {session.organization.name}.</p>
         </div>
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5 text-muted-foreground" />

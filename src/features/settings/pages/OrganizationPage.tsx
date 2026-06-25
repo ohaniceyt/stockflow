@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Building2, MapPin, Star } from 'lucide-react'
+import { Building2, MapPin, Star, Store, ShoppingCart, Plug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +42,48 @@ interface OrganizationFormProps {
   organization: Organization
   canManage: boolean
   update: ReturnType<typeof useUpdateOrganization>
+}
+
+interface FeatureToggleProps {
+  label: string
+  description: string
+  icon: React.ElementType
+  checked: boolean
+  disabled?: boolean
+  onChange: (checked: boolean) => void
+}
+
+function FeatureToggle({
+  label,
+  description,
+  icon: Icon,
+  checked,
+  disabled,
+  onChange,
+}: FeatureToggleProps) {
+  const inputId = `feature-toggle-${label.toLowerCase().replace(/\s+/g, '-')}`
+
+  return (
+    <div className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <Label htmlFor={inputId} className="font-medium cursor-pointer">{label}</Label>
+          <input
+            id={inputId}
+            type="checkbox"
+            checked={checked}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.checked)}
+            className="h-4 w-4"
+          />
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  )
 }
 
 function OrganizationForm({ organization, canManage, update }: OrganizationFormProps) {
@@ -158,6 +200,108 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
   )
 }
 
+interface FeaturesCardProps {
+  organization: Organization
+  locations: { id: string; name: string }[] | undefined
+  canManage: boolean
+  update: ReturnType<typeof useUpdateOrganization>
+}
+
+function FeaturesCard({ organization, locations, canManage, update }: FeaturesCardProps) {
+  const [hasCashierEnabled, setHasCashierEnabled] = useState(organization.hasCashierEnabled)
+  const [hasStorefrontEnabled, setHasStorefrontEnabled] = useState(organization.hasStorefrontEnabled)
+  const [hasApiEnabled, setHasApiEnabled] = useState(organization.hasApiEnabled)
+  const [storefrontLocationId, setStorefrontLocationId] = useState(
+    organization.storefrontLocationId ?? ''
+  )
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setFormError(null)
+    if (hasStorefrontEnabled && !storefrontLocationId) {
+      setFormError('Sélectionnez un emplacement pour le store front.')
+      return
+    }
+    update.mutate(
+      {
+        name: organization.name,
+        slug: organization.slug,
+        currency: organization.currency,
+        timezone: organization.timezone,
+        hasCashierEnabled,
+        hasStorefrontEnabled,
+        hasApiEnabled,
+        storefrontLocationId: hasStorefrontEnabled ? storefrontLocationId : null,
+      },
+      {
+        onError: (err) => setFormError(err.message),
+      }
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {formError && <p className="text-destructive">{formError}</p>}
+
+      <div className="space-y-3">
+        <FeatureToggle
+          label="Caisse"
+          description="Permet d'ouvrir des sessions de caisse et d'enregistrer des ventes par emplacement."
+          icon={ShoppingCart}
+          checked={hasCashierEnabled}
+          disabled={!canManage}
+          onChange={setHasCashierEnabled}
+        />
+        <FeatureToggle
+          label="Store front"
+          description="Active une boutique publique accessible via l'identifiant de l'organisation."
+          icon={Store}
+          checked={hasStorefrontEnabled}
+          disabled={!canManage}
+          onChange={setHasStorefrontEnabled}
+        />
+        <FeatureToggle
+          label="API publique"
+          description="Autorise la création de clés API pour connecter une boutique externe."
+          icon={Plug}
+          checked={hasApiEnabled}
+          disabled={!canManage}
+          onChange={setHasApiEnabled}
+        />
+      </div>
+
+      {hasStorefrontEnabled && (
+        <div className="space-y-2">
+          <Label htmlFor="storefront-location">Emplacement du store front</Label>
+          <Select
+            id="storefront-location"
+            value={storefrontLocationId}
+            onChange={(e) => setStorefrontLocationId(e.target.value)}
+            disabled={!canManage}
+          >
+            <option value="">Sélectionner un emplacement</option>
+            {locations?.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            URL publique : <code>{window.location.origin}/store/{organization.slug}</code>
+          </p>
+        </div>
+      )}
+
+      {canManage && (
+        <Button type="submit" disabled={update.isPending}>
+          {update.isPending ? 'Enregistrement…' : 'Enregistrer les fonctionnalités'}
+        </Button>
+      )}
+    </form>
+  )
+}
+
 function LocationsList() {
   const { data: locations, isLoading, error } = useLocations()
   const setDefault = useSetDefaultLocation()
@@ -197,6 +341,7 @@ function LocationsList() {
 export default function OrganizationPage() {
   const { session, hasRole } = useAuth()
   const { data: organization, isLoading, error } = useOrganization()
+  const { data: locations } = useLocations()
   const update = useUpdateOrganization()
 
   const canManage = hasRole(['super_admin', 'admin'])
@@ -235,6 +380,32 @@ export default function OrganizationPage() {
           <OrganizationForm
             key={formKey}
             organization={displayOrganization}
+            canManage={canManage}
+            update={update}
+          />
+        ) : null}
+      </div>
+
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Store className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-semibold">Fonctionnalités</h2>
+            <p className="text-sm text-muted-foreground">
+              Activez la caisse, le store front et l'API publique pour votre organisation.
+            </p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="text-muted-foreground">Chargement…</p>
+        ) : displayOrganization ? (
+          <FeaturesCard
+            key={`${formKey}-features`}
+            organization={displayOrganization}
+            locations={locations}
             canManage={canManage}
             update={update}
           />

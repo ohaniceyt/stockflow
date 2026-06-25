@@ -50,6 +50,7 @@ const BackOfficeUserDetailPage = lazy(
 const BackOfficeAuditLogsPage = lazy(
   () => import('@/features/back-office/pages/BackOfficeAuditLogsPage')
 )
+const StorefrontPage = lazy(() => import('@/features/storefront/pages/StorefrontPage'))
 const RequirePlatformAdmin = lazy(() =>
   import('@/features/back-office/components/RequirePlatformAdmin').then((mod) => ({
     default: mod.RequirePlatformAdmin,
@@ -196,6 +197,8 @@ function App() {
             <Route path="/back-office/users/:userId" element={<BackOfficeUserDetailPage />} />
             <Route path="/back-office/audit-logs" element={<BackOfficeAuditLogsPage />} />
           </Route>
+
+          <Route path="/store/:orgSlug" element={<StorefrontPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
