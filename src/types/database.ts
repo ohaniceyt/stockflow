@@ -317,6 +317,7 @@ export interface Database {
     Functions: {
       record_movement: {
         Args: {
+          p_org_id: string
           p_product_id: string
           p_location_id: string
           p_target_location_id: string | null
@@ -324,6 +325,8 @@ export interface Database {
           p_quantity: number
           p_reason: string | null
           p_contact_id: string | null
+          p_unit_price: number | null
+          p_cashier_session_id: string | null
         }
         Returns: string
       }

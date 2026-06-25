@@ -35,6 +35,11 @@ WHERE m.product_id = p.id
   AND m.org_id IS NULL;
 
 -- 3. Canonical record_movement: 10 args, org_id explicit or inferred.
+-- Drop the JSONB-returning variant from migration 33 so we can recreate it
+-- with UUID return type. Other signatures are dropped at the end of this
+-- migration.
+DROP FUNCTION IF EXISTS public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID);
+
 CREATE OR REPLACE FUNCTION record_movement(
   p_org_id UUID,
   p_product_id UUID,
