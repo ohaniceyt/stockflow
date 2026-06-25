@@ -148,8 +148,11 @@ export default function ProductsPage() {
 
   const handleCreateCategory = async (name: string) => {
     const created = await createCategory.mutateAsync(name)
+    // Refetch in the background so the product form can update its selected
+    // category immediately and the submit button is not re-enabled before
+    // onChange(created.id) has propagated.
     if (orgId) {
-      await queryClient.refetchQueries({ queryKey: [CATEGORIES_QUERY_KEY, orgId], exact: true })
+      void queryClient.refetchQueries({ queryKey: [CATEGORIES_QUERY_KEY, orgId], exact: true })
     }
     setIsCategoryDialogOpen(false)
     return created.id
