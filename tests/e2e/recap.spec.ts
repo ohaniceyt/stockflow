@@ -16,7 +16,9 @@ test('recap page loads with default period and stat cards', async ({ page }) => 
 
   await expect(page.getByText('Entrées').first()).toBeVisible()
   await expect(page.getByText('Sorties').first()).toBeVisible()
-  await expect(page.getByText('Marge générée').first()).toBeVisible()
+  await expect(page.getByText('Marge prévue').first()).toBeVisible()
+  await expect(page.getByText('CA réel').first()).toBeVisible()
+  await expect(page.getByText('Bénéfice réalisé').first()).toBeVisible()
 
   await expect(page.getByText('Flux entrées / sorties')).toBeVisible()
 })
