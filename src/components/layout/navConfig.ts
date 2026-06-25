@@ -12,6 +12,7 @@ import {
   Truck,
   UserCheck,
   Settings,
+  Store,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -50,6 +51,13 @@ export const navItems: NavItem[] = [
     label: 'Récap',
     icon: FileText,
     roles: ['super_admin', 'admin', 'operator', 'reader'],
+    primary: true,
+  },
+  {
+    to: '/cashier',
+    label: 'Caisse',
+    icon: Store,
+    roles: ['super_admin', 'admin', 'operator'],
     primary: true,
   },
   {

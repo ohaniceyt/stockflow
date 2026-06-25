@@ -26,6 +26,7 @@ const LocationsPage = lazy(() => import('@/features/locations/pages/LocationsPag
 const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage'))
 const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
+const CashierPage = lazy(() => import('@/features/cashier/pages/CashierPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
 const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
 const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
@@ -157,6 +158,14 @@ function App() {
               }
             />
             <Route path="/recap" element={<RecapPage />} />
+            <Route
+              path="/cashier"
+              element={
+                <RequireAuth roles={['super_admin', 'admin', 'operator']}>
+                  <CashierPage />
+                </RequireAuth>
+              }
+            />
             <Route path="/settings/profile" element={<ProfilePage />} />
             <Route
               path="/settings/organization"
