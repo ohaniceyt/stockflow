@@ -482,15 +482,6 @@ export default function CashierPage() {
                     <p className="text-sm text-muted-foreground">
                       {formatDateTime(openSession.openedAt)}
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowHistory((prev) => !prev)}
-                    >
-                      <History className="mr-2 h-4 w-4" />
-                      Historique
-                    </Button>
                   </div>
                 </div>
               </div>
