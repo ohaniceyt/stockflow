@@ -13,6 +13,7 @@ import {
   Lock,
   AlertCircle,
 } from 'lucide-react'
+import { Html5Qrcode } from 'html5-qrcode'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -89,9 +90,8 @@ export default function CashierPage() {
   const [closingBalanceInput, setClosingBalanceInput] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scannerError, setScannerError] = useState<string | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const barcodeDetectorRef = useRef<BarcodeDetector | null>(null)
-  const scanFrameRef = useRef<number | null>(null)
+  const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
+  const scannerRef = useRef<Html5Qrcode | null>(null)
 
   const defaultLocation = locations?.find((l) => l.isDefault)
   const activeLocationId =
@@ -290,62 +290,46 @@ export default function CashierPage() {
   const startScanner = async () => {
     setScannerOpen(true)
     setScannerError(null)
-    if (!('BarcodeDetector' in window)) {
-      setScannerError('Scanner non supporté par ce navigateur. Utilisez la recherche manuelle.')
-      return
-    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-      barcodeDetectorRef.current = new window.BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'qr_code'],
-      })
-      void runScanLoop()
+      scannerRef.current = new Html5Qrcode(scannerContainerId)
+      await scannerRef.current.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+        },
+        (decodedText) => {
+          const matched = availableProducts.find((p) => p.barcode === decodedText)
+          if (matched) {
+            addToCart(matched)
+            void stopScanner()
+          }
+        },
+        () => {
+          // ignore scan errors / no code found
+        }
+      )
     } catch {
-      setScannerError('Impossible d accéder à la caméra.')
+      setScannerError('Impossible d accéder à la caméra. Vérifiez les permissions.')
     }
   }
 
-  const stopScanner = () => {
-    if (scanFrameRef.current) {
-      cancelAnimationFrame(scanFrameRef.current)
-      scanFrameRef.current = null
+  const stopScanner = async () => {
+    try {
+      if (scannerRef.current?.isScanning) {
+        await scannerRef.current.stop()
+      }
+    } catch {
+      // ignore cleanup errors
     }
-    const stream = videoRef.current?.srcObject as MediaStream | null
-    stream?.getTracks().forEach((track) => track.stop())
-    if (videoRef.current) videoRef.current.srcObject = null
-    barcodeDetectorRef.current = null
+    scannerRef.current = null
     setScannerOpen(false)
     setScannerError(null)
   }
 
-  const runScanLoop = async () => {
-    if (!videoRef.current || !barcodeDetectorRef.current) return
-    try {
-      const barcodes = await barcodeDetectorRef.current.detect(videoRef.current)
-      if (barcodes.length > 0) {
-        const code = barcodes[0].rawValue
-        const matched = availableProducts.find((p) => p.barcode === code)
-        if (matched) {
-          addToCart(matched)
-          stopScanner()
-          return
-        }
-      }
-    } catch {
-      // ignore frame errors
-    }
-    scanFrameRef.current = requestAnimationFrame(runScanLoop)
-  }
-
   useEffect(() => {
     return () => {
-      stopScanner()
+      void stopScanner()
     }
   }, [])
 
@@ -473,7 +457,7 @@ export default function CashierPage() {
                 <p className="text-sm">{scannerError}</p>
               </div>
             ) : (
-              <video ref={videoRef} className="w-full rounded" muted playsInline />
+              <div id={scannerContainerId} className="w-full rounded" />
             )}
           </div>
         )}
