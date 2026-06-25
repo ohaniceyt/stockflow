@@ -5,6 +5,7 @@ const tabs = [
   { to: '/settings/profile', label: 'Profil' },
   { to: '/settings/organization', label: 'Organisation' },
   { to: '/settings/team', label: 'Équipe' },
+  { to: '/settings/api', label: 'API' },
   { to: '/settings/subscription', label: 'Abonnement' },
 ]
 

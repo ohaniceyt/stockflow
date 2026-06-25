@@ -26,6 +26,26 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['organizations']['Insert']>
         Relationships: []
       }
+      organization_api_keys: {
+        Row: {
+          id: string
+          org_id: string
+          name: string
+          key_hash: string
+          scopes: string[]
+          allowed_location_ids: string[] | null
+          last_used_at: string | null
+          created_at: string
+          revoked_at: string | null
+          created_by: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['organization_api_keys']['Row'],
+          'id' | 'created_at' | 'last_used_at'
+        >
+        Update: Partial<Database['public']['Tables']['organization_api_keys']['Insert']>
+        Relationships: []
+      }
       plans: {
         Row: {
           id: string

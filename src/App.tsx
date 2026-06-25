@@ -30,6 +30,7 @@ const CashierPage = lazy(() => import('@/features/cashier/pages/CashierPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
 const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
 const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
+const ApiKeysPage = lazy(() => import('@/features/api/pages/ApiKeysPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
@@ -173,6 +174,14 @@ function App() {
               element={
                 <RequireAuth roles={['super_admin', 'admin']}>
                   <OrganizationSettingsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings/api"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <ApiKeysPage />
                 </RequireAuth>
               }
             />
