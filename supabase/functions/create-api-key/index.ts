@@ -119,7 +119,9 @@ Deno.serve(async (req: Request) => {
         allowed_location_ids: payload.allowed_location_ids ?? null,
         created_by: claims.sub,
       })
-      .select('id, org_id, name, scopes, allowed_location_ids, last_used_at, created_at, revoked_at')
+      .select(
+        'id, org_id, name, scopes, allowed_location_ids, last_used_at, created_at, revoked_at'
+      )
       .single()
 
     if (insertError || !inserted) {

@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import { createApiKey, listApiKeys, revokeApiKey, type CreateApiKeyInput } from '../services/apiKeyService'
+import {
+  createApiKey,
+  listApiKeys,
+  revokeApiKey,
+  type CreateApiKeyInput,
+} from '../services/apiKeyService'
 
 const API_KEYS_QUERY_KEY = 'api-keys'
 

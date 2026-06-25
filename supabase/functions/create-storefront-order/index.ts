@@ -130,9 +130,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const stockMap = new Map(stock?.map((s) => [s.product_id, s.quantity]))
-    const insufficient = payload.items.find(
-      (i) => (stockMap.get(i.product_id) ?? 0) < i.quantity
-    )
+    const insufficient = payload.items.find((i) => (stockMap.get(i.product_id) ?? 0) < i.quantity)
     if (insufficient) {
       return new Response(JSON.stringify({ error: 'Stock insuffisant' }), {
         status: 400,
@@ -166,10 +164,13 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (contactError || !newContact) {
-        return new Response(JSON.stringify({ error: contactError?.message ?? 'Contact creation failed' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        return new Response(
+          JSON.stringify({ error: contactError?.message ?? 'Contact creation failed' }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
       }
       contactId = newContact.id
     }
@@ -181,19 +182,18 @@ Deno.serve(async (req: Request) => {
       const product = productMap.get(item.product_id)!
       const unitPrice = item.unit_price || product.selling_price || 0
 
-      const { data: movement, error: movementError } = await adminClient
-        .rpc('record_movement', {
-          p_org_id: orgId,
-          p_product_id: item.product_id,
-          p_location_id: locationId,
-          p_target_location_id: null,
-          p_type: 'OUT',
-          p_quantity: item.quantity,
-          p_reason: `Commande ${orderNumber}`,
-          p_contact_id: contactId,
-          p_unit_price: unitPrice,
-          p_cashier_session_id: null,
-        })
+      const { data: movement, error: movementError } = await adminClient.rpc('record_movement', {
+        p_org_id: orgId,
+        p_product_id: item.product_id,
+        p_location_id: locationId,
+        p_target_location_id: null,
+        p_type: 'OUT',
+        p_quantity: item.quantity,
+        p_reason: `Commande ${orderNumber}`,
+        p_contact_id: contactId,
+        p_unit_price: unitPrice,
+        p_cashier_session_id: null,
+      })
 
       if (movementError) {
         return new Response(JSON.stringify({ error: movementError.message }), {

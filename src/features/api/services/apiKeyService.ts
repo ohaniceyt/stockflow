@@ -80,10 +80,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
   const updateData: Database['public']['Tables']['organization_api_keys']['Update'] = {
     revoked_at: new Date().toISOString(),
   }
-  const { error } = await supabase
-    .from('organization_api_keys')
-    .update(updateData)
-    .eq('id', keyId)
+  const { error } = await supabase.from('organization_api_keys').update(updateData).eq('id', keyId)
 
   if (error) throw new Error(error.message)
 }

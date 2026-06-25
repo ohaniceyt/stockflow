@@ -101,7 +101,12 @@ export default function ApiKeysPage() {
               <code className="flex-1 rounded bg-background px-2 py-1 text-sm break-all">
                 {createdKey}
               </code>
-              <Button type="button" variant="outline" size="icon" onClick={() => copyToClipboard(createdKey)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => copyToClipboard(createdKey)}
+              >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
@@ -194,15 +199,10 @@ export default function ApiKeysPage() {
         ) : (
           <ul className="space-y-3">
             {apiKeys.map((key) => (
-              <li
-                key={key.id}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
+              <li key={key.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">{key.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Scopes: {key.scopes.join(', ')}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Scopes: {key.scopes.join(', ')}</p>
                   <p className="text-xs text-muted-foreground">
                     Dernière utilisation: {formatDate(key.lastUsedAt)}
                   </p>

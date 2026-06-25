@@ -121,7 +121,9 @@ Deno.serve(async (req: Request) => {
     if (segments[0] === 'products' && req.method === 'GET') {
       const { data: products, error } = await adminClient
         .from('products')
-        .select('id, name, category, unit, threshold, selling_price, supplier, description, barcode, is_active, created_at, updated_at')
+        .select(
+          'id, name, category, unit, threshold, selling_price, supplier, description, barcode, is_active, created_at, updated_at'
+        )
         .eq('org_id', keyRecord.org_id)
         .eq('is_active', true)
 
@@ -184,10 +186,7 @@ Deno.serve(async (req: Request) => {
         return errorResponse('No location_id provided and no storefront location configured', 400)
       }
 
-      if (
-        keyRecord.allowed_location_ids &&
-        !keyRecord.allowed_location_ids.includes(locationId)
-      ) {
+      if (keyRecord.allowed_location_ids && !keyRecord.allowed_location_ids.includes(locationId)) {
         return errorResponse('Location not allowed for this API key', 403)
       }
 

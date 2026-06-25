@@ -34,9 +34,7 @@ export async function getStorefrontBySlug(
 ): Promise<{ organization: StorefrontOrganization | null; products: StorefrontProduct[] }> {
   const { data: orgData, error: orgError } = await supabase
     .from('organizations')
-    .select(
-      'id, name, slug, currency, timezone, has_storefront_enabled, storefront_location_id'
-    )
+    .select('id, name, slug, currency, timezone, has_storefront_enabled, storefront_location_id')
     .eq('slug', orgSlug)
     .eq('has_storefront_enabled', true)
     .single()
@@ -54,10 +52,15 @@ export async function getStorefrontBySlug(
     await Promise.all([
       supabase
         .from('products')
-        .select('id, org_id, name, category, unit, threshold, cost_price, selling_price, supplier, description, barcode, is_active, created_at, updated_at')
+        .select(
+          'id, org_id, name, category, unit, threshold, cost_price, selling_price, supplier, description, barcode, is_active, created_at, updated_at'
+        )
         .eq('org_id', orgData.id)
         .eq('is_active', true),
-      supabase.from('stock_levels').select('product_id, location_id, quantity').eq('location_id', locationId),
+      supabase
+        .from('stock_levels')
+        .select('product_id, location_id, quantity')
+        .eq('location_id', locationId),
     ])
 
   if (productsError) throw new Error(productsError.message)

@@ -70,7 +70,9 @@ function FeatureToggle({
       </div>
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <Label htmlFor={inputId} className="font-medium cursor-pointer">{label}</Label>
+          <Label htmlFor={inputId} className="font-medium cursor-pointer">
+            {label}
+          </Label>
           <input
             id={inputId}
             type="checkbox"
@@ -209,7 +211,9 @@ interface FeaturesCardProps {
 
 function FeaturesCard({ organization, locations, canManage, update }: FeaturesCardProps) {
   const [hasCashierEnabled, setHasCashierEnabled] = useState(organization.hasCashierEnabled)
-  const [hasStorefrontEnabled, setHasStorefrontEnabled] = useState(organization.hasStorefrontEnabled)
+  const [hasStorefrontEnabled, setHasStorefrontEnabled] = useState(
+    organization.hasStorefrontEnabled
+  )
   const [hasApiEnabled, setHasApiEnabled] = useState(organization.hasApiEnabled)
   const [storefrontLocationId, setStorefrontLocationId] = useState(
     organization.storefrontLocationId ?? ''
@@ -288,7 +292,10 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
             ))}
           </Select>
           <p className="text-xs text-muted-foreground">
-            URL publique : <code>{window.location.origin}/store/{organization.slug}</code>
+            URL publique :{' '}
+            <code>
+              {window.location.origin}/store/{organization.slug}
+            </code>
           </p>
         </div>
       )}

@@ -40,7 +40,9 @@ export default function StorefrontPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [address, setAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [orderResult, setOrderResult] = useState<{ orderId: string; orderNumber: string } | null>(null)
+  const [orderResult, setOrderResult] = useState<{ orderId: string; orderNumber: string } | null>(
+    null
+  )
 
   const {
     data: storefront,
@@ -225,7 +227,8 @@ export default function StorefrontPage() {
                     <div>
                       <p className="font-medium">{product.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatCurrency(product.sellingPrice, organization.currency)} / {product.unit}
+                        {formatCurrency(product.sellingPrice, organization.currency)} /{' '}
+                        {product.unit}
                       </p>
                       <p className="text-xs text-muted-foreground">Stock: {product.available}</p>
                     </div>
@@ -334,10 +337,7 @@ export default function StorefrontPage() {
                 type="button"
                 className="mt-4 w-full"
                 disabled={
-                  cart.length === 0 ||
-                  !customerName.trim() ||
-                  !customerEmail.trim() ||
-                  submitting
+                  cart.length === 0 || !customerName.trim() || !customerEmail.trim() || submitting
                 }
                 onClick={handleSubmit}
               >
