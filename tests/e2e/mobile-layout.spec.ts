@@ -1,31 +1,8 @@
-import { test, expect } from '@playwright/test'
-
-const mockSession = {
-  user: {
-    id: 'test-user-id',
-    orgId: 'test-org-id',
-    name: 'Test User',
-    email: 'test@example.com',
-    emailVerified: true,
-    role: 'admin',
-    isActive: true,
-    lastLoginAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  accessToken: 'test-access-token',
-  refreshToken: 'test-refresh-token',
-  expiresAt: Math.floor(Date.now() / 1000) + 3600,
-  forcePinChange: false,
-  onboardingCompleted: true,
-}
+import { test, expect } from './fixtures'
 
 test.skip(({ isMobile }) => !isMobile, 'Mobile layout tests only')
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript((session) => {
-    localStorage.setItem('stockflow-session', JSON.stringify(session))
-  }, mockSession)
   await page.goto('/dashboard')
 })
 

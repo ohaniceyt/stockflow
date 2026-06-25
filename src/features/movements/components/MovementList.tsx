@@ -1,14 +1,23 @@
-import { format } from 'date-fns'
+import { format, isValid, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
+import type { MovementType } from '@/types'
 import type { MovementWithDetails } from '../services/movementService'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
+
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
+
+function formatMovementDate(value: string): string {
+  const date = parseISO(value)
+  if (!isValid(date)) return '—'
+  return format(date, 'dd/MM HH:mm', { locale: fr })
+}
 
 interface MovementListProps {
   movements: MovementWithDetails[]
 }
 
-const typeLabels: Record<string, string> = {
+const typeLabels: Record<MovementType, string> = {
   IN: 'Entrée',
   OUT: 'Sortie',
   TRANSFER: 'Transfert',
@@ -16,7 +25,7 @@ const typeLabels: Record<string, string> = {
   ADJUSTMENT: 'Ajustement',
 }
 
-const typeVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const typeVariants: Record<MovementType, BadgeVariant> = {
   IN: 'default',
   OUT: 'secondary',
   TRANSFER: 'outline',
@@ -29,13 +38,13 @@ export function MovementList({ movements }: MovementListProps) {
     {
       key: 'date',
       header: 'Date',
-      cell: (m) => format(new Date(m.createdAt), 'dd/MM HH:mm', { locale: fr }),
+      cell: (m) => formatMovementDate(m.createdAt),
       className: 'whitespace-nowrap',
     },
     {
       key: 'type',
       header: 'Type',
-      cell: (m) => <Badge variant={typeVariants[m.type]}>{typeLabels[m.type] ?? m.type}</Badge>,
+      cell: (m) => <Badge variant={typeVariants[m.type]}>{typeLabels[m.type]}</Badge>,
     },
     { key: 'product', header: 'Produit', cell: (m) => m.productName ?? '—' },
     {
@@ -100,7 +109,7 @@ export function MovementList({ movements }: MovementListProps) {
       empty={empty}
       mobileCardTitle={(m) => (
         <span className="flex items-center gap-2">
-          <Badge variant={typeVariants[m.type]}>{typeLabels[m.type] ?? m.type}</Badge>
+          <Badge variant={typeVariants[m.type]}>{typeLabels[m.type]}</Badge>
           <span className="font-normal">{m.productName ?? '—'}</span>
         </span>
       )}

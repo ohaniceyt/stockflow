@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import { useProducts } from '@/features/products/hooks/useProducts'
-import { useStock } from '@/features/stock/hooks/useStock'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import { queueOperation } from '@/features/offline/services/queueService'
 import {
@@ -71,15 +69,15 @@ export function useSessionCounts(sessionId: string | null) {
   return useQuery({
     queryKey: ['inventory-counts', sessionId],
     queryFn: async () => {
-      if (!sessionId) throw new Error('Session manquante')
+      if (!sessionId || !orgId) throw new Error('Session manquante')
       try {
-        const data = await fetchSessionCounts(sessionId)
+        const data = await fetchSessionCounts(sessionId, orgId)
         await cacheInventoryCounts(data)
         return data
       } catch (err) {
         if (!online && orgId) {
           const [cached, products] = await Promise.all([
-            getCachedInventoryCounts().then((counts) =>
+            getCachedInventoryCounts(orgId).then((counts) =>
               counts.filter((c) => c.sessionId === sessionId)
             ),
             getCachedProducts(orgId),
@@ -108,16 +106,29 @@ export function useSessionCounts(sessionId: string | null) {
 export function useCreateInventorySession() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
+  const online = useNetworkStatus()
   const orgId = session?.membership.orgId
   const operatorId = session?.user.id
-  const { data: products } = useProducts()
-  const { data: stock } = useStock()
 
   return useMutation({
-    mutationFn: ({ locationId, name }: { locationId: string; name: string }) => {
+    mutationFn: async ({
+      locationId,
+      name,
+    }: {
+      locationId: string
+      name: string
+    }): Promise<void> => {
       if (!orgId || !operatorId) throw new Error('Session invalide')
-      if (!products) throw new Error('Produits non chargés')
-      return createInventorySession(orgId, locationId, name, operatorId, products, stock ?? [])
+      const payload = { orgId, locationId, name, operatorId }
+      if (!online) {
+        await queueOperation({ type: 'INVENTORY_SESSION_CREATE', payload })
+        return
+      }
+      try {
+        await createInventorySession(orgId, locationId, name, operatorId)
+      } catch {
+        await queueOperation({ type: 'INVENTORY_SESSION_CREATE', payload })
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INVENTORY_QUERY_KEY, orgId] })
@@ -128,16 +139,34 @@ export function useCreateInventorySession() {
 export function useUpdateCount(sessionId: string) {
   const queryClient = useQueryClient()
   const online = useNetworkStatus()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
 
   return useMutation({
-    mutationFn: ({ countId, countedQuantity }: { countId: string; countedQuantity: number }) => {
+    mutationFn: async ({
+      countId,
+      countedQuantity,
+    }: {
+      countId: string
+      countedQuantity: number
+    }): Promise<void> => {
+      if (!orgId) throw new Error('Organisation manquante')
+      const payload = { orgId, countId, countedQuantity }
       if (!online) {
-        return queueOperation({
+        await queueOperation({
           type: 'INVENTORY_COUNT_UPDATE',
-          payload: { countId, countedQuantity },
-        }).then(() => undefined)
+          payload,
+        })
+        return
       }
-      return updateCount(countId, countedQuantity)
+      try {
+        await updateCount(countId, countedQuantity)
+      } catch {
+        await queueOperation({
+          type: 'INVENTORY_COUNT_UPDATE',
+          payload,
+        })
+      }
     },
     onMutate: async ({ countId, countedQuantity }) => {
       await queryClient.cancelQueries({ queryKey: ['inventory-counts', sessionId] })
@@ -183,16 +212,24 @@ export function useApplyInventorySession() {
   const online = useNetworkStatus()
 
   return useMutation({
-    mutationFn: (sessionId: string) => {
+    mutationFn: async (sessionId: string): Promise<void> => {
+      if (!orgId) throw new Error('Organisation manquante')
+      const payload = { orgId, sessionId }
       if (!online) {
-        return queueOperation({ type: 'INVENTORY', payload: { sessionId } }).then(() => undefined)
+        await queueOperation({ type: 'INVENTORY', payload })
+        return
       }
-      return applyInventorySession(sessionId)
+      try {
+        await applyInventorySession(sessionId)
+      } catch {
+        await queueOperation({ type: 'INVENTORY', payload })
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, sessionId) => {
       void queryClient.invalidateQueries({ queryKey: [INVENTORY_QUERY_KEY, orgId] })
-      void queryClient.invalidateQueries({ queryKey: ['stock'] })
-      void queryClient.invalidateQueries({ queryKey: ['movements'] })
+      void queryClient.invalidateQueries({ queryKey: ['inventory-counts', sessionId] })
+      void queryClient.invalidateQueries({ queryKey: ['stock', orgId] })
+      void queryClient.invalidateQueries({ queryKey: ['movements', orgId] })
     },
   })
 }

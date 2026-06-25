@@ -1,23 +1,31 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchStock, recordMovement } from '../services/stockService'
-import { useNetworkStatus } from '@/features/offline/hooks/useSync'
-import { queueOperation } from '@/features/offline/services/queueService'
-import { getCachedStockLevels, cacheStockLevels } from '@/features/offline/services/cacheService'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/features/auth/context/AuthContext'
+import { fetchStock } from '../services/stockService'
+import {
+  getCachedStockLevels,
+  cacheStockLevels,
+  getCachedProducts,
+  getCachedLocations,
+} from '@/features/offline/services/cacheService'
+import type { Product, Location } from '@/types'
 import type { StockItem } from '../services/stockService'
 
 const STOCK_QUERY_KEY = 'stock'
 
 export function useStock() {
-  const online = useNetworkStatus()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
 
   return useQuery({
-    queryKey: [STOCK_QUERY_KEY],
+    queryKey: [STOCK_QUERY_KEY, orgId],
     queryFn: async () => {
+      if (!orgId) throw new Error('Organisation manquante')
       try {
-        const data = await fetchStock()
+        const data = await fetchStock(orgId)
         await cacheStockLevels(
           data.map((item) => ({
             id: item.id,
+            orgId,
             productId: item.productId,
             locationId: item.locationId,
             quantity: item.quantity,
@@ -26,94 +34,55 @@ export function useStock() {
         )
         return data
       } catch (err) {
-        if (!online) {
-          const cached = await getCachedStockLevels()
-          if (cached.length > 0) return cached.map(mapCachedToStockItem)
+        // Fall back to the local cache on any fetch failure, not only when explicitly offline.
+        const [cachedLevels, products, locations] = await Promise.all([
+          getCachedStockLevels(orgId),
+          getCachedProducts(orgId),
+          getCachedLocations(orgId),
+        ])
+        if (cachedLevels.length > 0) {
+          return mapCachedToStockItems(cachedLevels, products, locations)
         }
         throw err
       }
     },
+    enabled: Boolean(orgId),
     staleTime: 30 * 1000,
   })
 }
 
-export function useRecordMovement() {
-  const queryClient = useQueryClient()
-  const online = useNetworkStatus()
+function mapCachedToStockItems(
+  levels: {
+    id: string
+    orgId: string
+    productId: string
+    locationId: string
+    quantity: number
+    updatedAt: string
+  }[],
+  products: Product[],
+  locations: Location[]
+): StockItem[] {
+  const productMap = new Map(products.map((p) => [p.id, p]))
+  const locationMap = new Map(locations.map((l) => [l.id, l]))
 
-  return useMutation({
-    mutationFn: (input: Parameters<typeof recordMovement>[0]) => {
-      if (!online) {
-        return queueOperation({
-          type: 'MOVEMENT',
-          payload: input,
-        }).then(() => undefined)
-      }
-      return recordMovement(input)
-    },
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: [STOCK_QUERY_KEY] })
-      const previousStock = queryClient.getQueryData<StockItem[]>([STOCK_QUERY_KEY])
-
-      queryClient.setQueryData([STOCK_QUERY_KEY], (old: StockItem[] | undefined) => {
-        if (!old) return old
-        return old.map((item) => {
-          const isSource =
-            item.productId === input.productId && item.locationId === input.locationId
-          const isTarget =
-            input.type === 'TRANSFER' &&
-            input.targetLocationId &&
-            item.productId === input.productId &&
-            item.locationId === input.targetLocationId
-
-          if (!isSource && !isTarget) return item
-
-          let delta = 0
-          if (isSource) {
-            delta = input.type === 'IN' ? input.quantity : -input.quantity
-          }
-          if (isTarget) {
-            delta = input.quantity
-          }
-
-          return { ...item, quantity: Math.max(0, item.quantity + delta) }
-        })
-      })
-
-      return { previousStock }
-    },
-    onError: (_err, _input, context) => {
-      if (context?.previousStock) {
-        queryClient.setQueryData([STOCK_QUERY_KEY], context.previousStock)
-      }
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [STOCK_QUERY_KEY] })
-      void queryClient.invalidateQueries({ queryKey: ['movements'] })
-    },
+  return levels.map((level) => {
+    const product = productMap.get(level.productId)
+    const location = locationMap.get(level.locationId)
+    return {
+      id: level.id,
+      productId: level.productId,
+      productName: product?.name ?? 'Produit hors ligne',
+      productUnit: product?.unit ?? 'unité',
+      category: product?.category ?? null,
+      barcode: product?.barcode ?? null,
+      threshold: product?.threshold ?? 0,
+      costPrice: product?.costPrice ?? 0,
+      sellingPrice: product?.sellingPrice ?? 0,
+      locationId: level.locationId,
+      locationName: location?.name ?? 'Emplacement hors ligne',
+      quantity: level.quantity,
+      updatedAt: level.updatedAt,
+    }
   })
-}
-
-function mapCachedToStockItem(level: {
-  id: string
-  productId: string
-  locationId: string
-  quantity: number
-  updatedAt: string
-}): StockItem {
-  return {
-    id: level.id,
-    productId: level.productId,
-    productName: 'Produit hors ligne',
-    productUnit: 'unité',
-    category: null,
-    barcode: null,
-    threshold: 0,
-    costPrice: 0,
-    sellingPrice: 0,
-    locationId: level.locationId,
-    locationName: 'Emplacement hors ligne',
-    quantity: level.quantity,
-    updatedAt: level.updatedAt,
-  }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,7 +19,9 @@ interface SessionDetailDialogProps {
   onOpenChange: (open: boolean) => void
   onUpdateCount: (countId: string, countedQuantity: number) => void
   onApply: () => void
+  canApply?: boolean
   isLoading?: boolean
+  isCountPending?: boolean
   error?: Error | null
 }
 
@@ -36,20 +38,31 @@ export function SessionDetailDialog({
   onOpenChange,
   onUpdateCount,
   onApply,
+  canApply,
   isLoading,
+  isCountPending,
   error,
 }: SessionDetailDialogProps) {
   const [editingCountId, setEditingCountId] = useState<string | null>(null)
-  const [draftQuantity, setDraftQuantity] = useState(0)
+  const [draftQuantity, setDraftQuantity] = useState('')
+  const wasCountPending = useRef(false)
+
+  useEffect(() => {
+    if (wasCountPending.current && !isCountPending) {
+      setEditingCountId(null)
+    }
+    wasCountPending.current = isCountPending ?? false
+  }, [isCountPending])
 
   const startEdit = (count: InventoryCountWithDetails) => {
     setEditingCountId(count.id)
-    setDraftQuantity(count.countedQuantity)
+    setDraftQuantity(String(count.countedQuantity))
   }
 
   const saveEdit = (countId: string) => {
-    onUpdateCount(countId, draftQuantity)
-    setEditingCountId(null)
+    const parsed = Number(draftQuantity)
+    if (!Number.isFinite(parsed) || parsed < 0) return
+    onUpdateCount(countId, parsed)
   }
 
   if (!session) return null
@@ -107,7 +120,7 @@ export function SessionDetailDialog({
             min={0}
             className="w-24"
             value={draftQuantity}
-            onChange={(e) => setDraftQuantity(Math.max(0, Number(e.target.value)))}
+            onChange={(e) => setDraftQuantity(e.target.value)}
           />
         ) : (
           count.countedQuantity.toLocaleString()
@@ -169,7 +182,7 @@ export function SessionDetailDialog({
           />
         </div>
 
-        {session.status === 'pending' && (
+        {session.status === 'pending' && canApply && (
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Fermer

@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { contactSchema, type ContactFormData } from '../schemas/contactSchema'
 import type { Contact, ContactType } from '@/types'
-import type { ContactFormData } from '../schemas/contactSchema'
 
 interface ContactFormProps {
   fixedType?: ContactType
@@ -12,6 +12,7 @@ interface ContactFormProps {
   onSubmit: (data: ContactFormData) => void
   onCancel: () => void
   isLoading?: boolean
+  error?: Error | null
 }
 
 export function ContactForm({
@@ -20,6 +21,7 @@ export function ContactForm({
   onSubmit,
   onCancel,
   isLoading,
+  error,
 }: ContactFormProps) {
   const [type, setType] = useState<ContactType>(fixedType ?? defaultValues?.type ?? 'SUPPLIER')
   const [name, setName] = useState(defaultValues?.name ?? '')
@@ -29,19 +31,12 @@ export function ContactForm({
   const [taxId, setTaxId] = useState(defaultValues?.taxId ?? '')
   const [notes, setNotes] = useState(defaultValues?.notes ?? '')
   const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true)
-  const [errors, setErrors] = useState<Partial<Record<'name', string>>>({})
-
-  const validate = () => {
-    const next: Partial<Record<'name', string>> = {}
-    if (!name.trim()) next.name = 'Le nom est requis'
-    setErrors(next)
-    return Object.keys(next).length === 0
-  }
+  const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({})
+  const disabled = Boolean(isLoading)
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!validate()) return
-    onSubmit({
+    const result = contactSchema.safeParse({
       type,
       name: name.trim(),
       email: email.trim() || null,
@@ -51,6 +46,17 @@ export function ContactForm({
       notes: notes.trim() || null,
       isActive,
     })
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {}
+      result.error.errors.forEach((err) => {
+        const key = err.path[0] as keyof ContactFormData
+        fieldErrors[key] ??= err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
+    setErrors({})
+    onSubmit(result.data)
   }
 
   return (
@@ -62,6 +68,7 @@ export function ContactForm({
             id="contact-type"
             value={type}
             onChange={(e) => setType(e.target.value as ContactType)}
+            disabled={disabled}
           >
             <option value="SUPPLIER">Fournisseur</option>
             <option value="CUSTOMER">Client</option>
@@ -76,6 +83,7 @@ export function ContactForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={type === 'SUPPLIER' ? 'Nom du fournisseur' : 'Nom du client'}
+          disabled={disabled}
         />
         {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
@@ -89,7 +97,9 @@ export function ContactForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="contact@exemple.com"
+            disabled={disabled}
           />
+          {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="contact-phone">Téléphone</Label>
@@ -98,7 +108,9 @@ export function ContactForm({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+225 XX XX XX XX"
+            disabled={disabled}
           />
+          {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
         </div>
       </div>
 
@@ -109,7 +121,9 @@ export function ContactForm({
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Abidjan, Côte d'Ivoire"
+          disabled={disabled}
         />
+        {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
       </div>
 
       <div className="space-y-2">
@@ -119,7 +133,9 @@ export function ContactForm({
           value={taxId}
           onChange={(e) => setTaxId(e.target.value)}
           placeholder="CI123456789"
+          disabled={disabled}
         />
+        {errors.taxId && <p className="text-xs text-destructive">{errors.taxId}</p>}
       </div>
 
       <div className="space-y-2">
@@ -129,7 +145,9 @@ export function ContactForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Informations complémentaires"
+          disabled={disabled}
         />
+        {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
       </div>
 
       <div className="space-y-2">
@@ -138,17 +156,20 @@ export function ContactForm({
           id="contact-status"
           value={isActive ? 'active' : 'inactive'}
           onChange={(e) => setIsActive(e.target.value === 'active')}
+          disabled={disabled}
         >
           <option value="active">Actif</option>
           <option value="inactive">Inactif</option>
         </Select>
       </div>
 
+      {error && <p className="text-sm text-destructive">{error.message}</p>}
+
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={disabled}>
           Annuler
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={disabled}>
           {isLoading ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </div>

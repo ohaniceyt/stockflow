@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import { cacheProducts, getCachedProducts } from '@/features/offline/services/cacheService'
@@ -7,6 +8,17 @@ import { createProduct, fetchProducts, updateProduct } from '../services/product
 import type { Product } from '@/types'
 
 const PRODUCTS_QUERY_KEY = 'products'
+
+export type CreateProductInput = Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>
+
+type CreateProductResult =
+  | (Product & { tempId: string; queued: false })
+  | { tempId: string; queued: true; error?: string }
+
+interface CreateProductContext {
+  previous: Product[] | undefined
+  tempId: string
+}
 
 export function useProducts() {
   const { session } = useAuth()
@@ -39,24 +51,40 @@ export function useCreateProduct() {
   const { session } = useAuth()
   const orgId = session?.membership.orgId
   const online = useNetworkStatus()
+  // Share the generated tempId between onMutate and mutationFn without a
+  // mutable instance ref, so concurrent creates keep distinct optimistic IDs.
+  const tempIdMap = useRef(new WeakMap<CreateProductInput, string>())
 
-  return useMutation({
-    mutationFn: (input: Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>) => {
+  return useMutation<CreateProductResult, Error, CreateProductInput, CreateProductContext>({
+    mutationFn: (input) => {
       if (!orgId) throw new Error('Organisation manquante')
+      const tempId = tempIdMap.current.get(input) ?? `pending-${crypto.randomUUID()}`
+      const inputWithTempId = { ...input, tempId }
       if (!online) {
-        return queueOperation({ type: 'PRODUCT_CREATE', payload: { orgId, input } }).then(
-          () => undefined
-        )
+        return queueOperation({
+          type: 'PRODUCT_CREATE',
+          payload: { orgId, input: inputWithTempId },
+        }).then(() => ({ tempId, queued: true as const }))
       }
-      return createProduct(orgId, input)
+      return createProduct(orgId, inputWithTempId)
+        .then((created) => ({ ...created, tempId, queued: false as const }))
+        .catch((err: unknown) => {
+          // Fall back to queueing if the online request failed (transient or recoverable).
+          const message = err instanceof Error ? err.message : 'Erreur réseau'
+          return queueOperation({
+            type: 'PRODUCT_CREATE',
+            payload: { orgId, input: inputWithTempId },
+          }).then(() => ({ tempId, queued: true as const, error: message }))
+        })
     },
     onMutate: async (input) => {
-      if (online) return
       await queryClient.cancelQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })
       const previous = queryClient.getQueryData<Product[]>([PRODUCTS_QUERY_KEY, orgId])
 
+      const tempId = `pending-${crypto.randomUUID()}`
+      tempIdMap.current.set(input, tempId)
       const optimistic: Product = {
-        id: `pending-${crypto.randomUUID()}`,
+        id: tempId,
         orgId: orgId ?? '',
         name: input.name,
         category: input.category ?? null,
@@ -76,7 +104,7 @@ export function useCreateProduct() {
         return [...(old ?? []), optimistic]
       })
 
-      return { previous }
+      return { previous, tempId }
     },
     onError: (_err, _input, context) => {
       if (context?.previous) {
@@ -96,16 +124,20 @@ export function useUpdateProduct() {
   const orgId = session?.membership.orgId
 
   return useMutation({
-    mutationFn: ({
-      id,
-      ...input
-    }: { id: string } & Partial<Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) => {
+    mutationFn: ({ id, ...input }: { id: string } & Partial<CreateProductInput>) => {
+      if (!orgId) throw new Error('Organisation manquante')
+      const payload = { orgId, id, input }
       if (!online) {
-        return queueOperation({ type: 'PRODUCT_UPDATE', payload: { id, input } }).then(
-          () => undefined
-        )
+        return queueOperation({ type: 'PRODUCT_UPDATE', payload }).then(() => undefined)
       }
-      return updateProduct(id, input)
+      return updateProduct(id, orgId, input).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Erreur réseau'
+        return queueOperation({ type: 'PRODUCT_UPDATE', payload }).then(() => {
+          const error = new Error(message)
+          ;(error as Error & { queued?: boolean }).queued = true
+          throw error
+        })
+      })
     },
     onMutate: async ({ id, ...input }) => {
       await queryClient.cancelQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })

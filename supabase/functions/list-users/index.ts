@@ -70,7 +70,6 @@ Deno.serve(async (req: Request) => {
       .select(
         'id, role, is_active, user_id, last_login_at, users!inner(id, name, email, email_verified)'
       )
-      .eq('is_active', true)
       .order('users(name)')
 
     if (!isPlatformAdmin) {

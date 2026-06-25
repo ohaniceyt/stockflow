@@ -30,9 +30,10 @@ export function MovementForm({
   onCancel,
   isLoading,
 }: MovementFormProps) {
+  const defaultLocation = locations.find((l) => l.isDefault)
   const [type, setType] = useState<MovementType>('IN')
   const [productId, setProductId] = useState('')
-  const [locationId, setLocationId] = useState('')
+  const [locationId, setLocationId] = useState(defaultLocation?.id ?? '')
   const [targetLocationId, setTargetLocationId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [reason, setReason] = useState('')
@@ -40,7 +41,6 @@ export function MovementForm({
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
 
   const activeProducts = products.filter((p) => p.isActive)
-  const defaultLocation = locations.find((l) => l.isDefault)
 
   const contactType = type === 'IN' ? 'SUPPLIER' : type === 'OUT' ? 'CUSTOMER' : null
   const filteredContacts = contactType
@@ -101,11 +101,7 @@ export function MovementForm({
         <Label htmlFor="locationId">
           {type === 'TRANSFER' ? "Emplacement d'origine" : 'Emplacement'}
         </Label>
-        <Select
-          id="locationId"
-          value={locationId || (defaultLocation?.id ?? '')}
-          onChange={(e) => setLocationId(e.target.value)}
-        >
+        <Select id="locationId" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
           <option value="">Choisir un emplacement…</option>
           {locations.map((l) => (
             <option key={l.id} value={l.id}>
@@ -161,7 +157,10 @@ export function MovementForm({
             type="number"
             min={1}
             value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            onChange={(e) => {
+              const raw = e.target.value
+              setQuantity(raw === '' ? 0 : Number(raw))
+            }}
           />
           {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
         </div>

@@ -5,9 +5,10 @@ import type { UserOrg } from '../services/invitationService'
 interface OrgSwitcherProps {
   organizations: UserOrg[]
   onSwitch: (membershipId: string) => void
+  isSwitching?: boolean
 }
 
-export function OrgSwitcher({ organizations, onSwitch }: OrgSwitcherProps) {
+export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitcherProps) {
   const { session } = useAuth()
   const currentMembershipId = session?.membership.id
 
@@ -21,7 +22,7 @@ export function OrgSwitcher({ organizations, onSwitch }: OrgSwitcherProps) {
           <button
             key={org.id}
             type="button"
-            disabled={org.id === currentMembershipId || org.isSuspended}
+            disabled={org.id === currentMembershipId || org.isSuspended || isSwitching}
             onClick={() => onSwitch(org.id)}
             className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               org.id === currentMembershipId

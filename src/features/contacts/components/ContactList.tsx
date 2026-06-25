@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button'
 import { Mail, MapPin, Phone } from 'lucide-react'
-import type { Contact } from '@/types'
+import type { Contact, UserRole } from '@/types'
 
 interface ContactListProps {
   contacts: Contact[]
-  currentUserRole: string
+  currentUserRole: UserRole
   onEdit: (contact: Contact) => void
   onToggleActive: (contact: Contact) => void
   isUpdating: boolean

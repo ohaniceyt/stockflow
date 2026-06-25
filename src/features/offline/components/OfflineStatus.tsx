@@ -6,19 +6,25 @@ interface OfflineStatusProps {
 }
 
 export function OfflineStatus({ className }: OfflineStatusProps) {
-  const { online, isSyncing } = useSync()
+  const { online, isSyncing, lastError, deadCount } = useSync()
 
-  if (online && !isSyncing) return null
+  if (online && !isSyncing && !lastError && deadCount === 0) return null
 
   return (
     <div
       className={cn(
         'fixed right-4 z-50 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg',
-        online ? 'bg-blue-600' : 'bg-amber-500',
+        !online ? 'bg-amber-500' : deadCount > 0 || lastError ? 'bg-red-600' : 'bg-blue-600',
         className ?? 'bottom-4'
       )}
     >
-      {online ? 'Synchronisation en cours…' : 'Mode hors ligne'}
+      {!online
+        ? 'Mode hors ligne'
+        : deadCount > 0
+          ? `${String(deadCount)} opération(s) bloquée(s)`
+          : lastError
+            ? 'Erreur de synchronisation'
+            : 'Synchronisation en cours…'}
     </div>
   )
 }

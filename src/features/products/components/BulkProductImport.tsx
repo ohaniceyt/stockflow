@@ -42,6 +42,7 @@ interface BulkImportResult {
 interface BulkProductImportProps {
   orgId: string
   onSuccess: () => void
+  disabled?: boolean
 }
 
 const EXPECTED_HEADERS = [
@@ -160,8 +161,9 @@ function parseRow(
   }
 }
 
-export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) {
+export function BulkProductImport({ orgId, onSuccess, disabled }: BulkProductImportProps) {
   const [open, setOpen] = useState(false)
+  const [fileKey, setFileKey] = useState(0)
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([])
   const [isParsing, setIsParsing] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -306,13 +308,18 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
     setParsedRows([])
     setResult(null)
     setParseError(null)
+    setFileKey((k) => k + 1)
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button variant="outline" aria-label="Importer des produits depuis Excel">
+          <Button
+            variant="outline"
+            aria-label="Importer des produits depuis Excel"
+            disabled={disabled}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Importer Excel
           </Button>
@@ -337,11 +344,12 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
           <div className="space-y-2">
             <Label htmlFor="bulk-upload">Fichier Excel</Label>
             <Input
+              key={fileKey}
               id="bulk-upload"
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
-              disabled={isParsing || isImporting}
+              disabled={[disabled, isParsing, isImporting].some(Boolean)}
             />
           </div>
 
@@ -368,9 +376,9 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
                 )}
               </div>
 
-              <div className="rounded-md border">
+              <div className="max-h-80 overflow-y-auto rounded-md border">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted">
+                  <thead className="bg-muted sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left">Ligne</th>
                       <th className="px-3 py-2 text-left">Nom</th>
@@ -379,7 +387,7 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
                     </tr>
                   </thead>
                   <tbody>
-                    {parsedRows.slice(0, 50).map((row) => (
+                    {parsedRows.map((row) => (
                       <tr key={row.index} className="border-t">
                         <td className="px-3 py-2">{row.index}</td>
                         <td className="px-3 py-2">{row.data.name ?? '—'}</td>
@@ -388,9 +396,11 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
                           {row.errors.length === 0 ? (
                             <span className="text-green-600">Valide</span>
                           ) : (
-                            <span className="text-destructive" title={row.errors.join(', ')}>
-                              {row.errors.length} erreur(s)
-                            </span>
+                            <ul className="list-disc pl-4 text-destructive">
+                              {row.errors.map((err, i) => (
+                                <li key={i}>{err}</li>
+                              ))}
+                            </ul>
                           )}
                         </td>
                       </tr>
@@ -398,11 +408,6 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
                   </tbody>
                 </table>
               </div>
-              {parsedRows.length > 50 && (
-                <p className="text-xs text-muted-foreground">
-                  Affichage des 50 premières lignes sur {parsedRows.length}.
-                </p>
-              )}
             </div>
           )}
 
@@ -432,7 +437,10 @@ export function BulkProductImport({ orgId, onSuccess }: BulkProductImportProps) 
             <Button variant="outline" onClick={closeDialog} disabled={isImporting}>
               {result && result.created > 0 ? 'Fermer' : 'Annuler'}
             </Button>
-            <Button onClick={handleImport} disabled={isImporting || validRows.length === 0}>
+            <Button
+              onClick={handleImport}
+              disabled={[disabled, isImporting, validRows.length === 0].some(Boolean)}
+            >
               {isImporting ? 'Import…' : `Importer ${String(validRows.length)} produit(s)`}
             </Button>
           </div>

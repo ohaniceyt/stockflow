@@ -37,9 +37,20 @@ export default function TeamPage() {
   const [resetOpen, setResetOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createdPin, setCreatedPin] = useState<string | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
+  const [isSwitching, setIsSwitching] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
 
   const handleToggleActive = (member: TeamMember) => {
-    updateActive.mutate({ id: member.membershipId, isActive: !member.isActive })
+    setToggleError(null)
+    updateActive.mutate(
+      { id: member.membershipId, isActive: !member.isActive },
+      {
+        onError: (err) => {
+          setToggleError(err.message)
+        },
+      }
+    )
   }
 
   const handleResetPin = (member: TeamMember) => {
@@ -76,8 +87,16 @@ export default function TeamPage() {
     })
   }
 
-  const handleSwitchOrg = (membershipId: string) => {
-    void switchMembership(membershipId)
+  const handleSwitchOrg = async (membershipId: string) => {
+    setIsSwitching(true)
+    setSwitchError(null)
+    try {
+      await switchMembership(membershipId)
+    } catch (err) {
+      setSwitchError(err instanceof Error ? err.message : 'Échec du changement d’organisation')
+    } finally {
+      setIsSwitching(false)
+    }
   }
 
   return (
@@ -94,6 +113,12 @@ export default function TeamPage() {
           </Button>
         )}
       </div>
+
+      {toggleError && (
+        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+          {toggleError}
+        </p>
+      )}
 
       {myInvitations && myInvitations.length > 0 && (
         <div className="space-y-3">
@@ -125,9 +150,19 @@ export default function TeamPage() {
         </div>
       )}
 
+      {switchError && (
+        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+          {switchError}
+        </p>
+      )}
+
       {myOrganizations && myOrganizations.length > 1 && (
         <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <OrgSwitcher organizations={myOrganizations} onSwitch={handleSwitchOrg} />
+          <OrgSwitcher
+            organizations={myOrganizations}
+            onSwitch={handleSwitchOrg}
+            isSwitching={isSwitching}
+          />
         </div>
       )}
 

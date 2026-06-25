@@ -55,7 +55,7 @@ export const DEFAULT_MOCK_SESSION: MockSession = {
     orgId: 'e2e-org-id',
     userId: 'e2e-user-id',
     role: 'super_admin',
-    pinHash: null,
+    pinHash: 'set',
     isActive: true,
     forcePinChange: false,
     lastLoginAt: new Date().toISOString(),

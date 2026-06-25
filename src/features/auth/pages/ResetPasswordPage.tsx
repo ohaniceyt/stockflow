@@ -1,9 +1,11 @@
-import { useEffect, useState, type SyntheticEvent } from 'react'
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/services/supabase'
+
+const TOKEN_TIMEOUT_MS = 10_000
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -12,6 +14,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const {
@@ -19,6 +22,10 @@ export default function ResetPasswordPage() {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
       }
     })
 
@@ -27,10 +34,24 @@ export default function ResetPasswordPage() {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
         setReady(true)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
       }
     })()
 
-    return () => subscription.unsubscribe()
+    timeoutRef.current = setTimeout(() => {
+      setReady(true)
+      setError('Le lien de réinitialisation est invalide ou a expiré.')
+    }, TOKEN_TIMEOUT_MS)
+
+    return () => {
+      subscription.unsubscribe()
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [])
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {

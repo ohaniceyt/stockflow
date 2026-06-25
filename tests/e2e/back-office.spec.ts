@@ -40,6 +40,8 @@ async function setupPinIfNeeded(page: import('@playwright/test').Page) {
 }
 
 test.describe('BackOffice platform admin', () => {
+  test.skip(({ isMobile }) => isMobile, 'BackOffice navigation is desktop-only')
+
   test('overview loads, organisations list works, sudo enters and exits', async ({ page }) => {
     await login(page, PLATFORM_ADMIN.email, PLATFORM_ADMIN.password)
     await setupPinIfNeeded(page)

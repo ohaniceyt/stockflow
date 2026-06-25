@@ -9,9 +9,16 @@ interface CategoryListProps {
   onEdit: (category: Category) => void
   onDelete: (category: Category) => void
   isUpdating?: boolean
+  canManage?: boolean
 }
 
-export function CategoryList({ categories, onEdit, onDelete, isUpdating }: CategoryListProps) {
+export function CategoryList({
+  categories,
+  onEdit,
+  onDelete,
+  isUpdating,
+  canManage = true,
+}: CategoryListProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const columns: ResponsiveColumn<Category>[] = [
@@ -26,6 +33,7 @@ export function CategoryList({ categories, onEdit, onDelete, isUpdating }: Categ
       header: 'Actions',
       className: 'text-right',
       cell: (category) => {
+        if (!canManage) return null
         const isConfirming = confirmDeleteId === category.id
         return (
           <div className="flex justify-end gap-2">

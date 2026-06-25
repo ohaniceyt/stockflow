@@ -44,16 +44,21 @@ function statusInfo(quantity: number, threshold: number) {
 
 export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null)
-  const { hasRole } = useAuth()
+  const { hasRole, session } = useAuth()
   const isAdmin = hasRole(['super_admin', 'admin'])
+  const orgId = session?.membership.orgId
 
-  const { data: movements, isLoading: movementsLoading } = useQuery({
-    queryKey: ['movements-by-product', item?.productId],
+  const {
+    data: movements,
+    isFetching: movementsLoading,
+    error: movementsError,
+  } = useQuery({
+    queryKey: ['movements-by-product', orgId, item?.productId],
     queryFn: () => {
-      if (!item) return Promise.resolve([])
-      return fetchMovementsByProduct(item.productId)
+      if (!item || !orgId) return Promise.resolve([])
+      return fetchMovementsByProduct(orgId, item.productId)
     },
-    enabled: !!item,
+    enabled: !!item && !!orgId,
   })
 
   useEffect(() => {
@@ -161,11 +166,22 @@ export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
         </div>
 
         <div className="max-h-64 overflow-y-auto">
-          {!movements || movements.length === 0 ? (
+          {movementsLoading && !movements && (
+            <p className="py-4 text-center text-sm text-[var(--text-faint)]">
+              Chargement des mouvements…
+            </p>
+          )}
+          {movementsError && (
+            <p className="py-4 text-center text-sm text-destructive">
+              Erreur de chargement des mouvements.
+            </p>
+          )}
+          {!movementsLoading && !movementsError && (!movements || movements.length === 0) && (
             <p className="py-4 text-center text-sm text-[var(--text-faint)]">
               Aucun mouvement récent pour ce produit.
             </p>
-          ) : (
+          )}
+          {movements && movements.length > 0 && (
             <ul className="space-y-2">
               {movements.slice(0, 20).map((m) => (
                 <li key={m.id} className="card flex items-center gap-3 p-3">

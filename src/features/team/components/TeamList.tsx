@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { KeyRound, Power, PowerOff } from 'lucide-react'
 import type { TeamMember } from '@/types'
+import { USER_ROLE_LABELS } from '../constants'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
 
 interface TeamListProps {
@@ -10,13 +11,6 @@ interface TeamListProps {
   onToggleActive: (member: TeamMember) => void
   onResetPin: (member: TeamMember) => void
   isUpdating?: boolean
-}
-
-const roleLabels: Record<TeamMember['role'], string> = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  operator: 'Opérateur',
-  reader: 'Lecteur',
 }
 
 export function TeamList({
@@ -46,7 +40,7 @@ export function TeamList({
       cell: (member) => member.email,
       className: 'text-sm',
     },
-    { key: 'role', header: 'Rôle', cell: (member) => roleLabels[member.role] },
+    { key: 'role', header: 'Rôle', cell: (member) => USER_ROLE_LABELS[member.role] },
     {
       key: 'status',
       header: 'Statut',

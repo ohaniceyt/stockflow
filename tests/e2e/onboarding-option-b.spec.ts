@@ -19,7 +19,7 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173'
 const TEST_USER = {
   name: 'Alice Test',
   // Unique local-part so the test can be repeated without manual DB cleanup.
-  email: `alice-test-${String(Date.now())}@localhost`,
+  email: `alice-test-${String(Date.now())}@example.com`,
   phone: '+225 01 02 03 04 05',
   password: 'MyPassword123!',
   pin: '4242',

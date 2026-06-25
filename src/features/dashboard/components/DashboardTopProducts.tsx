@@ -10,11 +10,12 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
   const [limit, setLimit] = useState(5)
 
   const topProducts = useMemo(() => {
-    const map = new Map<string, { name: string; quantity: number }>()
+    const map = new Map<string, { id: string; name: string; quantity: number }>()
     movements
       .filter((m) => m.type === 'OUT')
       .forEach((m) => {
         const entry = map.get(m.productId) ?? {
+          id: m.productId,
           name: m.productName ?? 'Produit inconnu',
           quantity: 0,
         }
@@ -54,7 +55,7 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
             const percent = (product.quantity / max) * 100
             const isTop = index < 3
             return (
-              <li key={`${product.name}-${String(index)}`} className="space-y-1">
+              <li key={product.id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2 font-medium text-[var(--text-h)]">
                     <TrendingUp

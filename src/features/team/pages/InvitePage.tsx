@@ -8,14 +8,8 @@ import {
   acceptInvitationByToken,
   validateInvitationToken,
 } from '@/features/team/services/invitationService'
+import { USER_ROLE_LABELS } from '../constants'
 import type { UserRole } from '@/types'
-
-const ROLES_LABELS: Record<UserRole, string> = {
-  super_admin: 'Super administrateur',
-  admin: 'Administrateur',
-  operator: 'Opérateur',
-  reader: 'Lecteur',
-}
 
 interface InvitationDetails {
   orgName: string
@@ -60,8 +54,17 @@ export default function InvitePage() {
     setError(null)
     try {
       const { membershipId } = await acceptInvitationByToken({ token })
-      await switchMembership(membershipId)
-      void navigate('/dashboard', { replace: true })
+      try {
+        await switchMembership(membershipId)
+        void navigate('/dashboard', { replace: true })
+      } catch (switchErr) {
+        setError(
+          switchErr instanceof Error
+            ? switchErr.message
+            : 'Échec du basculement vers la nouvelle organisation'
+        )
+        setIsAccepting(false)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec de l’acceptation')
       setIsAccepting(false)
@@ -137,7 +140,8 @@ export default function InvitePage() {
           <p className="text-sm text-muted-foreground">
             Vous avez été invité(e) à rejoindre{' '}
             <span className="font-medium text-foreground">{invitation.orgName}</span> en tant que{' '}
-            <span className="font-medium text-foreground">{ROLES_LABELS[invitation.role]}</span>.
+            <span className="font-medium text-foreground">{USER_ROLE_LABELS[invitation.role]}</span>
+            .
           </p>
         </div>
 

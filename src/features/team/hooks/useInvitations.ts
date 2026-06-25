@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import {
   acceptInvitation,
   createInvitation,
@@ -13,9 +14,13 @@ const MY_ORGS_QUERY_KEY = 'my-organizations'
 const MY_INVITATIONS_QUERY_KEY = 'my-invitations'
 
 export function useInvitations() {
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+
   return useQuery({
-    queryKey: [INVITATIONS_QUERY_KEY],
+    queryKey: [INVITATIONS_QUERY_KEY, orgId],
     queryFn: fetchInvitations,
+    enabled: Boolean(orgId),
     staleTime: 30 * 1000,
   })
 }
@@ -38,10 +43,15 @@ export function useMyInvitations() {
 
 export function useCreateInvitation() {
   const queryClient = useQueryClient()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+
   return useMutation({
     mutationFn: createInvitation,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [INVITATIONS_QUERY_KEY] })
+      if (orgId) {
+        void queryClient.invalidateQueries({ queryKey: [INVITATIONS_QUERY_KEY, orgId] })
+      }
     },
   })
 }
@@ -59,10 +69,15 @@ export function useAcceptInvitation() {
 
 export function useDeclineInvitation() {
   const queryClient = useQueryClient()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+
   return useMutation({
     mutationFn: declineInvitation,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [INVITATIONS_QUERY_KEY] })
+      if (orgId) {
+        void queryClient.invalidateQueries({ queryKey: [INVITATIONS_QUERY_KEY, orgId] })
+      }
       void queryClient.invalidateQueries({ queryKey: [MY_INVITATIONS_QUERY_KEY] })
     },
   })

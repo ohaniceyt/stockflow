@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to send invitation email:', emailErr)
     }
 
-    return new Response(JSON.stringify({ success: true, invitation }), {
+    return new Response(JSON.stringify({ invitation }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

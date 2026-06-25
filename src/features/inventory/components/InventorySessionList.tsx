@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Eye, CheckCircle2, XCircle } from 'lucide-react'
+import { Eye, CheckCircle2 } from 'lucide-react'
 import type { SessionWithDetails } from '../services/inventoryService'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
 
@@ -8,7 +8,6 @@ interface InventorySessionListProps {
   sessions: SessionWithDetails[]
   onOpen: (session: SessionWithDetails) => void
   onApply?: (session: SessionWithDetails) => void
-  onCancel?: (session: SessionWithDetails) => void
   isApplying?: boolean
 }
 
@@ -28,7 +27,6 @@ export function InventorySessionList({
   sessions,
   onOpen,
   onApply,
-  onCancel,
   isApplying,
 }: InventorySessionListProps) {
   const columns: ResponsiveColumn<SessionWithDetails>[] = [
@@ -75,17 +73,6 @@ export function InventorySessionList({
               aria-label={`Appliquer ${session.name}`}
             >
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </Button>
-          )}
-          {session.status === 'pending' && onCancel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onCancel(session)}
-              disabled={isApplying}
-              aria-label={`Annuler ${session.name}`}
-            >
-              <XCircle className="h-4 w-4 text-destructive" />
             </Button>
           )}
         </div>

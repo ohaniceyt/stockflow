@@ -168,6 +168,7 @@ export interface Product {
 
 export interface StockLevel {
   id: string
+  orgId: string
   productId: string
   locationId: string
   quantity: number
@@ -195,6 +196,7 @@ export type MovementType = 'IN' | 'OUT' | 'INVENTORY' | 'ADJUSTMENT' | 'TRANSFER
 
 export interface Movement {
   id: string
+  orgId: string
   productId: string
   locationId: string
   targetLocationId: string | null
@@ -222,6 +224,7 @@ export interface InventorySession {
 
 export interface InventoryCount {
   id: string
+  orgId: string
   sessionId: string
   productId: string
   locationId: string
@@ -240,8 +243,15 @@ export interface PendingOperation {
     | 'PRODUCT_CREATE'
     | 'PRODUCT_UPDATE'
     | 'INVENTORY_COUNT_UPDATE'
+    | 'INVENTORY_SESSION_CREATE'
+    | 'LOCATION_CREATE'
+    | 'LOCATION_UPDATE'
+    | 'LOCATION_SET_DEFAULT'
     | 'CONTACT_CREATE'
     | 'CONTACT_UPDATE'
+    | 'CATEGORY_CREATE'
+    | 'CATEGORY_UPDATE'
+    | 'CATEGORY_DELETE'
   payload: unknown
   createdAt: number
   retryCount: number
