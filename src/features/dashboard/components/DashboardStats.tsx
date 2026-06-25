@@ -1,6 +1,6 @@
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { StockItem } from '@/features/stock/services/stockService'
-import { Banknote, AlertTriangle, PackageCheck, Boxes } from 'lucide-react'
+import { Warehouse, AlertTriangle, PackageCheck, Boxes } from 'lucide-react'
 
 interface DashboardStatsProps {
   stock: StockItem[]
@@ -13,14 +13,14 @@ export function DashboardStats({ stock, productCount }: DashboardStatsProps) {
 
   const ruptures = stock.filter((item) => item.quantity <= 0)
   const alertes = stock.filter((item) => item.quantity > 0 && item.quantity <= item.threshold)
-  const stockValue = stock.reduce((sum, item) => sum + item.quantity * item.costPrice, 0)
+  const totalQuantity = stock.reduce((sum, item) => sum + item.quantity, 0)
 
   const cards = [
     {
-      label: 'Valeur stock',
-      value: isAdmin ? `${stockValue.toLocaleString('fr-FR')} FCFA` : '—',
-      sub: 'Valeur totale',
-      icon: Banknote,
+      label: 'Qté totale en stock',
+      value: isAdmin ? totalQuantity.toLocaleString('fr-FR') : '—',
+      sub: 'Quantité totale',
+      icon: Warehouse,
       colorClass: 'ca',
       barClass: 'bg-[var(--indigo)]',
     },
