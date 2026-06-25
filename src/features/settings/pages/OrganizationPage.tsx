@@ -170,10 +170,7 @@ function LocationsList() {
   return (
     <ul className="divide-y rounded-lg border">
       {locations.map((location) => (
-        <li
-          key={location.id}
-          className="flex items-center justify-between px-4 py-3"
-        >
+        <li key={location.id} className="flex items-center justify-between px-4 py-3">
           <div className="min-w-0">
             <p className="font-medium">{location.name}</p>
             {location.description && (

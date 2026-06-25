@@ -22,16 +22,18 @@ interface BulkMovementFormProps {
   products: Product[]
   locations: Location[]
   contacts: Contact[]
-  onSubmit: (lines: {
-    productId: string
-    locationId: string
-    targetLocationId: string | null
-    type: MovementType
-    quantity: number
-    reason: string | null
-    contactId: string | null
-    unitPrice: number | null
-  }[]) => void
+  onSubmit: (
+    lines: {
+      productId: string
+      locationId: string
+      targetLocationId: string | null
+      type: MovementType
+      quantity: number
+      reason: string | null
+      contactId: string | null
+      unitPrice: number | null
+    }[]
+  ) => void
   onCancel: () => void
   isLoading?: boolean
 }
@@ -136,7 +138,9 @@ export function BulkMovementForm({
           return (
             <div key={line.id} className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Ligne {String(index + 1)}</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Ligne {String(index + 1)}
+                </span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -159,13 +163,16 @@ export function BulkMovementForm({
                         type: e.target.value as MovementType,
                         targetLocationId: null,
                         contactId: null,
-                        unitPrice: e.target.value === 'OUT' ? getProductSellingPrice(line.productId) : '',
+                        unitPrice:
+                          e.target.value === 'OUT' ? getProductSellingPrice(line.productId) : '',
                       })
                     }
                     disabled={isLoading}
                   >
                     {typeOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </Select>
                 </div>
@@ -176,14 +183,14 @@ export function BulkMovementForm({
                     id={`product-${line.id}`}
                     value={line.productId}
                     onChange={(e) =>
-                    updateLine(line.id, {
-                      productId: e.target.value,
-                      unitPrice:
-                        line.type === 'OUT'
-                          ? getProductSellingPrice(e.target.value)
-                          : line.unitPrice,
-                    })
-                  }
+                      updateLine(line.id, {
+                        productId: e.target.value,
+                        unitPrice:
+                          line.type === 'OUT'
+                            ? getProductSellingPrice(e.target.value)
+                            : line.unitPrice,
+                      })
+                    }
                     disabled={isLoading}
                   >
                     <option value="">Choisir…</option>
@@ -194,13 +201,15 @@ export function BulkMovementForm({
                     ))}
                   </Select>
                   {errors[`line-${String(index)}-product`] && (
-                    <p className="text-xs text-destructive">{errors[`line-${String(index)}-product`]}</p>
+                    <p className="text-xs text-destructive">
+                      {errors[`line-${String(index)}-product`]}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-1">
                   <Label htmlFor={`location-${line.id}`}>
-                    {line.type === 'TRANSFER' ? "Origine" : 'Emplacement'}
+                    {line.type === 'TRANSFER' ? 'Origine' : 'Emplacement'}
                   </Label>
                   <Select
                     id={`location-${line.id}`}
@@ -216,7 +225,9 @@ export function BulkMovementForm({
                     ))}
                   </Select>
                   {errors[`line-${String(index)}-location`] && (
-                    <p className="text-xs text-destructive">{errors[`line-${String(index)}-location`]}</p>
+                    <p className="text-xs text-destructive">
+                      {errors[`line-${String(index)}-location`]}
+                    </p>
                   )}
                 </div>
 
@@ -239,7 +250,9 @@ export function BulkMovementForm({
                         ))}
                     </Select>
                     {errors[`line-${String(index)}-target`] && (
-                      <p className="text-xs text-destructive">{errors[`line-${String(index)}-target`]}</p>
+                      <p className="text-xs text-destructive">
+                        {errors[`line-${String(index)}-target`]}
+                      </p>
                     )}
                   </div>
                 )}
@@ -257,7 +270,9 @@ export function BulkMovementForm({
                     >
                       <option value="">{`Choisir un ${line.type === 'IN' ? 'fournisseur' : 'client'}`}</option>
                       {filteredContacts.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
                       ))}
                     </Select>
                   </div>
@@ -278,7 +293,9 @@ export function BulkMovementForm({
                     disabled={isLoading}
                   />
                   {errors[`line-${String(index)}-quantity`] && (
-                    <p className="text-xs text-destructive">{errors[`line-${String(index)}-quantity`]}</p>
+                    <p className="text-xs text-destructive">
+                      {errors[`line-${String(index)}-quantity`]}
+                    </p>
                   )}
                 </div>
 

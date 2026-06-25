@@ -73,7 +73,11 @@ export default function MovementsPage() {
         </div>
         {canCreate && (
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setDialogMode('bulk')}>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setDialogMode('bulk')}
+            >
               <ListPlus className="mr-2 h-4 w-4" />
               En bulk
             </Button>

@@ -106,7 +106,11 @@ export function MovementForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="type">Type de mouvement</Label>
-        <Select id="type" value={type} onChange={(e) => handleTypeChange(e.target.value as MovementType)}>
+        <Select
+          id="type"
+          value={type}
+          onChange={(e) => handleTypeChange(e.target.value as MovementType)}
+        >
           <option value="IN">Entrée (+)</option>
           <option value="OUT">Sortie (-)</option>
           <option value="TRANSFER">Transfert</option>
@@ -116,7 +120,11 @@ export function MovementForm({
 
       <div className="space-y-2">
         <Label htmlFor="productId">Produit</Label>
-        <Select id="productId" value={productId} onChange={(e) => handleProductChange(e.target.value)}>
+        <Select
+          id="productId"
+          value={productId}
+          onChange={(e) => handleProductChange(e.target.value)}
+        >
           <option value="">Choisir un produit…</option>
           {activeProducts.map((p) => (
             <option key={p.id} value={p.id}>
