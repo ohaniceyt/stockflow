@@ -410,15 +410,27 @@ export default function CashierPage() {
 
           <div className="space-y-1">
             <Label htmlFor="search">Recherche produit</Label>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nom ou code-barre…"
-                className="pl-9"
-              />
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Nom ou code-barre…"
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Scanner un code-barre"
+                aria-label="Scanner un code-barre"
+                onClick={() => (scannerOpen ? stopScanner() : startScanner())}
+              >
+                <ScanBarcode className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -447,14 +459,6 @@ export default function CashierPage() {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => (scannerOpen ? stopScanner() : startScanner())}
-          >
-            <ScanBarcode className="mr-2 h-4 w-4" />
-            {scannerOpen ? 'Arrêter le scan' : 'Scanner'}
-          </Button>
           <Button type="button" variant="outline" onClick={() => setShowHistory((prev) => !prev)}>
             <History className="mr-2 h-4 w-4" />
             {showHistory ? 'Masquer historique' : 'Historique'}
