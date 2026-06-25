@@ -270,6 +270,7 @@ function isRetryableError(err: Error): boolean {
   // Business validation errors that will not be fixed by retrying.
   if (msg.includes('stock insuffisant')) return false
   if (msg.includes('opérateur non trouvé') || msg.includes('operator not found')) return false
+  if (msg.includes('session de caisse invalide ou fermée')) return false
   // Network errors, timeouts, and 5xx are retryable.
   return true
 }
@@ -291,6 +292,7 @@ async function executeOperation(
         reason?: string | null
         contactId?: string | null
         unitPrice?: number | null
+        cashierSessionId?: string | null
       }
       await createMovement({
         orgId: payload.orgId ?? currentOrgId,
@@ -304,6 +306,7 @@ async function executeOperation(
         reason: payload.reason ?? null,
         contactId: payload.contactId ?? null,
         unitPrice: payload.unitPrice ?? null,
+        cashierSessionId: payload.cashierSessionId ?? null,
       })
       return
     }
