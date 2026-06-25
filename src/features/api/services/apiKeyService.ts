@@ -60,7 +60,7 @@ export async function createApiKey(
   orgId: string,
   input: CreateApiKeyInput
 ): Promise<CreateApiKeyResult> {
-  const result = (await edgeFetch('create-api-key', {
+  const result = await edgeFetch<{ key: string; api_key: ApiKey }>('create-api-key', {
     method: 'POST',
     body: JSON.stringify({
       org_id: orgId,
@@ -68,7 +68,7 @@ export async function createApiKey(
       scopes: input.scopes,
       allowed_location_ids: input.allowedLocationIds ?? null,
     }),
-  })) as { key: string; api_key: ApiKey }
+  })
 
   return {
     key: result.key,
