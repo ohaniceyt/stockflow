@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Minus,
   Plus,
@@ -12,6 +12,7 @@ import {
   Unlock,
   Lock,
   AlertCircle,
+  Upload,
 } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Button } from '@/components/ui/button'
@@ -90,8 +91,12 @@ export default function CashierPage() {
   const [closingBalanceInput, setClosingBalanceInput] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scannerError, setScannerError] = useState<string | null>(null)
+  const [scannerStarting, setScannerStarting] = useState(false)
+  const [scannerCameras, setScannerCameras] = useState<{ id: string; label: string }[]>([])
   const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
+  const scannerContainerRef = useRef<HTMLDivElement | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const defaultLocation = locations?.find((l) => l.isDefault)
   const activeLocationId =
@@ -149,38 +154,39 @@ export default function CashierPage() {
     return detail.productName ?? 'Produit'
   }
 
-  const addToCart = (
-    product: Product & { locationId: string; locationName: string; available: number }
-  ) => {
-    const existing = cart.find(
-      (item) => item.productId === product.id && item.locationId === product.locationId
-    )
-    if (existing) {
-      setCart((prev) =>
-        prev.map((item) =>
-          item.id === existing.id && item.quantity < product.available
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
+  const addToCart = useCallback(
+    (product: Product & { locationId: string; locationName: string; available: number }) => {
+      const existing = cart.find(
+        (item) => item.productId === product.id && item.locationId === product.locationId
       )
-      return
-    }
-    if (product.available <= 0) return
-    setCart((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        productId: product.id,
-        productName: product.name,
-        productUnit: product.unit,
-        locationId: product.locationId,
-        locationName: product.locationName,
-        sellingPrice: product.sellingPrice,
-        quantity: 1,
-        stock: product.available,
-      },
-    ])
-  }
+      if (existing) {
+        setCart((prev) =>
+          prev.map((item) =>
+            item.id === existing.id && item.quantity < product.available
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
+        )
+        return
+      }
+      if (product.available <= 0) return
+      setCart((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          productId: product.id,
+          productName: product.name,
+          productUnit: product.unit,
+          locationId: product.locationId,
+          locationName: product.locationName,
+          sellingPrice: product.sellingPrice,
+          quantity: 1,
+          stock: product.available,
+        },
+      ])
+    },
+    [cart]
+  )
 
   const updateQuantity = (itemId: string, delta: number) => {
     setCart((prev) =>
@@ -290,27 +296,17 @@ export default function CashierPage() {
   const startScanner = async () => {
     setScannerOpen(true)
     setScannerError(null)
+    setScannerStarting(true)
     try {
-      scannerRef.current = new Html5Qrcode(scannerContainerId)
-      await scannerRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 150 },
-        },
-        (decodedText) => {
-          const matched = availableProducts.find((p) => p.barcode === decodedText)
-          if (matched) {
-            addToCart(matched)
-            void stopScanner()
-          }
-        },
-        () => {
-          // ignore scan errors / no code found
-        }
-      )
-    } catch {
-      setScannerError('Impossible d accéder à la caméra. Vérifiez les permissions.')
+      const cameras = await Html5Qrcode.getCameras()
+      if (cameras.length === 0) {
+        throw new Error('Aucune caméra détectée sur cet appareil.')
+      }
+      setScannerCameras(cameras)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Impossible d accéder à la caméra'
+      setScannerError(message)
+      setScannerStarting(false)
     }
   }
 
@@ -325,13 +321,78 @@ export default function CashierPage() {
     scannerRef.current = null
     setScannerOpen(false)
     setScannerError(null)
+    setScannerStarting(false)
+    setScannerCameras([])
   }
+
+  useEffect(() => {
+    if (!scannerOpen || !scannerContainerRef.current || scannerCameras.length === 0) return
+    if (scannerRef.current) return
+
+    let cancelled = false
+    const cameraId = scannerCameras[0]?.id
+    if (!cameraId) return
+
+    scannerRef.current = new Html5Qrcode(scannerContainerId)
+    scannerRef.current
+      .start(
+        cameraId,
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+          const matched = availableProducts.find((p) => p.barcode === decodedText)
+          if (matched) {
+            addToCart(matched)
+            void stopScanner()
+          } else {
+            setScannerError(`Code-barre non reconnu : ${decodedText}`)
+          }
+        },
+        () => {
+          // ignore per-frame scan errors / no code found
+        }
+      )
+      .then(() => {
+        if (!cancelled) setScannerStarting(false)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setScannerError(err instanceof Error ? err.message : 'Impossible de démarrer la caméra.')
+          setScannerStarting(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [scannerOpen, scannerCameras, availableProducts, addToCart])
 
   useEffect(() => {
     return () => {
       void stopScanner()
     }
   }, [])
+
+  const handleFileScan = async (file: File) => {
+    setScannerError(null)
+    const reader = new Html5Qrcode('file-scanner-temp')
+    try {
+      const decodedText = await reader.scanFile(file, true)
+      const matched = availableProducts.find((p) => p.barcode === decodedText)
+      if (matched) {
+        addToCart(matched)
+      } else {
+        setScannerError(`Code-barre non reconnu : ${decodedText}`)
+      }
+    } catch {
+      setScannerError('Aucun code-barre détecté sur cette image.')
+    } finally {
+      try {
+        await reader.stop()
+      } catch {
+        // cleanup
+      }
+    }
+  }
 
   if (productsLoading || locationsLoading || stockLoading || movementsLoading || sessionLoading) {
     return (
@@ -444,16 +505,62 @@ export default function CashierPage() {
 
         {scannerOpen && (
           <div className="mt-4 rounded-lg border p-2">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-medium">Scanner</span>
+              <button type="button" onClick={() => void stopScanner()}>
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
             {scannerError ? (
-              <div className="flex items-center gap-2 text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <p className="text-sm">{scannerError}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <p className="text-sm">{scannerError}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void startScanner()}
+                    disabled={scannerStarting}
+                  >
+                    <ScanBarcode className="mr-2 h-4 w-4" />
+                    Réessayer la caméra
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Utiliser une image
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div id={scannerContainerId} className="w-full rounded" />
+              <div id={scannerContainerId} ref={scannerContainerRef} className="w-full rounded" />
+            )}
+            {scannerStarting && !scannerError && (
+              <p className="text-sm text-muted-foreground">Démarrage de la caméra…</p>
             )}
           </div>
         )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+              void handleFileScan(file)
+            }
+            e.currentTarget.value = ''
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
