@@ -154,7 +154,9 @@ export function useSync() {
           syncError = err instanceof Error ? err : new Error('Pull sync failed')
         }
 
-        // Invalidate all entity caches, including contacts, categories, and team.
+        // Refetch in the background instead of invalidating. Invalidation wipes
+        // cached data immediately, which clears lists, resets forms, and hides
+        // dialogs while the request is in flight. refetch keeps existing UI state.
         const keys: readonly (readonly unknown[])[] = [
           ['products', orgId],
           ['categories', orgId],
@@ -169,19 +171,27 @@ export function useSync() {
         ]
         for (const key of keys) {
           try {
-            await queryClient.invalidateQueries({ queryKey: key })
+            // Only refetch if the query is active (mounted). Inactive pages will
+            // pick up fresh data the next time they are visited.
+            if (queryClient.getQueryCache().find({ queryKey: key })?.isActive()) {
+              void queryClient.refetchQueries({ queryKey: key })
+            }
           } catch (err) {
-            console.error('Failed to invalidate cache', key, err)
+            console.error('Failed to refetch cache', key, err)
           }
         }
 
-        // Inventory counts are cached per-session, so invalidate by predicate.
+        // Inventory counts are cached per-session, so refetch active ones.
         try {
-          await queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === 'inventory-counts',
-          })
+          const activeCountQueries = queryClient
+            .getQueryCache()
+            .findAll({ predicate: (query) => query.queryKey[0] === 'inventory-counts' })
+            .filter((q) => q.isActive())
+          for (const query of activeCountQueries) {
+            void queryClient.refetchQueries({ queryKey: query.queryKey })
+          }
         } catch (err) {
-          console.error('Failed to invalidate inventory-counts caches', err)
+          console.error('Failed to refetch inventory-counts caches', err)
         }
 
         // Only claim a successful sync if both push and pull succeeded.
@@ -217,10 +227,21 @@ export function useSync() {
 
   useEffect(() => {
     if (!online) return
-    const timer = setTimeout(() => {
+
+    // Defer the first sync so app startup / page transitions are not blocked.
+    const initialTimer = setTimeout(() => {
       void sync()
-    }, 0)
-    return () => clearTimeout(timer)
+    }, 5000)
+
+    // Sync periodically, but at a low frequency to avoid interrupting the user.
+    const interval = setInterval(() => {
+      void sync()
+    }, 60 * 1000)
+
+    return () => {
+      clearTimeout(initialTimer)
+      clearInterval(interval)
+    }
   }, [online, sync])
 
   return { sync, isSyncing, online, lastError, deadCount }

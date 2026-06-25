@@ -11,6 +11,9 @@ const queryClient = new QueryClient({
       staleTime: 30 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
+      // Keep already-rendered data visible while a background refetch runs.
+      // Prevents sync invalidations from wiping the UI and resetting forms.
+      placeholderData: (previousData: unknown) => previousData,
     },
   },
 })
