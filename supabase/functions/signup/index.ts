@@ -66,7 +66,25 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const { name, email, password, phone }: SignupPayload = await req.json()
+    const bodyText = await req.text()
+    if (!bodyText || bodyText.trim().length === 0) {
+      return new Response(JSON.stringify({ error: 'Request body is empty' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    let payload: SignupPayload
+    try {
+      payload = JSON.parse(bodyText) as SignupPayload
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { name, email, password, phone } = payload
 
     if (!name?.trim() || !email?.trim() || !password) {
       return new Response(JSON.stringify({ error: 'Name, email and password are required' }), {

@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { supabase, supabaseKey } from '@/services/supabase'
+import { edgeFetch } from '@/services/edgeFunctions'
 import { pullSync } from '@/features/offline/services/syncService'
 import type {
   Organization,
@@ -390,21 +391,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [initializeSession, clearSession, session, persistSession])
 
   const signUp = useCallback(async ({ name, email, password, phone }: SignUpInput) => {
-    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
-    const response = await fetch(`${supabaseUrl}/functions/v1/signup`, {
+    await edgeFetch('signup', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      },
       body: JSON.stringify({ name, email, password, phone }),
     })
-
-    const data = (await response.json()) as { success?: boolean; error?: { message: string } }
-    if (!response.ok || !data.success) {
-      throw new Error(data.error?.message ?? 'Signup failed')
-    }
   }, [])
 
   const signIn = useCallback(
