@@ -391,10 +391,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [initializeSession, clearSession, session, persistSession])
 
   const signUp = useCallback(async ({ name, email, password, phone }: SignUpInput) => {
-    await edgeFetch('signup', {
+    const data = await edgeFetch<{ success?: boolean }>('signup', {
       method: 'POST',
       body: JSON.stringify({ name, email, password, phone }),
     })
+    if (!data.success) {
+      throw new Error('Signup failed')
+    }
   }, [])
 
   const signIn = useCallback(
