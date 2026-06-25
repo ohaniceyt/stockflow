@@ -74,5 +74,24 @@ otp_expiry = 3600
 enabled = true
 inspector_port = 8238
 
+# Public functions that must be callable without a Supabase JWT.
+[functions.login]
+verify_jwt = false
+
+[functions.signup]
+verify_jwt = false
+
+[functions.send-magic-link]
+verify_jwt = false
+
+[functions.lookup-user-by-email]
+verify_jwt = false
+
+[functions.create-storefront-order]
+verify_jwt = false
+
+[functions.api-gateway]
+verify_jwt = false
+
 [analytics]
 enabled = false
