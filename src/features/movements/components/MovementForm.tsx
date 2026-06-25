@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useState, useMemo, type SyntheticEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,9 +17,15 @@ interface MovementFormProps {
     quantity: number
     reason: string | null
     contactId: string | null
+    unitPrice?: number | null
   }) => void
   onCancel: () => void
   isLoading?: boolean
+}
+
+function sanitizeNumber(value: string): number {
+  const parsed = Number(value)
+  return Number.isNaN(parsed) ? 0 : parsed
 }
 
 export function MovementForm({
@@ -31,21 +37,44 @@ export function MovementForm({
   isLoading,
 }: MovementFormProps) {
   const defaultLocation = locations.find((l) => l.isDefault)
-  const [type, setType] = useState<MovementType>('IN')
+  const [type, setType] = useState<MovementType>('OUT')
   const [productId, setProductId] = useState('')
   const [locationId, setLocationId] = useState(defaultLocation?.id ?? '')
   const [targetLocationId, setTargetLocationId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [reason, setReason] = useState('')
   const [contactId, setContactId] = useState('')
+  const [unitPrice, setUnitPrice] = useState<string>('')
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
 
   const activeProducts = products.filter((p) => p.isActive)
+  const selectedProduct = useMemo(
+    () => activeProducts.find((p) => p.id === productId),
+    [activeProducts, productId]
+  )
 
   const contactType = type === 'IN' ? 'SUPPLIER' : type === 'OUT' ? 'CUSTOMER' : null
   const filteredContacts = contactType
     ? contacts.filter((c) => c.type === contactType && c.isActive)
     : []
+
+  const handleTypeChange = (next: MovementType) => {
+    setType(next)
+    setContactId('')
+    if (next !== 'OUT') {
+      setUnitPrice('')
+    } else if (selectedProduct) {
+      setUnitPrice(String(selectedProduct.sellingPrice))
+    }
+  }
+
+  const handleProductChange = (id: string) => {
+    setProductId(id)
+    const product = activeProducts.find((p) => p.id === id)
+    if (type === 'OUT' && product) {
+      setUnitPrice(String(product.sellingPrice))
+    }
+  }
 
   const validate = () => {
     const next: Partial<Record<string, string>> = {}
@@ -69,6 +98,7 @@ export function MovementForm({
       quantity,
       reason: reason.trim() || null,
       contactId: contactId || null,
+      unitPrice: type === 'OUT' ? sanitizeNumber(unitPrice) || null : null,
     })
   }
 
@@ -76,7 +106,7 @@ export function MovementForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="type">Type de mouvement</Label>
-        <Select id="type" value={type} onChange={(e) => setType(e.target.value as MovementType)}>
+        <Select id="type" value={type} onChange={(e) => handleTypeChange(e.target.value as MovementType)}>
           <option value="IN">Entrée (+)</option>
           <option value="OUT">Sortie (-)</option>
           <option value="TRANSFER">Transfert</option>
@@ -86,7 +116,7 @@ export function MovementForm({
 
       <div className="space-y-2">
         <Label htmlFor="productId">Produit</Label>
-        <Select id="productId" value={productId} onChange={(e) => setProductId(e.target.value)}>
+        <Select id="productId" value={productId} onChange={(e) => handleProductChange(e.target.value)}>
           <option value="">Choisir un produit…</option>
           {activeProducts.map((p) => (
             <option key={p.id} value={p.id}>
@@ -135,11 +165,25 @@ export function MovementForm({
         </div>
       )}
 
-      {contactType && filteredContacts.length > 0 && (
+      {type === 'OUT' && (
         <div className="space-y-2">
-          <Label htmlFor="contactId">{type === 'IN' ? 'Fournisseur' : 'Client'}</Label>
+          <Label htmlFor="contactId">Client</Label>
           <Select id="contactId" value={contactId} onChange={(e) => setContactId(e.target.value)}>
-            <option value="">{`Choisir un ${type === 'IN' ? 'fournisseur' : 'client'} (optionnel)`}</option>
+            <option value="">Choisir un client (optionnel)</option>
+            {filteredContacts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      {type === 'IN' && filteredContacts.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="contactId">Fournisseur</Label>
+          <Select id="contactId" value={contactId} onChange={(e) => setContactId(e.target.value)}>
+            <option value="">Choisir un fournisseur (optionnel)</option>
             {filteredContacts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -164,6 +208,21 @@ export function MovementForm({
           />
           {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
         </div>
+
+        {type === 'OUT' && (
+          <div className="space-y-2">
+            <Label htmlFor="unitPrice">Prix de vente unitaire</Label>
+            <Input
+              id="unitPrice"
+              type="number"
+              min={0}
+              step="0.01"
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+              placeholder={selectedProduct ? String(selectedProduct.sellingPrice) : '0'}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="reason">Motif</Label>

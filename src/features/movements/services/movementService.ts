@@ -18,6 +18,7 @@ function mapRowToMovement(row: MovementRow, productOrgMap: Map<string, string>):
     stockAfter: row.stock_after,
     reason: row.reason,
     contactId: row.contact_id,
+    unitPrice: row.unit_price,
     operatorId: row.operator_id,
     referenceId: row.reference_id,
     createdAt: row.created_at,
@@ -162,6 +163,7 @@ export async function createMovement(input: {
   quantity: number
   reason?: string | null
   contactId?: string | null
+  unitPrice?: number | null
 }): Promise<void> {
   await edgeFetch('record-movement', {
     method: 'POST',
@@ -174,6 +176,7 @@ export async function createMovement(input: {
       quantity: input.quantity,
       reason: input.reason ?? null,
       contact_id: input.contactId ?? null,
+      unit_price: input.unitPrice ?? null,
     }),
   })
 }

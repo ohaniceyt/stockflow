@@ -15,13 +15,23 @@ interface BulkLine {
   quantity: number
   reason: string | null
   contactId: string | null
+  unitPrice: string
 }
 
 interface BulkMovementFormProps {
   products: Product[]
   locations: Location[]
   contacts: Contact[]
-  onSubmit: (lines: Omit<BulkLine, 'id'>[]) => void
+  onSubmit: (lines: {
+    productId: string
+    locationId: string
+    targetLocationId: string | null
+    type: MovementType
+    quantity: number
+    reason: string | null
+    contactId: string | null
+    unitPrice: number | null
+  }[]) => void
   onCancel: () => void
   isLoading?: boolean
 }
@@ -43,6 +53,7 @@ function emptyLine(defaultLocationId: string): BulkLine {
     quantity: 1,
     reason: null,
     contactId: null,
+    unitPrice: '',
   }
 }
 
@@ -55,10 +66,14 @@ export function BulkMovementForm({
   isLoading,
 }: BulkMovementFormProps) {
   const defaultLocation = locations.find((l) => l.isDefault)
+  const activeProducts = products.filter((p) => p.isActive)
   const [lines, setLines] = useState<BulkLine[]>(() => [emptyLine(defaultLocation?.id ?? '')])
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
 
-  const activeProducts = products.filter((p) => p.isActive)
+  function getProductSellingPrice(productId: string): string {
+    const product = activeProducts.find((p) => p.id === productId)
+    return product ? String(product.sellingPrice) : ''
+  }
 
   const updateLine = (id: string, updates: Partial<BulkLine>) => {
     setLines((prev) => prev.map((line) => (line.id === id ? { ...line, ...updates } : line)))
@@ -70,6 +85,11 @@ export function BulkMovementForm({
 
   const removeLine = (id: string) => {
     setLines((prev) => (prev.length > 1 ? prev.filter((line) => line.id !== id) : prev))
+  }
+
+  function sanitizeNumber(value: string): number {
+    const parsed = Number(value)
+    return Number.isNaN(parsed) ? 0 : parsed
   }
 
   const validate = () => {
@@ -97,7 +117,8 @@ export function BulkMovementForm({
         type: line.type,
         quantity: line.quantity,
         reason: (line.reason ?? '').trim() || null,
-        contactId: line.contactId || null,
+        contactId: line.contactId ?? null,
+        unitPrice: line.type === 'OUT' ? sanitizeNumber(line.unitPrice) || null : null,
       }))
     )
   }
@@ -136,8 +157,9 @@ export function BulkMovementForm({
                     onChange={(e) =>
                       updateLine(line.id, {
                         type: e.target.value as MovementType,
-                        targetLocationId: '',
-                        contactId: '',
+                        targetLocationId: null,
+                        contactId: null,
+                        unitPrice: e.target.value === 'OUT' ? getProductSellingPrice(line.productId) : '',
                       })
                     }
                     disabled={isLoading}
@@ -153,7 +175,15 @@ export function BulkMovementForm({
                   <Select
                     id={`product-${line.id}`}
                     value={line.productId}
-                    onChange={(e) => updateLine(line.id, { productId: e.target.value })}
+                    onChange={(e) =>
+                    updateLine(line.id, {
+                      productId: e.target.value,
+                      unitPrice:
+                        line.type === 'OUT'
+                          ? getProductSellingPrice(e.target.value)
+                          : line.unitPrice,
+                    })
+                  }
                     disabled={isLoading}
                   >
                     <option value="">Choisir…</option>
@@ -251,6 +281,22 @@ export function BulkMovementForm({
                     <p className="text-xs text-destructive">{errors[`line-${String(index)}-quantity`]}</p>
                   )}
                 </div>
+
+                {line.type === 'OUT' && (
+                  <div className="space-y-1">
+                    <Label htmlFor={`unitPrice-${line.id}`}>Prix de vente unitaire</Label>
+                    <Input
+                      id={`unitPrice-${line.id}`}
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={line.unitPrice}
+                      onChange={(e) => updateLine(line.id, { unitPrice: e.target.value })}
+                      placeholder="0"
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <Label htmlFor={`reason-${line.id}`}>Motif</Label>

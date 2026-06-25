@@ -192,6 +192,7 @@ export interface Database {
           contact_id: string | null
           operator_id: string
           reference_id: string | null
+          unit_price: number | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['movements']['Row'], 'id' | 'created_at'>

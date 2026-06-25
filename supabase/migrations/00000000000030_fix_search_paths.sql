@@ -11,6 +11,7 @@ ALTER FUNCTION public.ensure_default_location() SET search_path = public, pg_cat
 ALTER FUNCTION public.create_default_stock_level() SET search_path = public, pg_catalog;
 ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT) SET search_path = public, pg_catalog;
 ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID) SET search_path = public, pg_catalog;
+ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, DECIMAL) SET search_path = public, pg_catalog;
 ALTER FUNCTION public.apply_inventory_session(UUID) SET search_path = public, pg_catalog;
 ALTER FUNCTION public.set_default_location(UUID, UUID) SET search_path = public, pg_catalog;
 ALTER FUNCTION public.current_user_role() SET search_path = public, pg_catalog;

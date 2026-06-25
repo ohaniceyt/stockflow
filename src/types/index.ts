@@ -206,6 +206,7 @@ export interface Movement {
   stockAfter: number
   reason: string | null
   contactId: string | null
+  unitPrice: number | null
   operatorId: string
   referenceId: string | null
   createdAt: string

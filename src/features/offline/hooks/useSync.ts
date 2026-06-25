@@ -290,6 +290,7 @@ async function executeOperation(
         quantity: number
         reason?: string | null
         contactId?: string | null
+        unitPrice?: number | null
       }
       await createMovement({
         orgId: payload.orgId ?? currentOrgId,
@@ -302,6 +303,7 @@ async function executeOperation(
         quantity: payload.quantity,
         reason: payload.reason ?? null,
         contactId: payload.contactId ?? null,
+        unitPrice: payload.unitPrice ?? null,
       })
       return
     }

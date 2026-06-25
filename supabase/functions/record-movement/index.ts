@@ -11,6 +11,7 @@ interface RecordMovementPayload {
   quantity: number
   reason?: string | null
   contact_id?: string | null
+  unit_price?: number | null
 }
 
 export const corsHeaders = {
@@ -126,6 +127,7 @@ Deno.serve(async (req: Request) => {
       p_quantity: payload.quantity,
       p_reason: payload.reason ?? null,
       p_contact_id: payload.contact_id ?? null,
+      p_unit_price: payload.unit_price ?? null,
     })
 
     if (error) {
