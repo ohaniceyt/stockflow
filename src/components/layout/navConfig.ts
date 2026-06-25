@@ -12,6 +12,8 @@ import {
   Shield,
   Truck,
   UserCheck,
+  Building2,
+  UserCircle,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -62,6 +64,18 @@ export const navItems: NavItem[] = [
     label: 'Récap',
     icon: FileText,
     roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/settings/profile',
+    label: 'Profil',
+    icon: UserCircle,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+  },
+  {
+    to: '/settings/organization',
+    label: 'Organisation',
+    icon: Building2,
+    roles: ['super_admin', 'admin'],
   },
   {
     to: '/settings/subscription',

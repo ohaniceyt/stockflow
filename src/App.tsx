@@ -27,6 +27,8 @@ const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage
 const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
+const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
+const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
@@ -154,7 +156,17 @@ function App() {
               }
             />
             <Route path="/recap" element={<RecapPage />} />
+            <Route path="/settings/profile" element={<ProfilePage />} />
+            <Route
+              path="/settings/organization"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <OrganizationSettingsPage />
+                </RequireAuth>
+              }
+            />
             <Route path="/settings/subscription" element={<SubscriptionPage />} />
+            <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
           </Route>
 
           <Route

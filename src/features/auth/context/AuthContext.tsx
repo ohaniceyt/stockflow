@@ -78,6 +78,7 @@ interface AuthContextValue {
     timezone: string
     defaultLocationName: string
   }) => Promise<void>
+  persistSession: (session: AuthSession | null) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -722,6 +723,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       enterSudo,
       exitSudo,
       completeOnboarding,
+      persistSession,
     }),
     [
       session,
@@ -741,6 +743,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       enterSudo,
       exitSudo,
       completeOnboarding,
+      persistSession,
     ]
   )
 

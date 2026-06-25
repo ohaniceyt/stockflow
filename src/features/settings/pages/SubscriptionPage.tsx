@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { changeOrganizationPlan, getOrgLimits } from '../services/subscriptionService'
+import { SettingsTabs } from '../components/SettingsTabs'
 
 function UsageBar({ used, max, label }: { used: number; max: number | null; label: string }) {
   const unlimited = max === null
@@ -68,9 +69,11 @@ export default function SubscriptionPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Abonnement</h1>
+        <h1 className="text-2xl font-bold">Paramètres</h1>
         <p className="text-muted-foreground">Plan actuel et utilisation de vos quotas.</p>
       </div>
+
+      <SettingsTabs />
 
       {displayError && <p className="text-destructive">{displayError}</p>}
 

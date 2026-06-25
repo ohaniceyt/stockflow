@@ -5,6 +5,7 @@ export interface Database {
         Row: {
           id: string
           name: string
+          slug: string
           currency: string
           timezone: string
           is_active: boolean
@@ -82,6 +83,7 @@ export interface Database {
           id: string
           name: string
           email: string
+          phone: string | null
           email_verified: boolean
           active_org_id: string | null
           created_at: string
