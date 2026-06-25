@@ -61,26 +61,7 @@ CREATE POLICY cashier_sessions_org_update ON cashier_sessions
     AND operator_id = auth.uid()
   );
 
--- 6. Update movements RLS to allow cancellations by admin/super_admin
-DROP POLICY IF EXISTS movements_org_update ON movements;
-CREATE POLICY movements_org_update ON movements
-  FOR UPDATE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM current_membership() cm
-      WHERE cm.role IN ('super_admin', 'admin')
-    )
-    AND org_id = current_user_org_id()
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM current_membership() cm
-      WHERE cm.role IN ('super_admin', 'admin')
-    )
-    AND org_id = current_user_org_id()
-  );
-
--- 7. Helper: check if current user can cancel sales
+-- 6. Helper: check if current user can cancel sales
 CREATE OR REPLACE FUNCTION current_user_can_cancel_sales()
 RETURNS BOOLEAN AS $$
 BEGIN
