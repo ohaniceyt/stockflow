@@ -231,7 +231,6 @@ export default function RecapPage() {
       ) : (
         <>
           <RecapStats
-            productCount={activeProducts.length}
             totalQuantity={totalQuantity}
             stockValue={stockValue}
             stockSellingValue={stockSellingValue}

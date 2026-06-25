@@ -1,7 +1,5 @@
 import {
-  Package,
-  ArrowDownLeft,
-  ArrowUpRight,
+  ArrowLeftRight,
   Warehouse,
   Banknote,
   Coins,
@@ -11,7 +9,6 @@ import {
 } from 'lucide-react'
 
 interface RecapStatsProps {
-  productCount: number
   totalQuantity: number
   stockValue: number
   stockSellingValue: number
@@ -26,7 +23,6 @@ interface RecapStatsProps {
 }
 
 export function RecapStats({
-  productCount,
   totalQuantity,
   stockValue,
   stockSellingValue,
@@ -44,31 +40,15 @@ export function RecapStats({
 
   const allCards = [
     {
-      label: 'Entrées',
-      value: inCount,
-      icon: ArrowDownLeft,
-      iconColor: 'text-emerald-600',
-      iconBg: 'bg-emerald-50',
-      barColor: 'bg-emerald-400',
-      isMoney: false,
-    },
-    {
-      label: 'Sorties',
-      value: outCount,
-      icon: ArrowUpRight,
-      iconColor: 'text-rose-600',
-      iconBg: 'bg-rose-50',
-      barColor: 'bg-rose-400',
-      isMoney: false,
-    },
-    {
-      label: 'Produits actifs',
-      value: productCount,
-      icon: Package,
+      label: 'Mouvements',
+      value: `${inCount.toLocaleString()} / ${outCount.toLocaleString()}`,
+      raw: inCount + outCount,
+      icon: ArrowLeftRight,
       iconColor: 'text-sky-600',
       iconBg: 'bg-sky-50',
       barColor: 'bg-sky-400',
       isMoney: false,
+      sub: `${String(inCount)} entrées · ${String(outCount)} sorties`,
     },
     {
       label: 'Qté totale en stock',
@@ -154,6 +134,9 @@ export function RecapStats({
               <p className="mt-1 text-2xl font-bold text-[var(--text-h)] truncate">
                 {card.isMoney ? card.value : card.value.toLocaleString()}
               </p>
+              {'sub' in card && card.sub && (
+                <p className="mt-1 text-[10px] text-[var(--text-faint)] truncate">{card.sub}</p>
+              )}
             </div>
             <div className={`rounded-lg ${card.iconBg} p-2 shrink-0`}>
               <card.icon className={`h-5 w-5 ${card.iconColor}`} />
