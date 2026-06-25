@@ -8,7 +8,7 @@ import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 interface CreateUserPayload {
   name: string
   email: string
-  role: 'admin' | 'operator' | 'reader'
+  role: 'admin' | 'operator' | 'cashier' | 'reader'
 }
 
 export const corsHeaders = {

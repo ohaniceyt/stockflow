@@ -97,7 +97,7 @@ export default function RecapPage() {
     }, 0)
   }, [stockItems, productMap])
 
-  const revenue = useMemo(() => {
+  const estimatedRevenue = useMemo(() => {
     return filteredMovements
       .filter((m) => m.type === 'OUT')
       .reduce((sum, m) => {
@@ -106,13 +106,33 @@ export default function RecapPage() {
       }, 0)
   }, [filteredMovements, productMap])
 
-  const generatedMargin = useMemo(() => {
+  const estimatedMargin = useMemo(() => {
     return filteredMovements
       .filter((m) => m.type === 'OUT')
       .reduce((sum, m) => {
         const product = productMap.get(m.productId)
         if (!product) return sum
         return sum + m.quantity * (product.sellingPrice - product.costPrice)
+      }, 0)
+  }, [filteredMovements, productMap])
+
+  const realRevenue = useMemo(() => {
+    return filteredMovements
+      .filter((m) => m.type === 'OUT')
+      .reduce((sum, m) => {
+        const price = m.unitPrice ?? productMap.get(m.productId)?.sellingPrice ?? 0
+        return sum + m.quantity * price
+      }, 0)
+  }, [filteredMovements, productMap])
+
+  const realProfit = useMemo(() => {
+    return filteredMovements
+      .filter((m) => m.type === 'OUT')
+      .reduce((sum, m) => {
+        const product = productMap.get(m.productId)
+        if (!product) return sum
+        const price = m.unitPrice ?? product.sellingPrice
+        return sum + m.quantity * (price - product.costPrice)
       }, 0)
   }, [filteredMovements, productMap])
 
@@ -215,8 +235,10 @@ export default function RecapPage() {
             totalQuantity={totalQuantity}
             stockValue={stockValue}
             stockSellingValue={stockSellingValue}
-            revenue={revenue}
-            generatedMargin={generatedMargin}
+            estimatedRevenue={estimatedRevenue}
+            estimatedMargin={estimatedMargin}
+            realRevenue={realRevenue}
+            realProfit={realProfit}
             inCount={filteredMovements.filter((m) => m.type === 'IN').length}
             outCount={filteredMovements.filter((m) => m.type === 'OUT').length}
             currency={currency}

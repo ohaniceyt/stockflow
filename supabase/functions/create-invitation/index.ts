@@ -5,7 +5,7 @@ import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface Payload {
   email: string
-  role: 'admin' | 'operator' | 'reader'
+  role: 'admin' | 'operator' | 'cashier' | 'reader'
 }
 
 export const corsHeaders = {

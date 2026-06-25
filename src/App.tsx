@@ -161,7 +161,7 @@ function App() {
             <Route
               path="/cashier"
               element={
-                <RequireAuth roles={['super_admin', 'admin', 'operator']}>
+                <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
                   <CashierPage />
                 </RequireAuth>
               }

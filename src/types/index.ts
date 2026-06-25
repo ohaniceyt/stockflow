@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'admin' | 'operator' | 'reader'
+export type UserRole = 'super_admin' | 'admin' | 'operator' | 'cashier' | 'reader'
 export type PlatformAdminRole = 'super_admin' | 'moderator'
 
 export interface Organization {

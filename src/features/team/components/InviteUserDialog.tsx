@@ -35,7 +35,7 @@ export function InviteUserDialog({
   const [mode, setMode] = useState<'create' | 'invite'>('create')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<UserRole>('operator')
+  const [role, setRole] = useState<UserRole>('cashier')
   const [errors, setErrors] = useState<Partial<Record<'name' | 'email', string>>>({})
 
   const validate = () => {

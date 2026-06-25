@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, ListPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
@@ -31,8 +33,20 @@ export default function MovementsPage() {
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null)
+  const [contactFilter, setContactFilter] = useState<string>('all')
 
   const isLoading = movementsLoading || productsLoading || locationsLoading || contactsLoading
+
+  const customers = useMemo(() => {
+    return (contacts ?? []).filter((c) => c.type === 'CUSTOMER')
+  }, [contacts])
+
+  const filteredMovements = useMemo(() => {
+    if (!movements) return []
+    if (contactFilter === 'all') return movements
+    if (contactFilter === 'none') return movements.filter((m) => !m.contactId)
+    return movements.filter((m) => m.contactId === contactFilter)
+  }, [movements, contactFilter])
 
   const handleSingleSubmit = (input: {
     productId: string
@@ -151,9 +165,30 @@ export default function MovementsPage() {
         </DialogContent>
       </Dialog>
 
+      {!isLoading && !movementsError && movements && movements.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="space-y-2 sm:w-72">
+            <Label htmlFor="movement-contact-filter">Filtrer par client</Label>
+            <Select
+              id="movement-contact-filter"
+              value={contactFilter}
+              onChange={(e) => setContactFilter(e.target.value)}
+            >
+              <option value="all">Tous les clients</option>
+              <option value="none">Sans client</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      )}
+
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {movementsError && <p className="text-destructive">{movementsError.message}</p>}
-      {!isLoading && !movementsError && movements && <MovementList movements={movements} />}
+      {!isLoading && !movementsError && movements && <MovementList movements={filteredMovements} />}
     </div>
   )
 }

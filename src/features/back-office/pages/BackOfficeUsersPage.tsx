@@ -17,7 +17,7 @@ import {
 import { listUsers } from '../services/platformService'
 import type { BackOfficeUser, Paginated } from '../types'
 
-const ROLES = ['super_admin', 'admin', 'operator', 'reader']
+const ROLES = ['super_admin', 'admin', 'operator', 'cashier', 'reader']
 const USERS_QUERY_KEY = ['back-office', 'users']
 
 export default function BackOfficeUsersPage() {

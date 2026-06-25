@@ -6,6 +6,8 @@ import {
   Banknote,
   Coins,
   PiggyBank,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react'
 
 interface RecapStatsProps {
@@ -13,8 +15,10 @@ interface RecapStatsProps {
   totalQuantity: number
   stockValue: number
   stockSellingValue: number
-  revenue: number
-  generatedMargin: number
+  estimatedRevenue: number
+  estimatedMargin: number
+  realRevenue: number
+  realProfit: number
   inCount: number
   outCount: number
   currency: string
@@ -26,8 +30,10 @@ export function RecapStats({
   totalQuantity,
   stockValue,
   stockSellingValue,
-  revenue,
-  generatedMargin,
+  estimatedRevenue,
+  estimatedMargin,
+  realRevenue,
+  realProfit,
   inCount,
   outCount,
   currency,
@@ -94,9 +100,9 @@ export function RecapStats({
       barColor: 'bg-indigo-400',
     },
     {
-      label: `Chiffre d'affaires (${currency})`,
-      value: formatMoney(revenue),
-      raw: revenue,
+      label: `CA estimé (${currency})`,
+      value: formatMoney(estimatedRevenue),
+      raw: estimatedRevenue,
       icon: Banknote,
       isMoney: true,
       iconColor: 'text-teal-600',
@@ -104,14 +110,34 @@ export function RecapStats({
       barColor: 'bg-teal-400',
     },
     {
-      label: `Marge générée (${currency})`,
-      value: formatMoney(generatedMargin),
-      raw: generatedMargin,
+      label: `Marge prévue (${currency})`,
+      value: formatMoney(estimatedMargin),
+      raw: estimatedMargin,
       icon: PiggyBank,
       isMoney: true,
       iconColor: 'text-fuchsia-600',
       iconBg: 'bg-fuchsia-50',
       barColor: 'bg-fuchsia-400',
+    },
+    {
+      label: `CA réel (${currency})`,
+      value: formatMoney(realRevenue),
+      raw: realRevenue,
+      icon: Wallet,
+      isMoney: true,
+      iconColor: 'text-teal-700',
+      iconBg: 'bg-teal-100',
+      barColor: 'bg-teal-500',
+    },
+    {
+      label: `Bénéfice réalisé (${currency})`,
+      value: formatMoney(realProfit),
+      raw: realProfit,
+      icon: TrendingUp,
+      isMoney: true,
+      iconColor: 'text-fuchsia-700',
+      iconBg: 'bg-fuchsia-100',
+      barColor: 'bg-fuchsia-500',
     },
   ]
 

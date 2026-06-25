@@ -98,7 +98,7 @@ export interface Database {
           id: string
           org_id: string
           user_id: string
-          role: 'super_admin' | 'admin' | 'operator' | 'reader'
+          role: 'super_admin' | 'admin' | 'operator' | 'cashier' | 'reader'
           pin_hash: string
           is_active: boolean
           force_pin_change: boolean

@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
 
     const operator = await getCurrentMembership(adminClient, claims.sub)
 
-    if (!operator || !['super_admin', 'admin', 'operator'].includes(operator.role)) {
+    if (!operator || !['super_admin', 'admin', 'operator', 'cashier'].includes(operator.role)) {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
