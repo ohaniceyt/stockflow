@@ -364,7 +364,7 @@ export default function CashierPage() {
     return () => {
       cancelled = true
     }
-  }, [scannerOpen, scannerCameras, availableProducts, addToCart])
+  }, [scannerOpen, scannerCameras, scannerContainerId, availableProducts, addToCart])
 
   useEffect(() => {
     return () => {
@@ -392,6 +392,17 @@ export default function CashierPage() {
         // cleanup
       }
     }
+  }
+
+  if (!session?.organization.hasCashierEnabled) {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4">
+        <h1 className="text-2xl font-bold">Caisse</h1>
+        <p className="text-muted-foreground">
+          La caisse n est pas activée pour cette organisation. Contactez un administrateur.
+        </p>
+      </div>
+    )
   }
 
   if (productsLoading || locationsLoading || stockLoading || movementsLoading || sessionLoading) {

@@ -208,6 +208,13 @@ function buildSession(
             ? organizationRaw.suspensionReason
             : null,
         onboardingCompleted: Boolean(organizationRaw.onboardingCompleted),
+        hasCashierEnabled: Boolean(organizationRaw.hasCashierEnabled),
+        hasStorefrontEnabled: Boolean(organizationRaw.hasStorefrontEnabled),
+        hasApiEnabled: Boolean(organizationRaw.hasApiEnabled),
+        storefrontLocationId:
+          typeof organizationRaw.storefrontLocationId === 'string'
+            ? organizationRaw.storefrontLocationId
+            : null,
         createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
         updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
       }
@@ -221,6 +228,10 @@ function buildSession(
         isSuspended: false,
         suspensionReason: null,
         onboardingCompleted: false,
+        hasCashierEnabled: false,
+        hasStorefrontEnabled: false,
+        hasApiEnabled: false,
+        storefrontLocationId: null,
         createdAt: now,
         updatedAt: now,
       }

@@ -11,6 +11,10 @@ export interface Organization {
   isSuspended: boolean
   suspensionReason: string | null
   onboardingCompleted: boolean
+  hasCashierEnabled: boolean
+  hasStorefrontEnabled: boolean
+  hasApiEnabled: boolean
+  storefrontLocationId: string | null
   createdAt: string
   updatedAt: string
 }

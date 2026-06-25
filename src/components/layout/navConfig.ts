@@ -22,6 +22,7 @@ export interface NavItem {
   roles: UserRole[]
   primary?: boolean
   platformAdminOnly?: boolean
+  requiresFeature?: 'cashier' | 'storefront' | 'api'
 }
 
 export const navItems: NavItem[] = [
@@ -59,6 +60,7 @@ export const navItems: NavItem[] = [
     icon: Store,
     roles: ['super_admin', 'admin', 'operator', 'cashier'],
     primary: true,
+    requiresFeature: 'cashier',
   },
   {
     to: '/inventory',

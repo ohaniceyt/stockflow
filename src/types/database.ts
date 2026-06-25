@@ -12,6 +12,10 @@ export interface Database {
           is_suspended: boolean
           suspension_reason: string | null
           onboarding_completed: boolean
+          has_cashier_enabled: boolean
+          has_storefront_enabled: boolean
+          has_api_enabled: boolean
+          storefront_location_id: string | null
           created_at: string
           updated_at: string
         }

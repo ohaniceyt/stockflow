@@ -14,6 +14,22 @@ interface MobileMenuSheetProps {
 export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuSheetProps) {
   const { session, signOut, hasRole, isPlatformAdmin } = useAuth()
   const location = useLocation()
+  const org = session?.organization
+
+  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api') => {
+    if (!feature) return true
+    if (!org) return false
+    switch (feature) {
+      case 'cashier':
+        return org.hasCashierEnabled
+      case 'storefront':
+        return org.hasStorefrontEnabled
+      case 'api':
+        return org.hasApiEnabled
+      default:
+        return false
+    }
+  }
 
   useEffect(() => {
     onOpenChange(false)
@@ -22,7 +38,10 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
   if (!open) return null
 
   const visibleItems = navItems.filter(
-    (item) => hasRole(item.roles) && (!item.platformAdminOnly || isPlatformAdmin)
+    (item) =>
+      hasRole(item.roles) &&
+      (!item.platformAdminOnly || isPlatformAdmin) &&
+      featureEnabled(item.requiresFeature)
   )
 
   return (

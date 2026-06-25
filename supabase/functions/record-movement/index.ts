@@ -3,6 +3,26 @@ import { getBearerToken, parseJwt } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
+interface OrgFeatures {
+  has_cashier_enabled: boolean
+  has_storefront_enabled: boolean
+  has_api_enabled: boolean
+  storefront_location_id: string | null
+}
+
+async function getOrgFeatures(
+  adminClient: ReturnType<typeof createClient>,
+  orgId: string
+): Promise<OrgFeatures | null> {
+  const { data, error } = await adminClient
+    .from('organizations')
+    .select('has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id')
+    .eq('id', orgId)
+    .single()
+  if (error || !data) return null
+  return data as unknown as OrgFeatures
+}
+
 interface RecordMovementPayload {
   product_id: string
   location_id: string
@@ -77,6 +97,14 @@ Deno.serve(async (req: Request) => {
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const features = await getOrgFeatures(adminClient, operator.org_id)
+    if (payload.cashier_session_id && !features?.has_cashier_enabled) {
+      return new Response(JSON.stringify({ error: 'Caisse non activée pour cette organisation' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

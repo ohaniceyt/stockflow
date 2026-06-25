@@ -13,6 +13,22 @@ export function AppLayout() {
   const { session, signOut, hasRole, isPlatformAdmin } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const org = session?.organization
+  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api') => {
+    if (!feature) return true
+    if (!org) return false
+    switch (feature) {
+      case 'cashier':
+        return org.hasCashierEnabled
+      case 'storefront':
+        return org.hasStorefrontEnabled
+      case 'api':
+        return org.hasApiEnabled
+      default:
+        return false
+    }
+  }
+
   return (
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-card md:flex">
@@ -28,7 +44,12 @@ export function AppLayout() {
 
         <nav className="flex-1 space-y-1 p-3">
           {navItems
-            .filter((item) => hasRole(item.roles) && (!item.platformAdminOnly || isPlatformAdmin))
+            .filter(
+              (item) =>
+                hasRole(item.roles) &&
+                (!item.platformAdminOnly || isPlatformAdmin) &&
+                featureEnabled(item.requiresFeature)
+            )
             .map((item) => (
               <NavLink
                 key={item.to}
