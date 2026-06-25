@@ -85,7 +85,25 @@ export default function StockPage() {
         )}
 
         {isPending ? (
-          <p className="py-8 text-center text-sm text-[var(--text-faint)]">Chargement du stock…</p>
+          <div className="stock-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="sk p-4">
+                <div className="mb-3 h-1 w-full animate-pulse rounded-full bg-[var(--surface-2)]" />
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 animate-pulse rounded bg-[var(--surface-2)]" />
+                    <div className="h-3 w-20 animate-pulse rounded bg-[var(--surface-2)]" />
+                  </div>
+                  <div className="h-5 w-14 animate-pulse rounded-full bg-[var(--surface-2)]" />
+                </div>
+                <div className="mb-2 h-7 w-16 animate-pulse rounded bg-[var(--surface-2)]" />
+                <div className="mt-auto space-y-2">
+                  <div className="h-1 w-full animate-pulse rounded-full bg-[var(--surface-2)]" />
+                  <div className="h-3 w-24 animate-pulse rounded bg-[var(--surface-2)]" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <StockGrid
             stock={filteredStock}

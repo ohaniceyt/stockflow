@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 
 @theme inline {
+  --font-sans:
+    'Geist Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -105,7 +108,7 @@ html {
 
 @layer base {
   html {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
     font-size: 14px;
   }
 }
@@ -162,7 +165,7 @@ html {
 }
 
 @utility sg {
-  @apply grid grid-cols-2 gap-3;
+  @apply grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4;
 }
 
 @utility sc {
