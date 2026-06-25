@@ -126,7 +126,11 @@ export function RecapStats({
   return (
     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <div key={card.label} className="sc">
+        <div
+          key={card.label}
+          className="sc"
+          data-testid={card.label === 'Mouvements' ? 'recap-movements-card' : undefined}
+        >
           <div className={`sc-bar ${card.barColor}`} />
           <div className="flex items-start justify-between">
             <div className="min-w-0">

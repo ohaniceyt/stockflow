@@ -14,7 +14,7 @@ test('recap page loads with default period and stat cards', async ({ page }) => 
   await expect(page.getByRole('button', { name: /Mois/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Dates/ })).toBeVisible()
 
-  await expect(page.getByText('Mouvements').first()).toBeVisible()
+  await expect(page.getByTestId('recap-movements-card')).toBeVisible()
   await expect(page.getByText('Marge prévue').first()).toBeVisible()
   await expect(page.getByText('CA réel').first()).toBeVisible()
   await expect(page.getByText('Bénéfice réalisé').first()).toBeVisible()
