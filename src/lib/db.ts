@@ -47,7 +47,7 @@ class StockFlowDB extends Dexie {
         categories: 'id, orgId, name',
         locations: 'id, orgId, name',
         stockLevels: 'id, productId, locationId, orgId, quantity',
-        movements: 'id, productId, locationId, orgId, type, createdAt',
+        movements: 'id, productId, locationId, orgId, type, cashierSessionId, createdAt',
         inventorySessions: 'id, orgId, locationId, status, startedAt',
         inventoryCounts: 'id, orgId, sessionId, productId, locationId',
         contacts: 'id, orgId, type, name, isActive',

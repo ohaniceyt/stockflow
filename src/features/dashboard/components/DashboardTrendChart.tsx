@@ -147,11 +147,11 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
       const start = new Date(startDate)
       const end = new Date(endDate)
       end.setHours(23, 59, 59, 999)
-      return m.type === 'OUT' && mDate >= start && mDate <= end
+      return m.type === 'OUT' && !m.isCancelled && mDate >= start && mDate <= end
     }
     const limit = new Date()
     limit.setDate(limit.getDate() - period)
-    return m.type === 'OUT' && mDate >= limit
+    return m.type === 'OUT' && !m.isCancelled && mDate >= limit
   })
 
   const aggregated = (() => {

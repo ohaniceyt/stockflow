@@ -12,7 +12,7 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
   const topProducts = useMemo(() => {
     const map = new Map<string, { id: string; name: string; quantity: number }>()
     movements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .forEach((m) => {
         const entry = map.get(m.productId) ?? {
           id: m.productId,

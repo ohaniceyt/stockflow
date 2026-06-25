@@ -11,7 +11,7 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
   const rows = useMemo(() => {
     const outByProduct = new Map<string, number>()
     movements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .forEach((m) => {
         outByProduct.set(m.productId, (outByProduct.get(m.productId) ?? 0) + m.quantity)
       })

@@ -193,10 +193,42 @@ export interface Database {
           operator_id: string
           reference_id: string | null
           unit_price: number | null
+          is_cancelled: boolean
+          cancelled_by: string | null
+          cancelled_at: string | null
+          cashier_session_id: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['movements']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['movements']['Insert']>
+        Relationships: []
+      }
+      cashier_sessions: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          operator_id: string
+          opened_at: string
+          closed_at: string | null
+          opening_balance: number
+          closing_balance: number | null
+          daily_revenue: number
+          status: 'open' | 'closed'
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['cashier_sessions']['Row'],
+          | 'id'
+          | 'opened_at'
+          | 'closed_at'
+          | 'daily_revenue'
+          | 'created_at'
+          | 'updated_at'
+          | 'closing_balance'
+        >
+        Update: Partial<Database['public']['Tables']['cashier_sessions']['Row']>
         Relationships: []
       }
       contacts: {

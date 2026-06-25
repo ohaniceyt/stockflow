@@ -99,7 +99,7 @@ export default function RecapPage() {
 
   const estimatedRevenue = useMemo(() => {
     return filteredMovements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .reduce((sum, m) => {
         const product = productMap.get(m.productId)
         return sum + m.quantity * (product?.sellingPrice ?? 0)
@@ -108,7 +108,7 @@ export default function RecapPage() {
 
   const estimatedMargin = useMemo(() => {
     return filteredMovements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .reduce((sum, m) => {
         const product = productMap.get(m.productId)
         if (!product) return sum
@@ -118,7 +118,7 @@ export default function RecapPage() {
 
   const realRevenue = useMemo(() => {
     return filteredMovements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .reduce((sum, m) => {
         const price = m.unitPrice ?? productMap.get(m.productId)?.sellingPrice ?? 0
         return sum + m.quantity * price
@@ -127,7 +127,7 @@ export default function RecapPage() {
 
   const realProfit = useMemo(() => {
     return filteredMovements
-      .filter((m) => m.type === 'OUT')
+      .filter((m) => m.type === 'OUT' && !m.isCancelled)
       .reduce((sum, m) => {
         const product = productMap.get(m.productId)
         if (!product) return sum

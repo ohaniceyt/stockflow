@@ -32,7 +32,9 @@ function getDailyTotals(movements: MovementWithDetails[]): DailyTotal[] {
     days.push({
       label: getDayKey(d),
       in: dayMovements.filter((m) => m.type === 'IN').reduce((sum, m) => sum + m.quantity, 0),
-      out: dayMovements.filter((m) => m.type === 'OUT').reduce((sum, m) => sum + m.quantity, 0),
+      out: dayMovements
+        .filter((m) => m.type === 'OUT' && !m.isCancelled)
+        .reduce((sum, m) => sum + m.quantity, 0),
     })
   }
   return days

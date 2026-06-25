@@ -60,6 +60,9 @@ export function DashboardRecentMovements({
                       }`}
                     >
                       {typeLabels[m.type] ?? m.type}
+                      {m.isCancelled && (
+                        <span className="ml-1 text-[10px] font-normal">(annulé)</span>
+                      )}
                     </span>
                   </td>
                   <td className="py-2 text-right font-medium text-[var(--text-h)]">

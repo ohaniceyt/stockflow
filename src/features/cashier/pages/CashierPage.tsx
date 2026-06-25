@@ -1,15 +1,38 @@
-import { useMemo, useState } from 'react'
-import { Minus, Plus, ShoppingCart, Trash2, UserPlus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Minus,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  UserPlus,
+  Search,
+  ScanBarcode,
+  History,
+  X,
+  Unlock,
+  Lock,
+  AlertCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
-import { useCreateMovement } from '@/features/movements/hooks/useMovements'
+import { useCreateMovement, useMovements } from '@/features/movements/hooks/useMovements'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useStock } from '@/features/stock/hooks/useStock'
+import {
+  useCashierSession,
+  useCloseCashierSession,
+  useOpenCashierSession,
+} from '@/features/cashier/hooks/useCashierSession'
+import {
+  cancelSale,
+  computeSessionRevenue,
+  filterSalesBySession,
+} from '@/features/cashier/services/cashierService'
 import type { Product } from '@/types'
 
 interface CartItem {
@@ -33,13 +56,26 @@ function formatCurrency(value: number): string {
   return value.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function CashierPage() {
-  const { session } = useAuth()
+  const { session, hasRole } = useAuth()
   const { data: products, isLoading: productsLoading } = useProducts()
   const { data: locations, isLoading: locationsLoading } = useLocations()
   const { data: stock, isLoading: stockLoading } = useStock()
   const { data: customers } = useContacts('CUSTOMER')
+  const { data: movements, isLoading: movementsLoading } = useMovements()
   const create = useCreateMovement()
+  const openSessionMutation = useOpenCashierSession()
+  const closeSessionMutation = useCloseCashierSession()
 
   const [selectedLocationId, setSelectedLocationId] = useState('')
   const [customerId, setCustomerId] = useState('walk-in')
@@ -47,10 +83,23 @@ export default function CashierPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [note, setNote] = useState('')
   const [success, setSuccess] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
+  const [openingBalanceInput, setOpeningBalanceInput] = useState('')
+  const [closingBalanceInput, setClosingBalanceInput] = useState('')
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scannerError, setScannerError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const barcodeDetectorRef = useRef<BarcodeDetector | null>(null)
+  const scanFrameRef = useRef<number | null>(null)
 
   const defaultLocation = locations?.find((l) => l.isDefault)
   const activeLocationId =
     selectedLocationId.length > 0 ? selectedLocationId : (defaultLocation?.id ?? '')
+
+  const { data: openSession, isLoading: sessionLoading } = useCashierSession(activeLocationId)
+
+  const canCancelSales = hasRole(['super_admin', 'admin'])
 
   const customerOptions: CustomerOption[] = useMemo(() => {
     const base =
@@ -61,6 +110,7 @@ export default function CashierPage() {
   const availableProducts = useMemo(() => {
     if (!products || !stock || !activeLocationId) return []
     const activeProducts = products.filter((p) => p.isActive)
+    const activeLocation = locations?.find((l) => l.id === activeLocationId)
     return activeProducts.map((product) => {
       const stockItem = stock.find(
         (s) => s.productId === product.id && s.locationId === activeLocationId
@@ -68,11 +118,36 @@ export default function CashierPage() {
       return {
         ...product,
         locationId: activeLocationId,
-        locationName: defaultLocation?.name ?? '',
+        locationName: activeLocation?.name ?? '',
         available: stockItem?.quantity ?? 0,
       }
     })
-  }, [products, stock, activeLocationId, defaultLocation?.name])
+  }, [products, stock, activeLocationId, locations])
+
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return availableProducts
+    return availableProducts.filter(
+      (p) => p.name.toLowerCase().includes(query) || (p.barcode ?? '').toLowerCase().includes(query)
+    )
+  }, [availableProducts, search])
+
+  const sessionSales = useMemo(
+    () =>
+      filterSalesBySession(
+        (movements ??
+          []) as import('@/features/movements/services/movementService').MovementWithDetails[],
+        openSession?.id ?? null
+      ),
+    [movements, openSession]
+  )
+  const sessionRevenue = useMemo(() => computeSessionRevenue(sessionSales), [sessionSales])
+
+  const getSaleProductName = (sale: (typeof sessionSales)[number]) => {
+    const detail =
+      sale as unknown as import('@/features/movements/services/movementService').MovementWithDetails
+    return detail.productName ?? 'Produit'
+  }
 
   const addToCart = (
     product: Product & { locationId: string; locationName: string; available: number }
@@ -132,7 +207,7 @@ export default function CashierPage() {
   const total = cart.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
 
   const handleCheckout = () => {
-    if (cart.length === 0) return
+    if (cart.length === 0 || !openSession) return
     setSuccess(false)
 
     const customerContactId = customerId === 'walk-in' ? null : customerId
@@ -152,6 +227,7 @@ export default function CashierPage() {
           reason,
           contactId: customerContactId,
           unitPrice: item.sellingPrice,
+          cashierSessionId: openSession.id,
         },
         {
           onSuccess: () => {
@@ -172,7 +248,108 @@ export default function CashierPage() {
     }
   }
 
-  if (productsLoading || locationsLoading || stockLoading) {
+  const handleOpenSession = () => {
+    const value = Number(openingBalanceInput)
+    if (!activeLocationId || Number.isNaN(value)) return
+    openSessionMutation.mutate(
+      { locationId: activeLocationId, openingBalance: value },
+      {
+        onSuccess: () => setOpeningBalanceInput(''),
+      }
+    )
+  }
+
+  const handleCloseSession = () => {
+    const value = Number(closingBalanceInput)
+    if (!openSession || Number.isNaN(value)) return
+    closeSessionMutation.mutate(
+      {
+        sessionId: openSession.id,
+        locationId: openSession.locationId,
+        closingBalance: value,
+        dailyRevenue: sessionRevenue,
+      },
+      {
+        onSuccess: () => {
+          setClosingBalanceInput('')
+          setShowHistory(false)
+        },
+      }
+    )
+  }
+
+  const handleCancelSale = (movementId: string) => {
+    if (!canCancelSales) return
+    if (!confirm('Annuler cette vente ?')) return
+    void cancelSale(movementId).then(() => {
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 2000)
+    })
+  }
+
+  const startScanner = async () => {
+    setScannerOpen(true)
+    setScannerError(null)
+    if (!('BarcodeDetector' in window)) {
+      setScannerError('Scanner non supporté par ce navigateur. Utilisez la recherche manuelle.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      barcodeDetectorRef.current = new window.BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'qr_code'],
+      })
+      void runScanLoop()
+    } catch {
+      setScannerError('Impossible d accéder à la caméra.')
+    }
+  }
+
+  const stopScanner = () => {
+    if (scanFrameRef.current) {
+      cancelAnimationFrame(scanFrameRef.current)
+      scanFrameRef.current = null
+    }
+    const stream = videoRef.current?.srcObject as MediaStream | null
+    stream?.getTracks().forEach((track) => track.stop())
+    if (videoRef.current) videoRef.current.srcObject = null
+    barcodeDetectorRef.current = null
+    setScannerOpen(false)
+    setScannerError(null)
+  }
+
+  const runScanLoop = async () => {
+    if (!videoRef.current || !barcodeDetectorRef.current) return
+    try {
+      const barcodes = await barcodeDetectorRef.current.detect(videoRef.current)
+      if (barcodes.length > 0) {
+        const code = barcodes[0].rawValue
+        const matched = availableProducts.find((p) => p.barcode === code)
+        if (matched) {
+          addToCart(matched)
+          stopScanner()
+          return
+        }
+      }
+    } catch {
+      // ignore frame errors
+    }
+    scanFrameRef.current = requestAnimationFrame(runScanLoop)
+  }
+
+  useEffect(() => {
+    return () => {
+      stopScanner()
+    }
+  }, [])
+
+  if (productsLoading || locationsLoading || stockLoading || movementsLoading || sessionLoading) {
     return (
       <div className="mx-auto max-w-5xl space-y-4">
         <h1 className="text-2xl font-bold">Caisse</h1>
@@ -196,97 +373,252 @@ export default function CashierPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-4 md:col-span-2">
-          <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="location">Emplacement</Label>
-                <Select
-                  id="location"
-                  value={activeLocationId}
-                  onChange={(e) => {
-                    setSelectedLocationId(e.target.value)
-                    setCart([])
-                  }}
-                >
-                  {locations?.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name} {l.isDefault && '(défaut)'}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="location">Emplacement</Label>
+            <Select
+              id="location"
+              value={activeLocationId}
+              onChange={(e) => {
+                setSelectedLocationId(e.target.value)
+                setCart([])
+              }}
+            >
+              {locations?.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} {l.isDefault && '(défaut)'}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="customer">Client</Label>
-                <Select
-                  id="customer"
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                >
-                  {customerOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
+          <div className="space-y-1">
+            <Label htmlFor="customer">Client</Label>
+            <Select
+              id="customer"
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+            >
+              {customerOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-            {customerId === 'walk-in' && (
-              <div className="mb-4 flex gap-2">
-                <Input
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  placeholder="Nom du client de passage"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!newCustomerName.trim()}
-                  onClick={() => {
-                    setNote((prev) =>
-                      prev ? `${prev} — ${newCustomerName.trim()}` : newCustomerName.trim()
-                    )
-                    setNewCustomerName('')
-                  }}
-                >
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="products-list">Produits disponibles</Label>
-              {availableProducts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun produit disponible à cet emplacement.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {availableProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      disabled={product.available <= 0}
-                      onClick={() => addToCart(product)}
-                      className="flex items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
-                    >
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(product.sellingPrice)} / {product.unit} — stock:{' '}
-                          {product.available}
-                        </p>
-                      </div>
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div className="space-y-1">
+            <Label htmlFor="search">Recherche produit</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nom ou code-barre…"
+                className="pl-9"
+              />
             </div>
           </div>
+        </div>
+
+        {customerId === 'walk-in' && (
+          <div className="mb-4 flex gap-2">
+            <Input
+              value={newCustomerName}
+              onChange={(e) => setNewCustomerName(e.target.value)}
+              placeholder="Nom du client de passage"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!newCustomerName.trim()}
+              onClick={() => {
+                setNote((prev) =>
+                  prev ? `${prev} — ${newCustomerName.trim()}` : newCustomerName.trim()
+                )
+                setNewCustomerName('')
+              }}
+            >
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => (scannerOpen ? stopScanner() : startScanner())}
+          >
+            <ScanBarcode className="mr-2 h-4 w-4" />
+            {scannerOpen ? 'Arrêter le scan' : 'Scanner'}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setShowHistory((prev) => !prev)}>
+            <History className="mr-2 h-4 w-4" />
+            {showHistory ? 'Masquer historique' : 'Historique'}
+          </Button>
+        </div>
+
+        {scannerOpen && (
+          <div className="mt-4 rounded-lg border p-2">
+            {scannerError ? (
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                <p className="text-sm">{scannerError}</p>
+              </div>
+            ) : (
+              <video ref={videoRef} className="w-full rounded" muted playsInline />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="space-y-4 md:col-span-2">
+          {openSession ? (
+            <>
+              <div className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Caisse ouverte</p>
+                    <p className="font-medium">
+                      Solde d'ouverture : {formatCurrency(openSession.openingBalance)}
+                    </p>
+                    <p className="font-medium">
+                      Recette en cours : {formatCurrency(sessionRevenue)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">
+                      {formatDateTime(openSession.openedAt)}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowHistory((prev) => !prev)}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      Historique
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-card p-4 shadow-sm">
+                <span className="mb-2 block text-sm font-medium">Produits disponibles</span>
+                {filteredProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Aucun produit ne correspond à cette recherche.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {filteredProducts.map((product) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        disabled={product.available <= 0}
+                        onClick={() => addToCart(product)}
+                        className="flex items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                      >
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatCurrency(product.sellingPrice)} / {product.unit} — stock:{' '}
+                            {product.available}
+                          </p>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Unlock className="h-5 w-5 text-muted-foreground" />
+                <div className="space-y-2">
+                  <h2 className="font-semibold">Ouvrir la caisse</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Aucune caisse n'est ouverte pour cet emplacement. Saisissez le solde d'ouverture
+                    pour commencer.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="Solde d'ouverture"
+                      value={openingBalanceInput}
+                      onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleOpenSession}
+                      disabled={
+                        !activeLocationId ||
+                        openingBalanceInput === '' ||
+                        openSessionMutation.isPending
+                      }
+                    >
+                      {openSessionMutation.isPending ? 'Ouverture…' : 'Ouvrir'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showHistory && (
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-semibold">Historique des ventes</h2>
+                <button type="button" onClick={() => setShowHistory(false)}>
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+              {sessionSales.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune vente sur cette session.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {sessionSales.map((sale) => (
+                    <li
+                      key={sale.id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{getSaleProductName(sale)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(sale.createdAt)} — {sale.quantity} x{' '}
+                          {formatCurrency(sale.unitPrice ?? 0)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">
+                          {formatCurrency((sale.unitPrice ?? 0) * sale.quantity)}
+                        </span>
+                        {canCancelSales && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleCancelSale(sale.id)}
+                          >
+                            Annuler
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -369,16 +701,60 @@ export default function CashierPage() {
               <Button
                 type="button"
                 className="mt-4 w-full"
-                disabled={cart.length === 0 || create.isPending}
+                disabled={cart.length === 0 || create.isPending || !openSession}
                 onClick={handleCheckout}
               >
                 {create.isPending ? 'Enregistrement…' : 'Valider la vente'}
               </Button>
+              {!openSession && (
+                <p className="mt-2 text-center text-xs text-destructive">
+                  Ouvrez une caisse pour valider une vente.
+                </p>
+              )}
               {success && (
                 <p className="mt-2 text-center text-sm text-green-600">Vente enregistrée.</p>
               )}
             </div>
           </div>
+
+          {openSession && (
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <Lock className="h-5 w-5 text-muted-foreground" />
+                <div className="w-full space-y-2">
+                  <h2 className="font-semibold">Clôturer la caisse</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Solde théorique : {formatCurrency(openSession.openingBalance + sessionRevenue)}
+                  </p>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Solde de clôture"
+                    value={closingBalanceInput}
+                    onChange={(e) => setClosingBalanceInput(e.target.value)}
+                  />
+                  {closingBalanceInput !== '' && (
+                    <p className="text-sm">
+                      Écart :{' '}
+                      {formatCurrency(
+                        Number(closingBalanceInput) - (openSession.openingBalance + sessionRevenue)
+                      )}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={closingBalanceInput === '' || closeSessionMutation.isPending}
+                    onClick={handleCloseSession}
+                  >
+                    {closeSessionMutation.isPending ? 'Clôture…' : 'Clôturer'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

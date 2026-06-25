@@ -12,6 +12,7 @@ interface RecordMovementPayload {
   reason?: string | null
   contact_id?: string | null
   unit_price?: number | null
+  cashier_session_id?: string | null
 }
 
 export const corsHeaders = {
@@ -128,6 +129,7 @@ Deno.serve(async (req: Request) => {
       p_reason: payload.reason ?? null,
       p_contact_id: payload.contact_id ?? null,
       p_unit_price: payload.unit_price ?? null,
+      p_cashier_session_id: payload.cashier_session_id ?? null,
     })
 
     if (error) {

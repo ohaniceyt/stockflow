@@ -207,9 +207,28 @@ export interface Movement {
   reason: string | null
   contactId: string | null
   unitPrice: number | null
+  isCancelled: boolean
+  cancelledBy: string | null
+  cancelledAt: string | null
+  cashierSessionId: string | null
   operatorId: string
   referenceId: string | null
   createdAt: string
+}
+
+export interface CashierSession {
+  id: string
+  orgId: string
+  locationId: string
+  operatorId: string
+  openedAt: string
+  closedAt: string | null
+  openingBalance: number
+  closingBalance: number | null
+  dailyRevenue: number
+  status: 'open' | 'closed'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface InventorySession {
