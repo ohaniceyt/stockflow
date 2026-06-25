@@ -40,7 +40,7 @@ export function RecapStats({
 
   const allCards = [
     {
-      label: 'Mouvements',
+      label: 'MOUVEMENTS',
       value: `${inCount.toLocaleString()} / ${outCount.toLocaleString()}`,
       raw: inCount + outCount,
       icon: ArrowLeftRight,
@@ -51,16 +51,7 @@ export function RecapStats({
       sub: `${String(inCount)} entrées · ${String(outCount)} sorties`,
     },
     {
-      label: 'Qté totale en stock',
-      value: totalQuantity,
-      icon: Warehouse,
-      iconColor: 'text-amber-600',
-      iconBg: 'bg-amber-50',
-      barColor: 'bg-amber-400',
-      isMoney: false,
-    },
-    {
-      label: `Valeur du stock (${currency})`,
+      label: `VALEUR STOCK (${currency})`,
       value: formatMoney(stockValue),
       raw: stockValue,
       icon: Coins,
@@ -70,7 +61,16 @@ export function RecapStats({
       barColor: 'bg-violet-400',
     },
     {
-      label: `Valeur vente stock (${currency})`,
+      label: 'QTÉ TOTALE EN STOCK',
+      value: totalQuantity,
+      icon: Warehouse,
+      iconColor: 'text-amber-600',
+      iconBg: 'bg-amber-50',
+      barColor: 'bg-amber-400',
+      isMoney: false,
+    },
+    {
+      label: `VALEUR VENTE STOCK (${currency})`,
       value: formatMoney(stockSellingValue),
       raw: stockSellingValue,
       icon: Banknote,
@@ -80,7 +80,7 @@ export function RecapStats({
       barColor: 'bg-indigo-400',
     },
     {
-      label: `CA estimé (${currency})`,
+      label: `CA ESTIMÉ (${currency})`,
       value: formatMoney(estimatedRevenue),
       raw: estimatedRevenue,
       icon: Banknote,
@@ -90,7 +90,7 @@ export function RecapStats({
       barColor: 'bg-teal-400',
     },
     {
-      label: `Marge prévue (${currency})`,
+      label: `MARGE PRÉVUE (${currency})`,
       value: formatMoney(estimatedMargin),
       raw: estimatedMargin,
       icon: PiggyBank,
@@ -100,7 +100,7 @@ export function RecapStats({
       barColor: 'bg-fuchsia-400',
     },
     {
-      label: `CA réel (${currency})`,
+      label: `CA RÉEL (${currency})`,
       value: formatMoney(realRevenue),
       raw: realRevenue,
       icon: Wallet,
@@ -110,7 +110,7 @@ export function RecapStats({
       barColor: 'bg-teal-500',
     },
     {
-      label: `Bénéfice réalisé (${currency})`,
+      label: `BÉNÉFICE RÉALISÉ (${currency})`,
       value: formatMoney(realProfit),
       raw: realProfit,
       icon: TrendingUp,
@@ -129,7 +129,7 @@ export function RecapStats({
         <div
           key={card.label}
           className="sc"
-          data-testid={card.label === 'Mouvements' ? 'recap-movements-card' : undefined}
+          data-testid={card.label === 'MOUVEMENTS' ? 'recap-movements-card' : undefined}
         >
           <div className={`sc-bar ${card.barColor}`} />
           <div className="flex items-start justify-between">
