@@ -57,11 +57,11 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
             return (
               <li key={product.id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2 font-medium text-[var(--text-h)]">
+                  <span className="flex min-w-0 items-center gap-2 font-medium text-[var(--text-h)]">
                     <TrendingUp
-                      className={`h-3.5 w-3.5 ${isTop ? 'text-[var(--emerald)]' : 'text-[var(--text-faint)]'}`}
+                      className={`h-3.5 w-3.5 shrink-0 ${isTop ? 'text-[var(--emerald)]' : 'text-[var(--text-faint)]'}`}
                     />
-                    {product.name}
+                    <span className="truncate">{product.name}</span>
                   </span>
                   <span className="font-semibold text-[var(--text-h)]">
                     {product.quantity.toLocaleString('fr-FR')}

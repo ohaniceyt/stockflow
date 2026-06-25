@@ -48,7 +48,7 @@ export function DashboardRecentMovements({
                     <button
                       type="button"
                       onClick={() => onSelectProduct(m.productId, m.productName)}
-                      className="font-medium text-[var(--text-h)] hover:text-[var(--indigo)] hover:underline"
+                      className="block max-w-[140px] truncate text-left font-medium text-[var(--text-h)] hover:text-[var(--indigo)] hover:underline"
                     >
                       {m.productName ?? '—'}
                     </button>

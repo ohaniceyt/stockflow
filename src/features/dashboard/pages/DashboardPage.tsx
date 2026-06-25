@@ -33,6 +33,19 @@ function SectionSkeleton({ label }: { label: string }) {
   )
 }
 
+function StatCardSkeleton() {
+  return (
+    <div className="sc">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="h-4 w-20 animate-pulse rounded bg-[var(--surface-2)]" />
+        <div className="h-7 w-7 animate-pulse rounded bg-[var(--surface-2)]" />
+      </div>
+      <div className="h-8 w-24 animate-pulse rounded bg-[var(--surface-2)]" />
+      <div className="mt-2 h-3 w-28 animate-pulse rounded bg-[var(--surface-2)]" />
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { session } = useAuth()
   const orgId = session?.membership.orgId
@@ -107,7 +120,12 @@ export default function DashboardPage() {
 
         {isPending && (
           <div className="space-y-4">
-            <SectionSkeleton label="Chargement des statistiques" />
+            <div className="sg">
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </div>
             <SectionSkeleton label="Chargement du flux" />
             <SectionSkeleton label="Chargement de la tendance" />
             <div className="grid gap-4 lg:grid-cols-2">

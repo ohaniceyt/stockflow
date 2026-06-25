@@ -66,7 +66,9 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
           <tbody>
             {rows.map((row) => (
               <tr key={row.productId} className="border-b border-[var(--border)] last:border-0">
-                <td className="py-2 font-medium text-[var(--text-h)]">{row.name}</td>
+                <td className="max-w-[40%] truncate py-2 font-medium text-[var(--text-h)]">
+                  {row.name}
+                </td>
                 <td className="py-2 text-right text-[var(--text)]">
                   {row.outQty.toLocaleString('fr-FR')}
                 </td>
