@@ -26,8 +26,14 @@ test('products page loads and can create a product with a category', async ({ pa
 
   await page.getByRole('button', { name: /Créer/ }).click()
   await expect(page.getByRole('dialog')).toBeHidden()
-  await expect(page.getByText('Ciment E2E').filter({ visible: true }).first()).toBeVisible()
-  await expect(page.getByText('Matériaux').filter({ visible: true }).first()).toBeVisible()
+
+  // Wait for the visible product card/row that contains both the product name and its category.
+  const productCard = page
+    .locator('.rounded-xl.border.bg-card:visible')
+    .filter({ hasText: 'Ciment E2E' })
+    .filter({ hasText: 'Matériaux' })
+    .first()
+  await expect(productCard).toBeVisible({ timeout: 10000 })
 })
 
 test('product can be deactivated and activated', async ({ page }) => {

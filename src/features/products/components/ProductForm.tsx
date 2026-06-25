@@ -70,7 +70,7 @@ export function ProductForm({
     isActive: product?.isActive ?? true,
   })
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormData, string>>>({})
-  const disabled = Boolean(isLoading)
+  const disabled = Boolean(isLoading) || Boolean(isCreatingCategory)
 
   const updateField = <K extends keyof ProductFormData>(key: K, value: ProductFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))

@@ -29,6 +29,17 @@ export interface InbucketMessageDetail {
 
 const INBUCKET_URL = process.env.INBUCKET_URL ?? 'http://localhost:54324'
 
+export async function isInbucketReachable(): Promise<boolean> {
+  try {
+    const res = await fetch(`${INBUCKET_URL}/api/v1/mailbox/ping`, {
+      signal: AbortSignal.timeout(2000),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export async function listMessages(email: string): Promise<InbucketMessage[]> {
   const mailbox = email.replace(/@.*/, '')
   const res = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`)

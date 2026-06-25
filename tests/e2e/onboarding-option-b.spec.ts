@@ -13,7 +13,7 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { extractLink, waitForMessage } from './helpers/inbucket'
+import { extractLink, isInbucketReachable, waitForMessage } from './helpers/inbucket'
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173'
 const TEST_USER = {
@@ -29,6 +29,16 @@ const TEST_USER = {
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Onboarding Option B - email/password + AppLock PIN', () => {
+  let inbucketReachable = false
+
+  test.beforeAll(async () => {
+    inbucketReachable = await isInbucketReachable()
+  })
+
+  test.skip(
+    () => !inbucketReachable,
+    'Requires local Supabase + Inbucket. Run `npx supabase start` and set INBUCKET_URL if needed.'
+  )
   test('full flow: signup, verify, login, set PIN, lock/unlock, reset PIN', async ({
     page,
     context,

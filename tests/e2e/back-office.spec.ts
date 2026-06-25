@@ -14,10 +14,11 @@ import { test, expect } from '@playwright/test'
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173'
 
-// Hard-coded platform admin credentials provided by the user.
+// BackOffice credentials must be supplied via environment variables.
+// Do not commit real credentials to the repository.
 const PLATFORM_ADMIN = {
-  email: 'su@app.grandigix.com',
-  password: 'Zsysmx3fQmSVFe23',
+  email: process.env.E2E_BACKOFFICE_EMAIL ?? '',
+  password: process.env.E2E_BACKOFFICE_PASSWORD ?? '',
 }
 
 async function login(page: import('@playwright/test').Page, email: string, password: string) {
@@ -39,8 +40,15 @@ async function setupPinIfNeeded(page: import('@playwright/test').Page) {
   }
 }
 
+const hasBackOfficeCredentials = Boolean(PLATFORM_ADMIN.email) && Boolean(PLATFORM_ADMIN.password)
+
 test.describe('BackOffice platform admin', () => {
   test.skip(({ isMobile }) => isMobile, 'BackOffice navigation is desktop-only')
+
+  test.skip(
+    () => !hasBackOfficeCredentials,
+    'BackOffice E2E requires E2E_BACKOFFICE_EMAIL and E2E_BACKOFFICE_PASSWORD environment variables'
+  )
 
   test('overview loads, organisations list works, sudo enters and exits', async ({ page }) => {
     await login(page, PLATFORM_ADMIN.email, PLATFORM_ADMIN.password)
