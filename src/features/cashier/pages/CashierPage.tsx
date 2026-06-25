@@ -442,13 +442,6 @@ export default function CashierPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => setShowHistory((prev) => !prev)}>
-            <History className="mr-2 h-4 w-4" />
-            {showHistory ? 'Masquer historique' : 'Historique'}
-          </Button>
-        </div>
-
         {scannerOpen && (
           <div className="mt-4 rounded-lg border p-2">
             {scannerError ? (
@@ -482,6 +475,16 @@ export default function CashierPage() {
                     <p className="text-sm text-muted-foreground">
                       {formatDateTime(openSession.openedAt)}
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setShowHistory((prev) => !prev)}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      {showHistory ? 'Masquer' : 'Historique'}
+                    </Button>
                   </div>
                 </div>
               </div>
