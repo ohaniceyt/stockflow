@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, ListPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,8 +13,12 @@ import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
 import { MovementForm } from '../components/MovementForm'
+import { BulkMovementForm } from '../components/BulkMovementForm'
 import { MovementList } from '../components/MovementList'
-import { useCreateMovement, useMovements } from '../hooks/useMovements'
+import { useCreateBulkMovements, useCreateMovement, useMovements } from '../hooks/useMovements'
+import type { MovementType } from '@/types'
+
+type DialogMode = 'single' | 'bulk' | null
 
 export default function MovementsPage() {
   const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
@@ -22,26 +26,41 @@ export default function MovementsPage() {
   const { data: locations, isLoading: locationsLoading, error: locationsError } = useLocations()
   const { data: contacts, isLoading: contactsLoading, error: contactsError } = useContacts()
   const create = useCreateMovement()
+  const createBulk = useCreateBulkMovements()
   const { hasRole } = useAuth()
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<DialogMode>(null)
 
   const isLoading = movementsLoading || productsLoading || locationsLoading || contactsLoading
 
-  const handleSubmit = (input: {
+  const handleSingleSubmit = (input: {
     productId: string
     locationId: string
     targetLocationId: string | null
-    type: import('@/types').MovementType
+    type: MovementType
     quantity: number
     reason: string | null
     contactId: string | null
   }) => {
     create.mutate(input, {
-      onSuccess: () => {
-        setIsDialogOpen(false)
-      },
+      onSuccess: () => setDialogMode(null),
+    })
+  }
+
+  const handleBulkSubmit = (
+    inputs: {
+      productId: string
+      locationId: string
+      targetLocationId: string | null
+      type: MovementType
+      quantity: number
+      reason: string | null
+      contactId: string | null
+    }[]
+  ) => {
+    createBulk.mutate(inputs, {
+      onSuccess: () => setDialogMode(null),
     })
   }
 
@@ -53,42 +72,80 @@ export default function MovementsPage() {
           <p className="text-muted-foreground">Historique des entrées, sorties et transferts.</p>
         </div>
         {canCreate && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <Button className="w-full sm:w-auto" onClick={() => setIsDialogOpen(true)}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setDialogMode('bulk')}>
+              <ListPlus className="mr-2 h-4 w-4" />
+              En bulk
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={() => setDialogMode('single')}>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau mouvement
             </Button>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Nouveau mouvement</DialogTitle>
-                <DialogDescription>
-                  Enregistrez une entrée, sortie, transfert ou ajustement.
-                </DialogDescription>
-              </DialogHeader>
-              {productsError || locationsError || contactsError ? (
-                <p className="text-sm text-destructive">
-                  Impossible de charger les données nécessaires au formulaire.
-                </p>
-              ) : products && locations && products.length > 0 && locations.length > 0 ? (
-                <MovementForm
-                  products={products}
-                  locations={locations}
-                  contacts={contacts ?? []}
-                  onSubmit={handleSubmit}
-                  onCancel={() => setIsDialogOpen(false)}
-                  isLoading={create.isPending}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aucun produit ou emplacement disponible. Créez-en au moins un pour enregistrer un
-                  mouvement.
-                </p>
-              )}
-              {create.error && <p className="text-sm text-destructive">{create.error.message}</p>}
-            </DialogContent>
-          </Dialog>
+          </div>
         )}
       </div>
+
+      <Dialog open={dialogMode === 'single'} onOpenChange={(open) => !open && setDialogMode(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau mouvement</DialogTitle>
+            <DialogDescription>
+              Enregistrez une entrée, sortie, transfert ou ajustement.
+            </DialogDescription>
+          </DialogHeader>
+          {productsError || locationsError || contactsError ? (
+            <p className="text-sm text-destructive">
+              Impossible de charger les données nécessaires au formulaire.
+            </p>
+          ) : products && locations && products.length > 0 && locations.length > 0 ? (
+            <MovementForm
+              products={products}
+              locations={locations}
+              contacts={contacts ?? []}
+              onSubmit={handleSingleSubmit}
+              onCancel={() => setDialogMode(null)}
+              isLoading={create.isPending}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun produit ou emplacement disponible. Créez-en au moins un pour enregistrer un
+              mouvement.
+            </p>
+          )}
+          {create.error && <p className="text-sm text-destructive">{create.error.message}</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialogMode === 'bulk'} onOpenChange={(open) => !open && setDialogMode(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Mouvements en bulk</DialogTitle>
+            <DialogDescription>Enregistrez plusieurs mouvements à la suite.</DialogDescription>
+          </DialogHeader>
+          {productsError || locationsError || contactsError ? (
+            <p className="text-sm text-destructive">
+              Impossible de charger les données nécessaires au formulaire.
+            </p>
+          ) : products && locations && products.length > 0 && locations.length > 0 ? (
+            <BulkMovementForm
+              products={products}
+              locations={locations}
+              contacts={contacts ?? []}
+              onSubmit={handleBulkSubmit}
+              onCancel={() => setDialogMode(null)}
+              isLoading={createBulk.isPending}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun produit ou emplacement disponible. Créez-en au moins un pour enregistrer des
+              mouvements.
+            </p>
+          )}
+          {createBulk.error && (
+            <p className="text-sm text-destructive">{createBulk.error.message}</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {movementsError && <p className="text-destructive">{movementsError.message}</p>}
