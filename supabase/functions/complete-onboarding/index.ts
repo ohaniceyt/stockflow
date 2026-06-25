@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 
 interface OnboardingPayload {
   orgName: string
@@ -36,7 +36,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -48,7 +49,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -85,6 +86,12 @@ Deno.serve(async (req: Request) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    // User client carries the verified JWT so complete_onboarding can assert auth.uid().
+    const userClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
     })
 
     const authUserId = claims.sub
@@ -125,7 +132,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Atomic onboarding via RPC: creates org, super_admin membership, free subscription and default location.
-    const { data: rpcData, error: rpcError } = await adminClient.rpc('complete_onboarding', {
+    // We call it through the user client so the RPC can assert auth.uid() == p_user_id.
+    const { data: rpcData, error: rpcError } = await userClient.rpc('complete_onboarding', {
       p_user_id: authUserId,
       p_org_name: orgName.trim(),
       p_org_slug: normalizedSlug,

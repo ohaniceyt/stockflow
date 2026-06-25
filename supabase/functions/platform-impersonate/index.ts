@@ -8,7 +8,8 @@ interface Payload {
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-platform-challenge-id',
 }
 
 Deno.serve(async (req: Request) => {
@@ -27,7 +28,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

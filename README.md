@@ -46,16 +46,15 @@ Copiez `.env.example` vers `.env` et renseignez les valeurs.
 
 Définies via `supabase secrets set` ou le dashboard Supabase :
 
-| Secret                      | Description                                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`              | URL du projet Supabase                                                                                  |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clé service role (admin)                                                                                |
-| `SUPABASE_ANON_KEY`         | Clé anonyme (utilisée pour les comptes de démo, si `DEMO_BYPASS=true`)                                  |
-| `RESEND_API_KEY`            | Clé API Resend (`re_...`)                                                                               |
-| `RESEND_FROM_EMAIL`         | Expéditeur par défaut, ex. `StockFlow <team@updates.stockflow.grandigix.com>`                           |
-| `PUBLIC_APP_URL`            | URL publique de l’application, ex. `https://stockflow.grandigix.com`                                    |
-| `CRON_SECRET`               | Secret utilisé par le cron GitHub Actions pour appeler `cleanup-rate-limits`                            |
-| `DEMO_BYPASS`               | `true` uniquement en dev pour contourner l’email OTP sur les comptes de démo. **Jamais en production.** |
+| Secret                      | Description                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`              | URL du projet Supabase                                                                                |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service role (admin)                                                                              |
+| `SUPABASE_ANON_KEY`         | Clé anonyme utilisée par les Edge Functions pour vérifier les JWT utilisateur auprès de Supabase Auth |
+| `RESEND_API_KEY`            | Clé API Resend (`re_...`)                                                                             |
+| `RESEND_FROM_EMAIL`         | Expéditeur par défaut, ex. `StockFlow <team@updates.stockflow.grandigix.com>`                         |
+| `PUBLIC_APP_URL`            | URL publique de l’application, ex. `https://stockflow.grandigix.com`                                  |
+| `CRON_SECRET`               | Secret utilisé par le cron GitHub Actions pour appeler `cleanup-rate-limits`                          |
 
 ### CI/CD (GitHub Actions)
 
@@ -146,8 +145,8 @@ npm run build         # Build Vite
 
 - [ ] `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont renseignés dans Vercel (production + preview) sans espace parasite.
 - [ ] Les secrets Supabase (`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, etc.) sont définis.
-- [ ] `DEMO_BYPASS` n’est **pas** défini à `true` en production.
-- [ ] Les Edge Functions publiques (`login`, `send-magic-link`) sont bien déployées avec `--no-verify-jwt`.
+- [ ] `SUPABASE_ANON_KEY` est configuré comme secret Supabase pour la vérification JWT dans les Edge Functions.
+- [ ] Les Edge Functions publiques (`login`, `send-magic-link`, `signup`) sont bien déployées avec `--no-verify-jwt`.
 - [ ] Les Edge Functions protégées sont déployées **avec** vérification JWT.
 - [ ] La dernière migration (`npx supabase db push`) est appliquée.
 - [ ] Les comptes de test temporaires sont désactivés/supprimés.

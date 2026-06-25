@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 
@@ -48,7 +48,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -60,7 +61,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -135,20 +136,13 @@ Deno.serve(async (req: Request) => {
     // record_movement uses auth.uid() to resolve the operator and their org.
     // Calling it through the service-role adminClient would make auth.uid() null,
     // so we call it through a user client that carries the operator's JWT.
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    if (!anonKey) {
-      return new Response(JSON.stringify({ error: 'Missing Supabase anon key' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const userClient = createClient(supabaseUrl, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       global: { headers: { Authorization: `Bearer ${token}` } },
     })
 
     const { data, error } = await userClient.rpc('record_movement', {
+      p_org_id: operator.org_id,
       p_product_id: payload.product_id,
       p_location_id: payload.location_id,
       p_target_location_id: payload.target_location_id ?? null,

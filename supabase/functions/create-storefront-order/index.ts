@@ -176,38 +176,34 @@ Deno.serve(async (req: Request) => {
     }
 
     const orderNumber = generateOrderNumber()
-    const movementIds: string[] = []
 
-    for (const item of payload.items) {
-      const product = productMap.get(item.product_id)!
-      const unitPrice = item.unit_price || product.selling_price || 0
-
-      const { data: movement, error: movementError } = await adminClient.rpc('record_movement', {
+    const { data: orderResult, error: orderError } = await adminClient.rpc(
+      'record_storefront_order',
+      {
         p_org_id: orgId,
-        p_product_id: item.product_id,
         p_location_id: locationId,
-        p_target_location_id: null,
-        p_type: 'OUT',
-        p_quantity: item.quantity,
-        p_reason: `Commande ${orderNumber}`,
         p_contact_id: contactId,
-        p_unit_price: unitPrice,
-        p_cashier_session_id: null,
-      })
-
-      if (movementError) {
-        return new Response(JSON.stringify({ error: movementError.message }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        p_items: payload.items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price || productMap.get(i.product_id)?.selling_price,
+        })),
+        p_reason: `Commande ${orderNumber}`,
       }
+    )
 
-      movementIds.push(movement as string)
+    if (orderError || !orderResult) {
+      return new Response(JSON.stringify({ error: orderError?.message ?? 'Order failed' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
+
+    const movementIds = (orderResult as { movement_ids: string[] }).movement_ids
 
     return new Response(
       JSON.stringify({
-        order_id: movementIds[0],
+        order_id: movementIds[0] ?? null,
         order_number: orderNumber,
         movement_count: movementIds.length,
       }),

@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 
 interface Payload {
   invitationId: string
@@ -18,7 +18,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -30,7 +31,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub || !claims?.email) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,

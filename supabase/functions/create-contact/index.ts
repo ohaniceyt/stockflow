@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface CreateContactPayload {
@@ -27,7 +27,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -39,7 +40,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -98,8 +99,13 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !data) {
-      return new Response(JSON.stringify({ error: error?.message ?? 'Could not create contact' }), {
-        status: 500,
+      const isUniqueViolation = error?.code === '23505'
+      const status = isUniqueViolation ? 409 : 500
+      const message = isUniqueViolation
+        ? 'A contact with this email already exists in your organization.'
+        : (error?.message ?? 'Could not create contact')
+      return new Response(JSON.stringify({ error: message }), {
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

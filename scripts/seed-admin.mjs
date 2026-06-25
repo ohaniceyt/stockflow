@@ -3,9 +3,21 @@ import { pbkdf2Sync, randomBytes } from 'node:crypto'
 
 const url = 'https://ngdvmodloxuvrdjjzxel.supabase.co'
 const serviceKey = process.argv[2]
+const password = process.env.PLATFORM_ADMIN_PASSWORD
+const defaultPin = process.env.PLATFORM_ADMIN_PIN ?? '4242'
 
 if (!serviceKey) {
   console.error('Usage: node scripts/seed-admin.mjs <SUPABASE_SERVICE_ROLE_KEY>')
+  process.exit(1)
+}
+
+if (!password) {
+  console.error('Environment variable PLATFORM_ADMIN_PASSWORD is required')
+  process.exit(1)
+}
+
+if (password.length < 20) {
+  console.error('PLATFORM_ADMIN_PASSWORD must be at least 20 characters')
   process.exit(1)
 }
 
@@ -14,8 +26,6 @@ const adminClient = createClient(url, serviceKey, {
 })
 
 const email = 'su@app.grandigix.com'
-const password = 'Zsysmx3fQmSVFe23'
-const defaultPin = '4242'
 
 function hashPin(pin, salt = randomBytes(16)) {
   const derived = pbkdf2Sync(pin, salt, 100_000, 32, 'sha256')

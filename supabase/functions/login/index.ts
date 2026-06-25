@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
+import { decodeBase64, encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 
 interface LoginPayload {
   membershipId: string
@@ -40,7 +40,7 @@ async function hashPin(pin: string, saltB64: string): Promise<string> {
     256
   )
   const bytes = new Uint8Array(derived)
-  return btoa(String.fromCharCode(...bytes))
+  return encodeBase64(bytes)
 }
 
 function getClientIp(req: Request): string | null {
@@ -238,91 +238,6 @@ Deno.serve(async (req: Request) => {
     const onboardingCompleted =
       ['super_admin', 'admin'].includes(membership.role as string) &&
       org?.onboarding_completed === true
-
-    // Dev-only bypass for demo accounts when Supabase email rate limits block OTP.
-    // Controlled by the DEMO_BYPASS environment variable; never enable in production.
-    const demoBypass = Deno.env.get('DEMO_BYPASS') === 'true'
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    const isDemoAccount =
-      demoBypass &&
-      anonKey &&
-      (authUserId === '584a7634-fbed-41ad-a947-b104d013ee96' ||
-        authUserId === '0c14cf03-5341-4b95-bb9e-eb0fbcd16836')
-
-    if (isDemoAccount) {
-      const anonClient = createClient(supabaseUrl, anonKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-
-      const demoPassword = `demo-${authUserId.slice(0, 8)}`
-
-      const { error: createError } = await adminClient.auth.admin.createUser({
-        id: authUserId,
-        email: profile.email,
-        password: demoPassword,
-        email_confirm: true,
-        user_metadata: {
-          org_id: membership.org_id,
-          role: membership.role,
-          name: profile.name,
-          membership_id: membership.id,
-        },
-      })
-
-      if (createError) {
-        const { error: updateError } = await adminClient.auth.admin.updateUserById(authUserId, {
-          password: demoPassword,
-        })
-        if (updateError) {
-          return new Response(
-            JSON.stringify({ error: `Bypass auth setup failed: ${updateError.message}` }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      }
-
-      const { data: signInData, error: signInError } = await anonClient.auth.signInWithPassword({
-        email: profile.email,
-        password: demoPassword,
-      })
-
-      if (signInError || !signInData.session) {
-        return new Response(
-          JSON.stringify({
-            error: `Bypass sign-in failed: ${signInError?.message ?? 'no session'}`,
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      return new Response(
-        JSON.stringify({
-          email: profile.email,
-          forcePinChange: membership.force_pin_change,
-          onboardingCompleted,
-          session: {
-            access_token: signInData.session.access_token,
-            refresh_token: signInData.session.refresh_token,
-            expires_in: signInData.session.expires_in,
-            expires_at: signInData.session.expires_at,
-          },
-          user: {
-            id: authUserId,
-            membershipId: membership.id,
-            orgId: membership.org_id,
-            orgName: org?.name ?? '',
-            name: profile.name,
-            email: profile.email,
-            emailVerified: profile.email_verified,
-            role: membership.role,
-            isPlatformAdmin,
-            forcePinChange: membership.force_pin_change,
-            onboardingCompleted,
-          },
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     return new Response(
       JSON.stringify({

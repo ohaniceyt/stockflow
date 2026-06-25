@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +14,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -26,7 +27,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -154,7 +155,7 @@ Deno.serve(async (req: Request) => {
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
       .select(
-        'id, name, slug, currency, timezone, onboarding_completed, is_suspended, suspension_reason'
+        'id, name, slug, currency, timezone, onboarding_completed, is_suspended, suspension_reason, has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id'
       )
       .eq('id', activeOrgId)
       .single()
@@ -225,6 +226,10 @@ Deno.serve(async (req: Request) => {
           isActive: !org.is_suspended,
           isSuspended: org.is_suspended,
           suspensionReason: org.suspension_reason,
+          hasCashierEnabled: org.has_cashier_enabled,
+          hasStorefrontEnabled: org.has_storefront_enabled,
+          hasApiEnabled: org.has_api_enabled,
+          storefrontLocationId: org.storefront_location_id,
         },
         isPlatformAdmin,
         platformAdminRole,

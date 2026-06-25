@@ -14,6 +14,7 @@ export default defineConfig([
     'playwright-report',
     'test-results',
     '.npm-cache',
+    '.claude',
     'supabase/functions',
     'playwright.config.ts',
   ]),

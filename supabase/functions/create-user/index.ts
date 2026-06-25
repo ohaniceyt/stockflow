@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
-import { getBearerToken, parseJwt } from '../_shared/auth.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
@@ -33,11 +33,12 @@ async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
   return encodeBase64(new Uint8Array(derived))
 }
 
-function generateTempPin(): string {
+function generateTempPin(length = 4): string {
   const digits = '0123456789'
+  const randomValues = crypto.getRandomValues(new Uint8Array(length))
   let pin = ''
-  for (let i = 0; i < 4; i++) {
-    pin += digits[Math.floor(Math.random() * digits.length)]
+  for (let i = 0; i < length; i++) {
+    pin += digits[randomValues[i] % digits.length]
   }
   return pin
 }
@@ -50,7 +51,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
@@ -62,7 +64,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const claims = parseJwt(token)
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
