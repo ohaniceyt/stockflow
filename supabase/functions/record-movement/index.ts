@@ -102,7 +102,23 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { data, error } = await adminClient.rpc('record_movement', {
+    // record_movement uses auth.uid() to resolve the operator and their org.
+    // Calling it through the service-role adminClient would make auth.uid() null,
+    // so we call it through a user client that carries the operator's JWT.
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    if (!anonKey) {
+      return new Response(JSON.stringify({ error: 'Missing Supabase anon key' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
+
+    const { data, error } = await userClient.rpc('record_movement', {
       p_product_id: payload.product_id,
       p_location_id: payload.location_id,
       p_target_location_id: payload.target_location_id ?? null,

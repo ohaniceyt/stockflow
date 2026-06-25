@@ -74,7 +74,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
     ctx.fillStyle = 'var(--text-faint)'
-    ctx.font = '11px Outfit, sans-serif'
+    ctx.font = '11px Geist Variable, sans-serif'
     ctx.textAlign = 'right'
     ctx.fillText(String(value), padding.left - 8, y + 3)
   }
@@ -126,7 +126,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
     ctx.shadowOffsetY = 0
 
     ctx.fillStyle = 'var(--text)'
-    ctx.font = '11px Outfit, sans-serif'
+    ctx.font = '11px Geist Variable, sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText(day.label, groupX, cssHeight - 24)
   })

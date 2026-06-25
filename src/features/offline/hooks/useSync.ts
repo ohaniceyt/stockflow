@@ -244,7 +244,20 @@ export function useSync() {
     }
   }, [online, sync])
 
-  return { sync, isSyncing, online, lastError, deadCount }
+  const retryDead = useCallback(async () => {
+    const dead = await db.pendingOperations.where('status').equals('dead').toArray()
+    if (dead.length === 0) return
+    await db.pendingOperations.bulkUpdate(
+      dead.map((op) => ({
+        key: op.id,
+        changes: { status: 'failed', retryCount: 0, nextRetryAt: undefined, error: undefined },
+      }))
+    )
+    setDeadCount(0)
+    void sync()
+  }, [sync])
+
+  return { sync, isSyncing, online, lastError, deadCount, retryDead }
 }
 
 function isRetryableError(err: Error): boolean {
@@ -254,6 +267,9 @@ function isRetryableError(err: Error): boolean {
   if (msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not found'))
     return false
   if (msg.includes('invalid request') || msg.includes('validation')) return false
+  // Business validation errors that will not be fixed by retrying.
+  if (msg.includes('stock insuffisant')) return false
+  if (msg.includes('opérateur non trouvé') || msg.includes('operator not found')) return false
   // Network errors, timeouts, and 5xx are retryable.
   return true
 }

@@ -55,7 +55,7 @@ function drawTrend(
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
     ctx.fillStyle = 'var(--text-faint)'
-    ctx.font = '11px Outfit, sans-serif'
+    ctx.font = '11px Geist Variable, sans-serif'
     ctx.textAlign = 'right'
     ctx.fillText(String(value), padding.left - 8, y + 3)
   }
@@ -119,7 +119,7 @@ function drawTrend(
   }
 
   ctx.fillStyle = 'var(--text)'
-  ctx.font = '11px Outfit, sans-serif'
+  ctx.font = '11px Geist Variable, sans-serif'
   ctx.textAlign = 'center'
   aggregated.forEach((d, i) => {
     const show = aggregated.length <= 14 || i % 7 === 0 || i === aggregated.length - 1 || i === 0
