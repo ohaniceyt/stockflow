@@ -1,5 +1,9 @@
 -- Atomic inventory session creation + count update + default location swap
 
+-- Drop the old set_default_location if it exists with a different parameter order
+-- so the replacement below can install the canonical (p_org_id, p_location_id) signature.
+DROP FUNCTION IF EXISTS public.set_default_location(UUID, UUID);
+
 CREATE OR REPLACE FUNCTION create_inventory_session(
   p_org_id UUID,
   p_location_id UUID,
