@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 const tabs = [
   { to: '/settings/profile', label: 'Profil' },
   { to: '/settings/organization', label: 'Organisation' },
+  { to: '/settings/team', label: 'Équipe' },
   { to: '/settings/subscription', label: 'Abonnement' },
 ]
 

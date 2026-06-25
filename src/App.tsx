@@ -124,13 +124,14 @@ function App() {
               }
             />
             <Route
-              path="/team"
+              path="/settings/team"
               element={
                 <RequireAuth roles={['super_admin', 'admin']}>
                   <TeamPage />
                 </RequireAuth>
               }
             />
+            <Route path="/team" element={<Navigate to="/settings/team" replace />} />
             <Route
               path="/locations"
               element={

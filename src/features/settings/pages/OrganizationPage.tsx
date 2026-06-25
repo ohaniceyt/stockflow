@@ -1,10 +1,11 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Building2, MapPin } from 'lucide-react'
+import { Building2, MapPin, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { useLocations, useSetDefaultLocation } from '@/features/locations/hooks/useLocations'
 import { useOrganization, useUpdateOrganization } from '../hooks/useSettings'
 import { SettingsTabs } from '../components/SettingsTabs'
 import type { Organization } from '@/types'
@@ -157,6 +158,45 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
   )
 }
 
+function LocationsList() {
+  const { data: locations, isLoading, error } = useLocations()
+  const setDefault = useSetDefaultLocation()
+
+  if (isLoading) return <p className="text-muted-foreground">Chargement…</p>
+  if (error) return <p className="text-destructive">{error.message}</p>
+  if (!locations || locations.length === 0)
+    return <p className="text-muted-foreground">Aucun emplacement enregistré.</p>
+
+  return (
+    <ul className="divide-y rounded-lg border">
+      {locations.map((location) => (
+        <li
+          key={location.id}
+          className="flex items-center justify-between px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="font-medium">{location.name}</p>
+            {location.description && (
+              <p className="truncate text-sm text-muted-foreground">{location.description}</p>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant={location.isDefault ? 'default' : 'outline'}
+            size="sm"
+            disabled={location.isDefault || setDefault.isPending}
+            onClick={() => setDefault.mutate(location.id)}
+            aria-label={location.isDefault ? 'Emplacement par défaut' : 'Définir par défaut'}
+          >
+            <Star className="mr-1 h-3.5 w-3.5" />
+            {location.isDefault ? 'Par défaut' : 'Par défaut'}
+          </Button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function OrganizationPage() {
   const { session, hasRole } = useAuth()
   const { data: organization, isLoading, error } = useOrganization()
@@ -217,9 +257,12 @@ export default function OrganizationPage() {
           </div>
         </div>
 
-        <Button variant="outline" asChild>
-          <a href="/locations">Gérer les emplacements</a>
-        </Button>
+        <div className="space-y-4">
+          <LocationsList />
+          <Button variant="outline" asChild>
+            <a href="/locations">Gérer les emplacements</a>
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -8,12 +8,10 @@ import {
   MapPin,
   Users,
   FileText,
-  CreditCard,
   Shield,
   Truck,
   UserCheck,
-  Building2,
-  UserCircle,
+  Settings,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -48,6 +46,13 @@ export const navItems: NavItem[] = [
     primary: true,
   },
   {
+    to: '/recap',
+    label: 'Récap',
+    icon: FileText,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+    primary: true,
+  },
+  {
     to: '/inventory',
     label: 'Inventaire',
     icon: ClipboardList,
@@ -60,27 +65,9 @@ export const navItems: NavItem[] = [
   { to: '/customers', label: 'Clients', icon: UserCheck, roles: ['super_admin', 'admin'] },
   { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
   {
-    to: '/recap',
-    label: 'Récap',
-    icon: FileText,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  {
     to: '/settings/profile',
-    label: 'Profil',
-    icon: UserCircle,
-    roles: ['super_admin', 'admin', 'operator', 'reader'],
-  },
-  {
-    to: '/settings/organization',
-    label: 'Organisation',
-    icon: Building2,
-    roles: ['super_admin', 'admin'],
-  },
-  {
-    to: '/settings/subscription',
-    label: 'Abonnement',
-    icon: CreditCard,
+    label: 'Réglages',
+    icon: Settings,
     roles: ['super_admin', 'admin', 'operator', 'reader'],
   },
   {

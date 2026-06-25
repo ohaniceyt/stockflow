@@ -15,7 +15,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 flex-col border-r bg-card md:flex">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-card md:flex">
         <div className="flex h-16 items-center gap-3 border-b px-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
             S
@@ -61,7 +61,7 @@ export function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto md:pl-64">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-6">
           <button
             type="button"

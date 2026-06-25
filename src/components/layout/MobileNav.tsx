@@ -19,7 +19,7 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t bg-card px-2 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t bg-card px-2 pb-[env(safe-area-inset-bottom)] md:hidden safe-area-pb"
       aria-label="Navigation mobile"
     >
       {primaryItems.map((item) => (
