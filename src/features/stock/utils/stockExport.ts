@@ -1,11 +1,20 @@
 import type { StockItem } from '../services/stockService'
 
-export function exportStockToExcel(stock: StockItem[], orgName = 'StockFlow') {
+interface ExportOptions {
+  redactFinancials?: boolean
+}
+
+export function exportStockToExcel(
+  stock: StockItem[],
+  orgName = 'StockFlow',
+  options: ExportOptions = {}
+) {
+  const { redactFinancials = false } = options
   return import('exceljs').then(({ Workbook }) => {
     const wb = new Workbook()
     const ws = wb.addWorksheet('Stock')
 
-    ws.columns = [
+    const baseColumns = [
       { header: 'Produit', key: 'productName', width: 30 },
       { header: 'Référence', key: 'barcode', width: 20 },
       { header: 'Catégorie', key: 'category', width: 20 },
@@ -13,17 +22,27 @@ export function exportStockToExcel(stock: StockItem[], orgName = 'StockFlow') {
       { header: 'Quantité', key: 'quantity', width: 12 },
       { header: 'Unité', key: 'productUnit', width: 12 },
       { header: 'Seuil', key: 'threshold', width: 12 },
-      { header: 'PA unitaire', key: 'costPrice', width: 14 },
-      { header: 'PV unitaire', key: 'sellingPrice', width: 14 },
-      { header: 'Valeur achat', key: 'stockValue', width: 14 },
-      { header: 'Valeur vente', key: 'stockSellingValue', width: 14 },
+    ]
+
+    const financialColumns = redactFinancials
+      ? []
+      : [
+          { header: 'PA unitaire', key: 'costPrice', width: 14 },
+          { header: 'PV unitaire', key: 'sellingPrice', width: 14 },
+          { header: 'Valeur achat', key: 'stockValue', width: 14 },
+          { header: 'Valeur vente', key: 'stockSellingValue', width: 14 },
+        ]
+
+    ws.columns = [
+      ...baseColumns,
+      ...financialColumns,
       { header: 'Statut', key: 'status', width: 12 },
     ]
 
     stock.forEach((item) => {
       const status =
         item.quantity <= 0 ? 'RUPTURE' : item.quantity <= item.threshold ? 'ALERTE' : 'OK'
-      ws.addRow({
+      const row: Record<string, unknown> = {
         productName: item.productName,
         barcode: item.barcode ?? '',
         category: item.category ?? '',
@@ -31,12 +50,15 @@ export function exportStockToExcel(stock: StockItem[], orgName = 'StockFlow') {
         quantity: item.quantity,
         productUnit: item.productUnit,
         threshold: item.threshold,
-        costPrice: item.costPrice,
-        sellingPrice: item.sellingPrice,
-        stockValue: item.quantity * item.costPrice,
-        stockSellingValue: item.quantity * item.sellingPrice,
         status,
-      })
+      }
+      if (!redactFinancials) {
+        row.costPrice = item.costPrice
+        row.sellingPrice = item.sellingPrice
+        row.stockValue = item.quantity * item.costPrice
+        row.stockSellingValue = item.quantity * item.sellingPrice
+      }
+      ws.addRow(row)
     })
 
     ws.getRow(1).font = { bold: true }
@@ -56,7 +78,12 @@ export function exportStockToExcel(stock: StockItem[], orgName = 'StockFlow') {
   })
 }
 
-export function exportStockToPdf(stock: StockItem[], orgName = 'StockFlow') {
+export function exportStockToPdf(
+  stock: StockItem[],
+  orgName = 'StockFlow',
+  options: ExportOptions = {}
+) {
+  const { redactFinancials = false } = options
   return import('jspdf').then(({ jsPDF }) => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -95,12 +122,10 @@ export function exportStockToPdf(stock: StockItem[], orgName = 'StockFlow') {
 
       doc.setFontSize(9)
       doc.setTextColor(100)
-      doc.text(
-        `${item.quantity.toLocaleString()} ${item.productUnit} · Seuil: ${item.threshold.toLocaleString()} · ${status}`,
-        pageWidth - 14,
-        y + 4,
-        { align: 'right' }
-      )
+      const details = redactFinancials
+        ? `${item.quantity.toLocaleString()} ${item.productUnit} · Seuil: ${item.threshold.toLocaleString()} · ${status}`
+        : `${item.quantity.toLocaleString()} ${item.productUnit} · PA: ${item.costPrice.toLocaleString()} · PV: ${item.sellingPrice.toLocaleString()} · ${status}`
+      doc.text(details, pageWidth - 14, y + 4, { align: 'right' })
 
       y += 10
       doc.setDrawColor(226, 232, 240)
@@ -112,11 +137,19 @@ export function exportStockToPdf(stock: StockItem[], orgName = 'StockFlow') {
   })
 }
 
-export function shareStockOnWhatsApp(stock: StockItem[], orgName = 'StockFlow') {
+export function shareStockOnWhatsApp(
+  stock: StockItem[],
+  orgName = 'StockFlow',
+  options: ExportOptions = {}
+) {
+  const { redactFinancials = false } = options
   const lines = stock.map((item) => {
     const status =
       item.quantity <= 0 ? 'RUPTURE' : item.quantity <= item.threshold ? 'ALERTE' : 'OK'
-    return `• ${item.productName}: ${item.quantity.toLocaleString()} ${item.productUnit} (${status})`
+    const details = redactFinancials
+      ? `${item.quantity.toLocaleString()} ${item.productUnit} (${status})`
+      : `${item.quantity.toLocaleString()} ${item.productUnit} · PA: ${item.costPrice.toLocaleString()} · PV: ${item.sellingPrice.toLocaleString()} (${status})`
+    return `• ${item.productName}: ${details}`
   })
 
   const header = `*Stock ${orgName}* — ${new Date().toLocaleDateString('fr-FR')}\n\n`

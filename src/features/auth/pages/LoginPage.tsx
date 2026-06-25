@@ -14,9 +14,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated && !session?.needsOrganization) {
-      void navigate('/dashboard', { replace: true })
+    if (!isAuthenticated) return
+    if (session?.needsOrganization) {
+      void navigate('/onboarding', { replace: true })
+      return
     }
+    void navigate('/dashboard', { replace: true })
   }, [isAuthenticated, session?.needsOrganization, navigate])
 
   const banner = useMemo(() => {

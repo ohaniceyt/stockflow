@@ -2,7 +2,7 @@ import { useState, type SyntheticEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { LocationFormData } from '../schemas/locationSchema'
+import { locationSchema, type LocationFormData } from '../schemas/locationSchema'
 
 interface LocationFormProps {
   defaultValues?: Partial<LocationFormData>
@@ -15,13 +15,25 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
   const [name, setName] = useState(defaultValues?.name ?? '')
   const [description, setDescription] = useState(defaultValues?.description ?? '')
   const [address, setAddress] = useState(defaultValues?.address ?? '')
-  const [errors, setErrors] = useState<Partial<Record<'name', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof LocationFormData, string>>>({})
 
-  const validate = () => {
-    const next: Partial<Record<'name', string>> = {}
-    if (!name.trim()) next.name = 'Le nom est requis'
-    setErrors(next)
-    return Object.keys(next).length === 0
+  const validate = (): boolean => {
+    const result = locationSchema.safeParse({
+      name,
+      description: description.trim() || null,
+      address: address.trim() || null,
+    })
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof LocationFormData, string>> = {}
+      result.error.errors.forEach((e) => {
+        const key = e.path[0] as keyof LocationFormData
+        fieldErrors[key] = e.message
+      })
+      setErrors(fieldErrors)
+      return false
+    }
+    setErrors({})
+    return true
   }
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
@@ -43,6 +55,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Entrepôt principal"
+          disabled={isLoading}
         />
         {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
@@ -54,7 +67,9 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Zone de stockage principale"
+          disabled={isLoading}
         />
+        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
       </div>
 
       <div className="space-y-2">
@@ -64,7 +79,9 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Abidjan, Côte d'Ivoire"
+          disabled={isLoading}
         />
+        {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

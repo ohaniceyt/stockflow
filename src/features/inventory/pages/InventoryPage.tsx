@@ -18,18 +18,20 @@ import type { SessionWithDetails } from '../services/inventoryService'
 export default function InventoryPage() {
   const { hasRole } = useAuth()
   const canManage = hasRole(['super_admin', 'admin', 'operator'])
+  const canApply = hasRole(['super_admin', 'admin'])
   const {
     data: sessions,
     isLoading: sessionsLoading,
     error: sessionsError,
   } = useInventorySessions()
-  const { data: locations } = useLocations()
+  const { data: locations, isLoading: locationsLoading, error: locationsError } = useLocations()
   const create = useCreateInventorySession()
   const apply = useApplyInventorySession()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionWithDetails | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [applyError, setApplyError] = useState<Error | null>(null)
 
   const { data: counts, isLoading: countsLoading } = useSessionCounts(selectedSession?.id ?? null)
   const updateCount = useUpdateCount(selectedSession?.id ?? '')
@@ -52,20 +54,29 @@ export default function InventoryPage() {
   }
 
   const handleApply = () => {
-    if (!selectedSession) return
+    if (!selectedSession || !canApply) return
+    setApplyError(null)
     apply.mutate(selectedSession.id, {
       onSuccess: () => {
         setDetailOpen(false)
         setSelectedSession(null)
       },
+      onError: (err) => {
+        setApplyError(err)
+      },
     })
   }
 
   const handleApplyFromList = (s: SessionWithDetails) => {
+    if (!canApply) return
+    setApplyError(null)
     setSelectedSession(s)
     apply.mutate(s.id, {
       onSuccess: () => {
         setSelectedSession(null)
+      },
+      onError: (err) => {
+        setApplyError(err)
       },
     })
   }
@@ -85,18 +96,23 @@ export default function InventoryPage() {
         )}
       </div>
 
+      {applyError && <p className="text-destructive">{applyError.message}</p>}
       {sessionsLoading && <p className="text-muted-foreground">Chargement des sessions…</p>}
       {sessionsError && <p className="text-destructive">{sessionsError.message}</p>}
       {!sessionsLoading && !sessionsError && sessions && (
         <InventorySessionList
           sessions={sessions}
           onOpen={handleOpen}
-          onApply={canManage ? handleApplyFromList : undefined}
+          onApply={canApply ? handleApplyFromList : undefined}
           isApplying={apply.isPending}
         />
       )}
 
-      {locations && (
+      {locationsLoading && (
+        <p className="text-sm text-muted-foreground">Chargement des emplacements…</p>
+      )}
+      {locationsError && <p className="text-sm text-destructive">{locationsError.message}</p>}
+      {!locationsLoading && !locationsError && locations && (
         <CreateSessionDialog
           locations={locations}
           open={createOpen}
@@ -114,7 +130,9 @@ export default function InventoryPage() {
         onOpenChange={setDetailOpen}
         onUpdateCount={handleUpdateCount}
         onApply={handleApply}
+        canApply={canApply}
         isLoading={countsLoading || updateCount.isPending || apply.isPending}
+        isCountPending={updateCount.isPending}
         error={apply.error ?? updateCount.error}
       />
     </div>

@@ -253,7 +253,13 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
       )}
 
       <div ref={wrapperRef} className="ch-trend h-48 w-full">
-        <canvas ref={canvasRef} />
+        {aggregated.some((d) => d.value > 0) ? (
+          <canvas ref={canvasRef} />
+        ) : (
+          <div className="dash-empty flex h-full items-center justify-center">
+            Aucune sortie sur la période.
+          </div>
+        )}
       </div>
     </div>
   )

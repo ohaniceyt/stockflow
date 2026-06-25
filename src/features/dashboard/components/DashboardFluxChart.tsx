@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
 
 interface DashboardFluxChartProps {
@@ -9,29 +9,14 @@ function getDayKey(date: Date) {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-function drawChart(
-  canvas: HTMLCanvasElement,
-  wrapper: HTMLDivElement,
-  movements: MovementWithDetails[]
-) {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
+interface DailyTotal {
+  label: string
+  in: number
+  out: number
+}
 
-  const dpr = window.devicePixelRatio || 1
-  const rect = wrapper.getBoundingClientRect()
-  const cssWidth = Math.max(rect.width, 300)
-  const cssHeight = 256
-
-  canvas.width = cssWidth * dpr
-  canvas.height = cssHeight * dpr
-  canvas.style.width = `${String(cssWidth)}px`
-  canvas.style.height = `${String(cssHeight)}px`
-
-  ctx.resetTransform()
-  ctx.scale(dpr, dpr)
-  ctx.clearRect(0, 0, cssWidth, cssHeight)
-
-  const days: { label: string; in: number; out: number }[] = []
+function getDailyTotals(movements: MovementWithDetails[]): DailyTotal[] {
+  const days: DailyTotal[] = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
@@ -50,6 +35,26 @@ function drawChart(
       out: dayMovements.filter((m) => m.type === 'OUT').reduce((sum, m) => sum + m.quantity, 0),
     })
   }
+  return days
+}
+
+function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: DailyTotal[]) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const dpr = window.devicePixelRatio || 1
+  const rect = wrapper.getBoundingClientRect()
+  const cssWidth = Math.max(rect.width, 300)
+  const cssHeight = 256
+
+  canvas.width = cssWidth * dpr
+  canvas.height = cssHeight * dpr
+  canvas.style.width = `${String(cssWidth)}px`
+  canvas.style.height = `${String(cssHeight)}px`
+
+  ctx.resetTransform()
+  ctx.scale(dpr, dpr)
+  ctx.clearRect(0, 0, cssWidth, cssHeight)
 
   const maxValue = Math.max(...days.flatMap((d) => [d.in, d.out]), 1)
 
@@ -152,22 +157,30 @@ function drawChart(
 export function DashboardFluxChart({ movements }: DashboardFluxChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const days = useMemo(() => getDailyTotals(movements), [movements])
+  const hasData = useMemo(() => days.some((d) => d.in > 0 || d.out > 0), [days])
 
   useEffect(() => {
     const canvas = canvasRef.current
     const wrapper = wrapperRef.current
     if (!canvas || !wrapper) return
 
-    drawChart(canvas, wrapper, movements)
+    drawChart(canvas, wrapper, days)
 
-    const observer = new ResizeObserver(() => drawChart(canvas, wrapper, movements))
+    const observer = new ResizeObserver(() => drawChart(canvas, wrapper, days))
     observer.observe(wrapper)
     return () => observer.disconnect()
-  }, [movements])
+  }, [days])
 
   return (
     <div ref={wrapperRef} className="ch-dash h-64 w-full">
-      <canvas ref={canvasRef} />
+      {hasData ? (
+        <canvas ref={canvasRef} />
+      ) : (
+        <div className="dash-empty flex h-full items-center justify-center">
+          Aucun mouvement sur les 7 derniers jours.
+        </div>
+      )}
     </div>
   )
 }

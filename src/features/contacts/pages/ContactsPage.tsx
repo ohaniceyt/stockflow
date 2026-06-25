@@ -32,29 +32,46 @@ export function ContactsPage({ type, title, subtitle, buttonLabel }: ContactsPag
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const handleCreate = (data: ContactFormData) => {
+    setFormError(null)
     create.mutate(data, {
       onSuccess: () => {
         setIsDialogOpen(false)
+      },
+      onError: (err) => {
+        setFormError(err.message)
       },
     })
   }
 
   const handleUpdate = (data: ContactFormData) => {
     if (!editingContact) return
+    setFormError(null)
     update.mutate(
       { id: editingContact.id, ...data },
       {
         onSuccess: () => {
           setEditingContact(null)
         },
+        onError: (err) => {
+          setFormError(err.message)
+        },
       }
     )
   }
 
   const handleToggleActive = (contact: Contact) => {
-    update.mutate({ id: contact.id, isActive: !contact.isActive })
+    setFormError(null)
+    update.mutate(
+      { id: contact.id, isActive: !contact.isActive },
+      {
+        onError: (err) => {
+          setFormError(err.message)
+        },
+      }
+    )
   }
 
   const handleEdit = (contact: Contact) => {
@@ -63,6 +80,7 @@ export function ContactsPage({ type, title, subtitle, buttonLabel }: ContactsPag
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open)
+    setFormError(null)
     if (!open) {
       setEditingContact(null)
     }
@@ -82,6 +100,12 @@ export function ContactsPage({ type, title, subtitle, buttonLabel }: ContactsPag
           </Button>
         )}
       </div>
+
+      {formError && (
+        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+          {formError}
+        </p>
+      )}
 
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
@@ -108,15 +132,14 @@ export function ContactsPage({ type, title, subtitle, buttonLabel }: ContactsPag
             </DialogDescription>
           </DialogHeader>
           <ContactForm
+            key={editingContact?.id ?? 'new'}
             fixedType={type}
             defaultValues={editingContact ?? undefined}
             onSubmit={editingContact ? handleUpdate : handleCreate}
             onCancel={() => handleOpenChange(false)}
             isLoading={create.isPending || update.isPending}
+            error={formError ? new Error(formError) : (create.error ?? update.error)}
           />
-          {(create.error ?? update.error) && (
-            <p className="text-sm text-destructive">{(create.error ?? update.error)?.message}</p>
-          )}
         </DialogContent>
       </Dialog>
     </div>

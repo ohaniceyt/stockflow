@@ -18,9 +18,9 @@ import { useCreateMovement, useMovements } from '../hooks/useMovements'
 
 export default function MovementsPage() {
   const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
-  const { data: products, isLoading: productsLoading } = useProducts()
-  const { data: locations, isLoading: locationsLoading } = useLocations()
-  const { data: contacts, isLoading: contactsLoading } = useContacts()
+  const { data: products, isLoading: productsLoading, error: productsError } = useProducts()
+  const { data: locations, isLoading: locationsLoading, error: locationsError } = useLocations()
+  const { data: contacts, isLoading: contactsLoading, error: contactsError } = useContacts()
   const create = useCreateMovement()
   const { hasRole } = useAuth()
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
@@ -65,15 +65,24 @@ export default function MovementsPage() {
                   Enregistrez une entrée, sortie, transfert ou ajustement.
                 </DialogDescription>
               </DialogHeader>
-              {products && locations && contacts && (
+              {productsError || locationsError || contactsError ? (
+                <p className="text-sm text-destructive">
+                  Impossible de charger les données nécessaires au formulaire.
+                </p>
+              ) : products && locations && products.length > 0 && locations.length > 0 ? (
                 <MovementForm
                   products={products}
                   locations={locations}
-                  contacts={contacts}
+                  contacts={contacts ?? []}
                   onSubmit={handleSubmit}
                   onCancel={() => setIsDialogOpen(false)}
                   isLoading={create.isPending}
                 />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucun produit ou emplacement disponible. Créez-en au moins un pour enregistrer un
+                  mouvement.
+                </p>
               )}
               {create.error && <p className="text-sm text-destructive">{create.error.message}</p>}
             </DialogContent>

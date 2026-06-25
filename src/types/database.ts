@@ -271,6 +271,23 @@ export interface Database {
         Args: { p_session_id: string }
         Returns: undefined
       }
+      create_inventory_session: {
+        Args: {
+          p_org_id: string
+          p_location_id: string
+          p_name: string
+          p_operator_id: string
+        }
+        Returns: string
+      }
+      update_inventory_count: {
+        Args: { p_count_id: string; p_counted_quantity: number }
+        Returns: undefined
+      }
+      set_default_location: {
+        Args: { p_org_id: string; p_location_id: string }
+        Returns: undefined
+      }
       is_platform_admin: {
         Args: Record<string, never>
         Returns: boolean

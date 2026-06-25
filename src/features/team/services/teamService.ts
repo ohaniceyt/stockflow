@@ -1,5 +1,6 @@
 import { supabase, supabaseKey } from '@/services/supabase'
 import type { TeamMember, UserRole } from '@/types'
+import { USER_ROLES } from '../constants'
 
 function asString(value: unknown, fallback = ''): string {
   if (typeof value === 'string') return value
@@ -16,7 +17,9 @@ function mapMembershipRow(row: Record<string, unknown>): TeamMember {
     userId: asString(row.user_id ?? users.id),
     name: asString(users.name),
     email: asString(users.email),
-    role: asString(row.role) as UserRole,
+    role: USER_ROLES.includes(asString(row.role) as UserRole)
+      ? (asString(row.role) as UserRole)
+      : 'reader',
     isActive: Boolean(row.is_active),
     lastLoginAt: row.last_login_at ? asString(row.last_login_at) : null,
   }

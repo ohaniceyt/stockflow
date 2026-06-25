@@ -10,13 +10,16 @@ import type { StockItem } from '../services/stockService'
 import { exportStockToExcel, exportStockToPdf, shareStockOnWhatsApp } from '../utils/stockExport'
 
 export default function StockPage() {
-  const { data: stock, isPending, error, refetch } = useStock()
-  const { session } = useAuth()
+  const { data: stock, isPending, isFetching, error, refetch } = useStock()
+  const { session, hasRole } = useAuth()
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const orgName = session?.organization.name ?? 'StockFlow'
+  const orgId = session?.membership.orgId
+  const canExport = hasRole(['super_admin', 'admin'])
 
   const filteredStock = useMemo(() => {
     if (!stock) return []
@@ -32,39 +35,52 @@ export default function StockPage() {
   }, [stock, searchQuery])
 
   const handleRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['stock'] })
+    if (orgId) {
+      await queryClient.invalidateQueries({ queryKey: ['stock', orgId] })
+    }
     await refetch()
   }
 
-  const handleExportPdf = () => {
-    void exportStockToPdf(filteredStock, orgName)
+  const handleExportPdf = async () => {
+    setExportError(null)
+    try {
+      await exportStockToPdf(filteredStock, orgName, { redactFinancials: !canExport })
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Échec de l'export PDF")
+    }
   }
 
-  const handleExportExcel = () => {
-    void exportStockToExcel(filteredStock, orgName)
+  const handleExportExcel = async () => {
+    setExportError(null)
+    try {
+      await exportStockToExcel(filteredStock, orgName, { redactFinancials: !canExport })
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Échec de l'export Excel")
+    }
   }
 
   const handleShareWhatsApp = () => {
-    shareStockOnWhatsApp(filteredStock, orgName)
+    shareStockOnWhatsApp(filteredStock, orgName, { redactFinancials: !canExport })
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} disabled={isPending}>
+    <PullToRefresh onRefresh={handleRefresh} disabled={isFetching}>
       <div className="space-y-4 pb-6">
         <StockHeader
-          totalProducts={filteredStock.length}
+          totalProducts={stock?.length ?? 0}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onRefresh={handleRefresh}
           onExportPdf={handleExportPdf}
           onExportExcel={handleExportExcel}
           onShareWhatsApp={handleShareWhatsApp}
-          isRefreshing={isPending}
+          isRefreshing={isFetching}
+          canExport={canExport}
         />
 
-        {error && (
+        {(error ?? exportError) && (
           <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
-            {error.message}
+            {error?.message ?? exportError}
           </p>
         )}
 

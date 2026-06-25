@@ -1,17 +1,12 @@
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { USER_ROLE_LABELS } from '../constants'
 import type { Invitation } from '../services/invitationService'
 
 interface InvitationListProps {
   invitations: Invitation[]
   onCancel: (id: string) => void
   isLoading?: boolean
-}
-
-const roleLabels: Record<string, string> = {
-  admin: 'Admin',
-  operator: 'Opérateur',
-  reader: 'Lecteur',
 }
 
 export function InvitationList({ invitations, onCancel, isLoading }: InvitationListProps) {
@@ -29,8 +24,7 @@ export function InvitationList({ invitations, onCancel, isLoading }: InvitationL
           <div>
             <p className="font-medium">{invitation.email}</p>
             <p className="text-sm text-muted-foreground">
-              Rôle :{' '}
-              <span className="capitalize">{roleLabels[invitation.role] ?? invitation.role}</span>
+              Rôle : <span className="capitalize">{USER_ROLE_LABELS[invitation.role]}</span>
             </p>
           </div>
           <div className="flex gap-2">

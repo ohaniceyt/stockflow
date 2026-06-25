@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
 import { useMovements } from '@/features/movements/hooks/useMovements'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import { PullToRefresh } from '@/features/stock/components/PullToRefresh'
 import { StockDetailOverlay } from '@/features/stock/components/StockDetailOverlay'
 import type { StockItem } from '@/features/stock/services/stockService'
@@ -16,26 +17,49 @@ import { DashboardRotation } from '../components/DashboardRotation'
 import { DashboardAlerts } from '../components/DashboardAlerts'
 import { DashboardRecentMovements } from '../components/DashboardRecentMovements'
 
+function SectionSkeleton({ label }: { label: string }) {
+  return (
+    <div className="card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="h-5 w-32 animate-pulse rounded bg-[var(--surface-2)]" />
+      </div>
+      <div className="space-y-3">
+        <div className="h-4 w-full animate-pulse rounded bg-[var(--surface-2)]" />
+        <div className="h-4 w-5/6 animate-pulse rounded bg-[var(--surface-2)]" />
+        <div className="h-4 w-4/6 animate-pulse rounded bg-[var(--surface-2)]" />
+      </div>
+      <p className="sr-only">{label}</p>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
-  const { data: products, isPending: productsPending, refetch: refetchProducts } = useProducts()
-  const { data: stock, isPending: stockPending, refetch: refetchStock } = useStock()
-  const { data: movements, isPending: movementsPending, refetch: refetchMovements } = useMovements()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+  const { data: products, isPending: productsPending, error: productsError } = useProducts()
+  const { data: stock, isPending: stockPending, error: stockError } = useStock()
+  const { data: movements, isPending: movementsPending, error: movementsError } = useMovements()
   const queryClient = useQueryClient()
 
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
 
   const isPending = productsPending || stockPending || movementsPending
+  const errors = [productsError, stockError, movementsError].filter(Boolean)
+  const queryError = errors.length > 0 ? errors : null
 
   const stockItems = stock ?? []
   const activeProducts = products?.filter((p) => p.isActive) ?? []
 
   const handleRefresh = async () => {
+    if (!orgId) return
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['products'] }),
-      queryClient.invalidateQueries({ queryKey: ['stock'] }),
-      queryClient.invalidateQueries({ queryKey: ['movements'] }),
+      queryClient.invalidateQueries({ queryKey: ['products', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['stock', orgId] }),
+      queryClient.invalidateQueries({ queryKey: ['movements', orgId] }),
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'movements-by-product',
+      }),
     ])
-    await Promise.all([refetchProducts(), refetchStock(), refetchMovements()])
   }
 
   const handleSelectProduct = (productId: string, productName?: string) => {
@@ -73,11 +97,31 @@ export default function DashboardPage() {
       <div className="space-y-4 pb-6">
         <DashboardHeader onRefresh={handleRefresh} isRefreshing={isPending} />
 
-        {isPending ? (
-          <p className="py-8 text-center text-sm text-[var(--text-faint)]">
-            Chargement du tableau de bord…
+        {queryError && (
+          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+            {queryError.length === 1
+              ? queryError[0]?.message
+              : `Erreurs de chargement : ${queryError.map((e) => e?.message ?? 'inconnue').join(', ')}`}
           </p>
-        ) : (
+        )}
+
+        {isPending && (
+          <div className="space-y-4">
+            <SectionSkeleton label="Chargement des statistiques" />
+            <SectionSkeleton label="Chargement du flux" />
+            <SectionSkeleton label="Chargement de la tendance" />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <SectionSkeleton label="Chargement du top produits" />
+              <SectionSkeleton label="Chargement de la rotation" />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <SectionSkeleton label="Chargement des alertes" />
+              <SectionSkeleton label="Chargement des derniers mouvements" />
+            </div>
+          </div>
+        )}
+
+        {!isPending && (
           <>
             <DashboardStats stock={stockItems} productCount={activeProducts.length} />
 

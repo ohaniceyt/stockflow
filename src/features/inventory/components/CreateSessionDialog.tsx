@@ -30,13 +30,15 @@ export function CreateSessionDialog({
   error,
 }: CreateSessionDialogProps) {
   const [name, setName] = useState('')
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? '')
+  const [locationId, setLocationId] = useState('')
   const [errors, setErrors] = useState<Partial<Record<'name' | 'locationId', string>>>({})
+
+  const resolvedLocationId = locationId || locations[0]?.id || ''
 
   const validate = () => {
     const next: Partial<Record<'name' | 'locationId', string>> = {}
     if (!name.trim()) next.name = 'Le nom est requis'
-    if (!locationId) next.locationId = 'Sélectionnez un emplacement'
+    if (!resolvedLocationId) next.locationId = 'Sélectionnez un emplacement'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -44,7 +46,7 @@ export function CreateSessionDialog({
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!validate()) return
-    onSubmit({ name: name.trim(), locationId })
+    onSubmit({ name: name.trim(), locationId: resolvedLocationId })
   }
 
   return (
@@ -71,7 +73,7 @@ export function CreateSessionDialog({
             <Label htmlFor="session-location">Emplacement</Label>
             <Select
               id="session-location"
-              value={locationId}
+              value={resolvedLocationId}
               onChange={(e) => setLocationId(e.target.value)}
             >
               <option value="">Choisir un emplacement…</option>

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, FileText, Share2 } from 'lucide-react'
+import { Download, FileText, Share2, AlertCircle } from 'lucide-react'
 import type { Product } from '@/types'
 import type { StockItem } from '@/features/stock/services/stockService'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
@@ -12,6 +13,7 @@ interface ExportActionsProps {
   productMap: Map<string, Product>
   currency: string
   orgName?: string
+  redactFinancials?: boolean
 }
 
 export function ExportActions({
@@ -22,9 +24,26 @@ export function ExportActions({
   productMap,
   currency,
   orgName = 'StockFlow',
+  redactFinancials = false,
 }: ExportActionsProps) {
+  const [loading, setLoading] = useState<'excel' | 'pdf' | 'whatsapp' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const wrapAsync = async (key: 'excel' | 'pdf' | 'whatsapp', fn: () => void | Promise<void>) => {
+    setError(null)
+    setLoading(key)
+    try {
+      await fn()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'export")
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const exportToExcel = () => {
-    return import('exceljs').then(({ Workbook }) => {
+    return wrapAsync('excel', async () => {
+      const { Workbook } = await import('exceljs')
       const wb = new Workbook()
       const movementsSheet = wb.addWorksheet('Mouvements')
       const balanceSheet = wb.addWorksheet('Solde par produit')
@@ -78,8 +97,12 @@ export function ExportActions({
         { header: 'Entrées', key: 'in', width: 12 },
         { header: 'Sorties', key: 'out', width: 12 },
         { header: 'Solde', key: 'balance', width: 12 },
-        { header: 'Valeur stock achat', key: 'stockValue', width: 18 },
-        { header: 'Valeur stock vente', key: 'sellingValue', width: 18 },
+        ...(redactFinancials
+          ? []
+          : [
+              { header: 'Valeur stock achat', key: 'stockValue', width: 18 },
+              { header: 'Valeur stock vente', key: 'sellingValue', width: 18 },
+            ]),
       ]
 
       products.forEach((p) => {
@@ -98,8 +121,12 @@ export function ExportActions({
           in: inQty,
           out: outQty,
           balance: inQty - outQty,
-          stockValue: quantity * p.costPrice,
-          sellingValue: quantity * p.sellingPrice,
+          ...(redactFinancials
+            ? {}
+            : {
+                stockValue: quantity * p.costPrice,
+                sellingValue: quantity * p.sellingPrice,
+              }),
         })
       })
       ;[movementsSheet, balanceSheet].forEach((sheet) => {
@@ -112,18 +139,18 @@ export function ExportActions({
         }
       })
 
-      return wb.xlsx.writeBuffer().then((buffer) => {
-        downloadBlob(
-          buffer,
-          `recap-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.xlsx`,
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-      })
+      const buffer = await wb.xlsx.writeBuffer()
+      downloadBlob(
+        buffer,
+        `recap-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.xlsx`,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
     })
   }
 
   const exportToPdf = () => {
-    return import('jspdf').then(({ jsPDF }) => {
+    return wrapAsync('pdf', async () => {
+      const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'mm', format: 'a4' })
       const pageWidth = doc.internal.pageSize.getWidth()
       let y = 14
@@ -184,49 +211,62 @@ export function ExportActions({
   }
 
   const shareWhatsApp = () => {
-    const typeLabels: Record<string, string> = {
-      IN: 'Entrée',
-      OUT: 'Sortie',
-      INVENTORY: 'Inventaire',
-      ADJUSTMENT: 'Ajustement',
-      TRANSFER: 'Transfert',
-    }
+    return wrapAsync('whatsapp', () => {
+      const typeLabels: Record<string, string> = {
+        IN: 'Entrée',
+        OUT: 'Sortie',
+        INVENTORY: 'Inventaire',
+        ADJUSTMENT: 'Ajustement',
+        TRANSFER: 'Transfert',
+      }
 
-    const lines = movements.slice(0, 30).map((m) => {
-      const date = new Date(m.createdAt).toLocaleDateString('fr-FR')
-      return `• ${typeLabels[m.type] ?? m.type} — ${m.productName ?? m.productId}: ${m.quantity.toLocaleString()} (${date})`
+      const lines = movements.slice(0, 30).map((m) => {
+        const date = new Date(m.createdAt).toLocaleDateString('fr-FR')
+        return `• ${typeLabels[m.type] ?? m.type} — ${m.productName ?? m.productId}: ${m.quantity.toLocaleString()} (${date})`
+      })
+
+      let footer = ''
+      if (!redactFinancials) {
+        const revenue = movements
+          .filter((m) => m.type === 'OUT')
+          .reduce((sum, m) => {
+            const product = productMap.get(m.productId)
+            return sum + m.quantity * (product?.sellingPrice ?? 0)
+          }, 0)
+        footer = `\n\nCA période: ${revenue.toLocaleString()} ${currency}`
+      }
+
+      const header = `*Récap ${orgName} — ${periodLabel}*\n\n`
+      const body = lines.length > 0 ? lines.join('\n') : 'Aucun mouvement dans la période.'
+      const message = header + body + footer
+
+      const url = `https://wa.me/?text=${encodeURIComponent(message)}`
+      window.open(url, '_blank', 'noopener,noreferrer')
     })
-
-    const revenue = movements
-      .filter((m) => m.type === 'OUT')
-      .reduce((sum, m) => {
-        const product = productMap.get(m.productId)
-        return sum + m.quantity * (product?.sellingPrice ?? 0)
-      }, 0)
-
-    const header = `*Récap ${orgName} — ${periodLabel}*\n\n`
-    const body = lines.length > 0 ? lines.join('\n') : 'Aucun mouvement dans la période.'
-    const footer = `\n\nCA période: ${revenue.toLocaleString()} ${currency}`
-    const message = header + body + footer
-
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`
-    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size="sm" onClick={exportToExcel}>
-        <Download className="mr-2 h-4 w-4" />
-        Excel
-      </Button>
-      <Button variant="outline" size="sm" onClick={exportToPdf}>
-        <FileText className="mr-2 h-4 w-4" />
-        PDF
-      </Button>
-      <Button variant="outline" size="sm" onClick={shareWhatsApp}>
-        <Share2 className="mr-2 h-4 w-4" />
-        WhatsApp
-      </Button>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={exportToExcel} disabled={loading !== null}>
+          <Download className="mr-2 h-4 w-4" />
+          {loading === 'excel' ? 'Export…' : 'Excel'}
+        </Button>
+        <Button variant="outline" size="sm" onClick={exportToPdf} disabled={loading !== null}>
+          <FileText className="mr-2 h-4 w-4" />
+          {loading === 'pdf' ? 'Export…' : 'PDF'}
+        </Button>
+        <Button variant="outline" size="sm" onClick={shareWhatsApp} disabled={loading !== null}>
+          <Share2 className="mr-2 h-4 w-4" />
+          {loading === 'whatsapp' ? 'Ouverture…' : 'WhatsApp'}
+        </Button>
+      </div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
     </div>
   )
 }

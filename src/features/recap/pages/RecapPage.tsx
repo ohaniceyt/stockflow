@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { format, startOfDay, subDays, isAfter, isBefore } from 'date-fns'
+import { format, startOfDay, subDays, isAfter, isBefore, isValid } from 'date-fns'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
 import { useMovements } from '@/features/movements/hooks/useMovements'
@@ -16,9 +16,10 @@ import { Label } from '@/components/ui/label'
 type PeriodMode = 'today' | 'week' | 'month' | 'custom'
 
 export default function RecapPage() {
-  const currency = 'XOF'
-  const { session } = useAuth()
-  const orgName = session?.membership.orgId ? 'StockFlow' : 'StockFlow'
+  const { session, hasRole } = useAuth()
+  const currency = session?.organization.currency ?? 'XOF'
+  const orgName = session?.organization.name ?? 'StockFlow'
+  const canViewFinancials = hasRole(['super_admin', 'admin'])
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('week')
   const [startDate, setStartDate] = useState<string>(() =>
@@ -27,11 +28,12 @@ export default function RecapPage() {
   const [endDate, setEndDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'))
   const [dateError, setDateError] = useState<string | null>(null)
 
-  const { data: products, isLoading: productsLoading } = useProducts()
-  const { data: stock, isLoading: stockLoading } = useStock()
-  const { data: movements, isLoading: movementsLoading } = useMovements()
+  const { data: products, isLoading: productsLoading, error: productsError } = useProducts()
+  const { data: stock, isLoading: stockLoading, error: stockError } = useStock()
+  const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
 
   const isLoading = productsLoading || stockLoading || movementsLoading
+  const queryError = productsError ?? stockError ?? movementsError
 
   const activeProducts = useMemo(() => products?.filter((p) => p.isActive) ?? [], [products])
   const stockItems = useMemo(() => stock ?? [], [stock])
@@ -51,8 +53,10 @@ export default function RecapPage() {
         return { start, end: today, label: '30 derniers jours' }
       }
       case 'custom': {
-        const start = startDate ? startOfDay(new Date(startDate)) : today
-        const end = endDate ? startOfDay(new Date(endDate)) : today
+        const parsedStart = startDate ? new Date(startDate) : today
+        const parsedEnd = endDate ? new Date(endDate) : today
+        const start = isValid(parsedStart) ? startOfDay(parsedStart) : today
+        const end = isValid(parsedEnd) ? startOfDay(parsedEnd) : today
         return {
           start,
           end,
@@ -114,7 +118,9 @@ export default function RecapPage() {
 
   const handleStartChange = (value: string) => {
     setStartDate(value)
-    if (endDate && value && isAfter(startOfDay(new Date(value)), startOfDay(new Date(endDate)))) {
+    const start = new Date(value)
+    const end = new Date(endDate)
+    if (isValid(start) && isValid(end) && isAfter(startOfDay(start), startOfDay(end))) {
       setDateError('La date de début doit être antérieure à la date de fin.')
     } else {
       setDateError(null)
@@ -123,11 +129,9 @@ export default function RecapPage() {
 
   const handleEndChange = (value: string) => {
     setEndDate(value)
-    if (
-      startDate &&
-      value &&
-      isAfter(startOfDay(new Date(startDate)), startOfDay(new Date(value)))
-    ) {
+    const start = new Date(startDate)
+    const end = new Date(value)
+    if (isValid(start) && isValid(end) && isAfter(startOfDay(start), startOfDay(end))) {
       setDateError('La date de début doit être antérieure à la date de fin.')
     } else {
       setDateError(null)
@@ -149,6 +153,7 @@ export default function RecapPage() {
           productMap={productMap}
           currency={currency}
           orgName={orgName}
+          redactFinancials={!canViewFinancials}
         />
       </div>
 
@@ -199,6 +204,8 @@ export default function RecapPage() {
         )}
       </div>
 
+      {queryError && <p className="text-destructive">{queryError.message}</p>}
+
       {isLoading ? (
         <p className="text-muted-foreground">Chargement du récapitulatif…</p>
       ) : (
@@ -213,13 +220,16 @@ export default function RecapPage() {
             inCount={filteredMovements.filter((m) => m.type === 'IN').length}
             outCount={filteredMovements.filter((m) => m.type === 'OUT').length}
             currency={currency}
+            canViewFinancials={canViewFinancials}
           />
 
-          <RecapChart
-            movements={filteredMovements}
-            startDate={periodRange.start}
-            endDate={periodRange.end}
-          />
+          {!dateError && (
+            <RecapChart
+              movements={filteredMovements}
+              startDate={periodRange.start}
+              endDate={periodRange.end}
+            />
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <ProductBalanceTable movements={filteredMovements} products={activeProducts} />

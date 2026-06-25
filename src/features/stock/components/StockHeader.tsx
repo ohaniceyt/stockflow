@@ -9,6 +9,7 @@ interface StockHeaderProps {
   onExportExcel: () => void
   onShareWhatsApp: () => void
   isRefreshing?: boolean
+  canExport?: boolean
 }
 
 export function StockHeader({
@@ -20,6 +21,7 @@ export function StockHeader({
   onExportExcel,
   onShareWhatsApp,
   isRefreshing,
+  canExport = false,
 }: StockHeaderProps) {
   return (
     <div className="space-y-3">
@@ -43,38 +45,42 @@ export function StockHeader({
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
-            type="button"
-            onClick={onExportPdf}
-            className="btn-o btn-sm"
-            aria-label="Exporter PDF"
-            title="Exporter PDF"
-          >
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">PDF</span>
-          </button>
+          {canExport && (
+            <>
+              <button
+                type="button"
+                onClick={onExportPdf}
+                className="btn-o btn-sm"
+                aria-label="Exporter PDF"
+                title="Exporter PDF"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={onExportExcel}
-            className="btn-o btn-sm"
-            aria-label="Exporter Excel"
-            title="Exporter Excel"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span className="hidden sm:inline">Excel</span>
-          </button>
+              <button
+                type="button"
+                onClick={onExportExcel}
+                className="btn-o btn-sm"
+                aria-label="Exporter Excel"
+                title="Exporter Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="hidden sm:inline">Excel</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={onShareWhatsApp}
-            className="btn-p btn-sm"
-            aria-label="Partager sur WhatsApp"
-            title="WhatsApp"
-          >
-            <Share2 className="h-4 w-4" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </button>
+              <button
+                type="button"
+                onClick={onShareWhatsApp}
+                className="btn-p btn-sm"
+                aria-label="Partager sur WhatsApp"
+                title="WhatsApp"
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">WhatsApp</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

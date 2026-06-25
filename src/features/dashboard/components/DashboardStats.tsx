@@ -53,11 +53,7 @@ export function DashboardStats({ stock, productCount }: DashboardStatsProps) {
   return (
     <div className="sg">
       {cards.map((card) => (
-        <button
-          key={card.label}
-          type="button"
-          className="sc text-left transition-transform active:scale-[0.98]"
-        >
+        <div key={card.label} className="sc text-left">
           <span className={`sc-bar ${card.barClass}`} />
           <div className="mb-3 flex items-start justify-between gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-faint)]">
@@ -69,7 +65,7 @@ export function DashboardStats({ stock, productCount }: DashboardStatsProps) {
           </div>
           <p className={`text-2xl font-bold text-[var(--text-h)] sm:text-3xl`}>{card.value}</p>
           <p className="mt-1 text-xs text-[var(--text-faint)]">{card.sub}</p>
-        </button>
+        </div>
       ))}
     </div>
   )

@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { RotateCw } from 'lucide-react'
 
 interface PullToRefreshProps {
@@ -13,6 +13,13 @@ export function PullToRefresh({ children, onRefresh, disabled }: PullToRefreshPr
   const [offset, setOffset] = useState(0)
   const startY = useRef(0)
   const isRefreshing = useRef(false)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const threshold = 80
 
@@ -30,7 +37,11 @@ export function PullToRefresh({ children, onRefresh, disabled }: PullToRefreshPr
     if (!pulling || isRefreshing.current) return
     const y = e.touches[0].clientY
     const delta = Math.max(0, y - startY.current)
+    if (delta > 0) {
+      e.preventDefault()
+    }
     const damped = Math.min(delta * 0.5, threshold + 40)
+    if (!mounted.current) return
     setOffset(damped)
   }
 
@@ -38,17 +49,21 @@ export function PullToRefresh({ children, onRefresh, disabled }: PullToRefreshPr
     if (!pulling) return
     if (offset >= threshold && !isRefreshing.current) {
       isRefreshing.current = true
-      setOffset(threshold)
+      if (mounted.current) setOffset(threshold)
       try {
         await onRefresh()
       } finally {
-        setPulling(false)
-        setOffset(0)
+        if (mounted.current) {
+          setPulling(false)
+          setOffset(0)
+        }
         isRefreshing.current = false
       }
     } else {
-      setPulling(false)
-      setOffset(0)
+      if (mounted.current) {
+        setPulling(false)
+        setOffset(0)
+      }
     }
   }
 
@@ -59,6 +74,7 @@ export function PullToRefresh({ children, onRefresh, disabled }: PullToRefreshPr
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       className="relative h-full overflow-y-auto"
+      style={{ touchAction: 'pan-y' }}
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center transition-transform"

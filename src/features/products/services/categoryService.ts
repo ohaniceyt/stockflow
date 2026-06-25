@@ -17,6 +17,7 @@ function mapRowToCategory(row: CategoryRow): Category {
 }
 
 export async function fetchCategories(orgId: string): Promise<Category[]> {
+  // RLS filters by org; the explicit org_id filter documents the scoping contract.
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -36,6 +37,7 @@ export async function createCategory(orgId: string, name: string): Promise<Categ
     name: name.trim(),
   }
 
+  // RLS restricts category management to admins of the org; org_id ties the row to the org.
   const { data, error } = await supabase.from('categories').insert(payload).select().single()
 
   if (error) {
@@ -45,13 +47,15 @@ export async function createCategory(orgId: string, name: string): Promise<Categ
   return mapRowToCategory(data)
 }
 
-export async function updateCategory(id: string, name: string): Promise<Category> {
+export async function updateCategory(id: string, orgId: string, name: string): Promise<Category> {
   const update: CategoryUpdate = { name: name.trim() }
 
+  // Authorization relies on RLS; org_id scoping prevents accidental cross-org edits.
   const { data, error } = await supabase
     .from('categories')
     .update(update)
     .eq('id', id)
+    .eq('org_id', orgId)
     .select()
     .single()
 
@@ -62,8 +66,9 @@ export async function updateCategory(id: string, name: string): Promise<Category
   return mapRowToCategory(data)
 }
 
-export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase.from('categories').delete().eq('id', id)
+export async function deleteCategory(id: string, orgId: string): Promise<void> {
+  // Authorization relies on RLS; org_id scoping prevents accidental cross-org deletes.
+  const { error } = await supabase.from('categories').delete().eq('id', id).eq('org_id', orgId)
 
   if (error) {
     throw new Error(error.message)

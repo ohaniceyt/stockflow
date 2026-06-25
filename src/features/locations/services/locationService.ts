@@ -21,6 +21,7 @@ function mapRowToLocation(row: LocationRow): Location {
 }
 
 export async function fetchLocations(orgId: string): Promise<Location[]> {
+  // RLS filters by org; the explicit org_id filter documents the scoping contract.
   const { data, error } = await supabase
     .from('locations')
     .select('*')
@@ -43,6 +44,7 @@ export async function createLocation(orgId: string, input: LocationFormData): Pr
     is_default: false,
   }
 
+  // create-location is an edge function that applies RLS and quota checks server-side.
   const data = await edgeFetch<LocationRow>('create-location', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -51,17 +53,23 @@ export async function createLocation(orgId: string, input: LocationFormData): Pr
   return mapRowToLocation(data)
 }
 
-export async function updateLocation(id: string, input: LocationFormData): Promise<Location> {
+export async function updateLocation(
+  id: string,
+  orgId: string,
+  input: LocationFormData
+): Promise<Location> {
   const update: LocationUpdate = {
     name: input.name,
     description: input.description ?? null,
     address: input.address ?? null,
   }
 
+  // Authorization relies on RLS; org_id scoping prevents accidental cross-org edits.
   const { data, error } = await supabase
     .from('locations')
     .update(update)
     .eq('id', id)
+    .eq('org_id', orgId)
     .select()
     .single()
 
@@ -72,31 +80,13 @@ export async function updateLocation(id: string, input: LocationFormData): Promi
   return mapRowToLocation(data)
 }
 
-export async function setDefaultLocation(id: string, orgId: string): Promise<Location> {
-  // Unset current default
-  const { error: unsetError } = await supabase
-    .from('locations')
-    .update({ is_default: false })
-    .eq('org_id', orgId)
-    .eq('is_default', true)
-    .neq('id', id)
-
-  if (unsetError) {
-    throw new Error(unsetError.message)
-  }
-
-  // Set new default
-  const { data, error } = await supabase
-    .from('locations')
-    .update({ is_default: true })
-    .eq('id', id)
-    .eq('org_id', orgId)
-    .select()
-    .single()
+export async function setDefaultLocation(id: string, orgId: string): Promise<void> {
+  const { error } = await supabase.rpc('set_default_location', {
+    p_org_id: orgId,
+    p_location_id: id,
+  })
 
   if (error) {
     throw new Error(error.message)
   }
-
-  return mapRowToLocation(data)
 }

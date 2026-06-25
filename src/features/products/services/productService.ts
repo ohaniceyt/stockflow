@@ -27,6 +27,7 @@ function mapRowToProduct(row: ProductRow): Product {
 }
 
 export async function fetchProducts(orgId: string): Promise<Product[]> {
+  // RLS filters by org; the explicit org_id filter narrows the query and documents the contract.
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -58,6 +59,7 @@ export async function createProduct(
     is_active: input.isActive,
   }
 
+  // create-product is an edge function that applies RLS and quota checks server-side.
   const data = await edgeFetch<ProductRow>('create-product', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -68,6 +70,7 @@ export async function createProduct(
 
 export async function updateProduct(
   id: string,
+  orgId: string,
   input: Partial<Omit<Product, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>
 ): Promise<Product> {
   const update: ProductUpdate = {}
@@ -82,10 +85,12 @@ export async function updateProduct(
   if (input.barcode !== undefined) update.barcode = input.barcode ?? null
   if (input.isActive !== undefined) update.is_active = input.isActive
 
+  // Authorization is enforced by RLS; org scoping prevents accidental cross-org edits.
   const { data, error } = await supabase
     .from('products')
     .update(update)
     .eq('id', id)
+    .eq('org_id', orgId)
     .select()
     .single()
 

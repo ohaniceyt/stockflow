@@ -18,6 +18,7 @@ interface RecapStatsProps {
   inCount: number
   outCount: number
   currency: string
+  canViewFinancials?: boolean
 }
 
 export function RecapStats({
@@ -30,11 +31,12 @@ export function RecapStats({
   inCount,
   outCount,
   currency,
+  canViewFinancials = true,
 }: RecapStatsProps) {
   const formatMoney = (v: number) =>
     v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
-  const cards = [
+  const allCards = [
     {
       label: 'Entrées',
       value: inCount,
@@ -42,6 +44,7 @@ export function RecapStats({
       iconColor: 'text-emerald-600',
       iconBg: 'bg-emerald-50',
       barColor: 'bg-emerald-400',
+      isMoney: false,
     },
     {
       label: 'Sorties',
@@ -50,6 +53,7 @@ export function RecapStats({
       iconColor: 'text-rose-600',
       iconBg: 'bg-rose-50',
       barColor: 'bg-rose-400',
+      isMoney: false,
     },
     {
       label: 'Produits actifs',
@@ -58,6 +62,7 @@ export function RecapStats({
       iconColor: 'text-sky-600',
       iconBg: 'bg-sky-50',
       barColor: 'bg-sky-400',
+      isMoney: false,
     },
     {
       label: 'Qté totale en stock',
@@ -66,6 +71,7 @@ export function RecapStats({
       iconColor: 'text-amber-600',
       iconBg: 'bg-amber-50',
       barColor: 'bg-amber-400',
+      isMoney: false,
     },
     {
       label: `Valeur du stock (${currency})`,
@@ -108,6 +114,8 @@ export function RecapStats({
       barColor: 'bg-fuchsia-400',
     },
   ]
+
+  const cards = allCards.filter((card) => canViewFinancials || !card.isMoney)
 
   return (
     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

@@ -9,7 +9,7 @@ import { useAuth } from '@/features/auth/context/AuthContext'
 export default function BackOfficeLoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { signIn, isAuthenticated, isLoading, isPlatformAdmin } = useAuth()
+  const { signIn, isAuthenticated, isLoading, isPlatformAdmin, signOut } = useAuth()
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,8 +24,9 @@ export default function BackOfficeLoginPage() {
     e.preventDefault()
     setError(null)
     try {
-      await signIn(email.trim().toLowerCase(), password)
-      if (!isPlatformAdmin) {
+      const next = await signIn(email.trim().toLowerCase(), password)
+      if (!next.isPlatformAdmin) {
+        await signOut()
         setError('Ce compte ne dispose pas des droits Back Office.')
         return
       }

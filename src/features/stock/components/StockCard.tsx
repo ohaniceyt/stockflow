@@ -4,7 +4,7 @@ import type { StockItem } from '../services/stockService'
 interface StockCardProps {
   item: StockItem
   searchQuery?: string
-  onClick?: () => void
+  onClick: () => void
 }
 
 function statusInfo(quantity: number, threshold: number) {

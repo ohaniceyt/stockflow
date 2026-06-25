@@ -84,6 +84,7 @@ export default function LocationsPage() {
 
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
+      {setDefault.error && <p className="text-destructive">{setDefault.error.message}</p>}
       {!isLoading && !error && locations && (
         <LocationList
           locations={locations}
@@ -105,6 +106,7 @@ export default function LocationsPage() {
             </DialogDescription>
           </DialogHeader>
           <LocationForm
+            key={editingLocation?.id ?? 'new'}
             defaultValues={editingLocation ?? undefined}
             onSubmit={editingLocation ? handleUpdate : handleCreate}
             onCancel={() => handleOpenChange(false)}

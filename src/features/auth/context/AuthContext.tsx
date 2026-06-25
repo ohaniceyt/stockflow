@@ -55,7 +55,7 @@ interface AuthContextValue {
   isLoading: boolean
   isLocked: boolean
   signUp: (input: SignUpInput) => Promise<void>
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<AuthSession>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   requestPinReset: (email: string) => Promise<void>
@@ -68,6 +68,7 @@ interface AuthContextValue {
   isPlatformAdmin: boolean
   platformAdminRole: PlatformAdminRole | null
   sudoTarget: SudoTarget | null
+  needsOrganization: boolean
   enterSudo: (target: SudoTarget) => Promise<void>
   exitSudo: () => Promise<void>
   completeOnboarding: (updates: {
@@ -300,6 +301,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseSession.refresh_token,
         expiresAt
       )
+
+      // Guard against session races (e.g. email-verification page signs out while
+      // this initialization is in flight). Only persist if Supabase still holds
+      // the same session we just initialized for.
+      const { data: currentSession } = await supabase.auth.getSession()
+      if (currentSession.session?.access_token !== supabaseSession.access_token) {
+        throw new Error('Session changed during initialization')
+      }
+
       persistSession(next)
       lastInitializedToken.current = supabaseSession.access_token
 
@@ -314,9 +324,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLocked(hasAppLockPin())
       }
 
-      if (next.organization.id) {
+      if (next.organization.id && !next.needsOrganization) {
         void runPullSync(next.organization.id)
       }
+
+      return next
     },
     [persistSession]
   )
@@ -391,12 +403,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [initializeSession, clearSession, session, persistSession])
 
   const signUp = useCallback(async ({ name, email, password, phone }: SignUpInput) => {
-    const data = await edgeFetch<{ success?: boolean }>('signup', {
+    const data = await edgeFetch<{
+      success?: boolean
+      message?: string
+      error?: { message: string } | string
+    }>('signup', {
       method: 'POST',
       body: JSON.stringify({ name, email, password, phone }),
     })
     if (!data.success) {
-      throw new Error('Signup failed')
+      const serverError =
+        data.message ?? (typeof data.error === 'string' ? data.error : data.error?.message)
+      throw new Error(serverError ?? 'Signup failed')
     }
   }, [])
 
@@ -410,7 +428,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error || !data.session) {
           throw new Error(error?.message ?? 'Sign in failed')
         }
-        await initializeSession(data.session)
+        return await initializeSession(data.session)
       } finally {
         setIsLoading(false)
       }
@@ -438,6 +456,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestPinReset = useCallback(async (email: string) => {
+    // WARNING: /auth/reset-pin (and every magic-link redirect path used here) must be listed
+    // in the Supabase Auth redirect allow-list, otherwise the link will be rejected.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

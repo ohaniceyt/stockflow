@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useMemo, useState, type SyntheticEvent } from 'react'
 import { productSchema, type ProductFormData } from '../schemas/productSchema'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,10 +12,35 @@ interface ProductFormProps {
   categories: Category[]
   onSubmit: (data: ProductFormData) => void
   onCancel: () => void
-  onCreateCategory: (name: string) => Promise<void> | void
+  onCreateCategory: (name: string) => Promise<string>
   isLoading?: boolean
   isCreatingCategory?: boolean
   error?: Error | null
+}
+
+function sanitizeNumber(value: string): number {
+  const parsed = Number(value)
+  return Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+}
+
+function resolveInitialCategoryId(
+  product: Product | null | undefined,
+  categories: Category[]
+): string | null {
+  const value = product?.category ?? null
+  if (!value) return null
+  if (categories.some((c) => c.id === value)) return value
+  const byName = categories.find((c) => c.name.trim().toLowerCase() === value.trim().toLowerCase())
+  return byName?.id ?? null
+}
+
+function resolveCategoryValue(
+  value: string | null | undefined,
+  categories: Category[]
+): string | null {
+  if (!value) return null
+  const byId = categories.find((c) => c.id === value)
+  return byId?.name ?? value
 }
 
 export function ProductForm({
@@ -28,9 +53,13 @@ export function ProductForm({
   isCreatingCategory,
   error,
 }: ProductFormProps) {
+  const initialCategoryId = useMemo(
+    () => resolveInitialCategoryId(product ?? null, categories),
+    [product, categories]
+  )
   const [form, setForm] = useState<ProductFormData>({
     name: product?.name ?? '',
-    category: product?.category ?? '',
+    category: initialCategoryId ?? '',
     unit: product?.unit ?? 'unité',
     threshold: product?.threshold ?? 0,
     costPrice: product?.costPrice ?? 0,
@@ -41,6 +70,7 @@ export function ProductForm({
     isActive: product?.isActive ?? true,
   })
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormData, string>>>({})
+  const disabled = Boolean(isLoading)
 
   const updateField = <K extends keyof ProductFormData>(key: K, value: ProductFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -61,7 +91,11 @@ export function ProductForm({
       setErrors(fieldErrors)
       return
     }
-    onSubmit(result.data)
+    const data = {
+      ...result.data,
+      category: resolveCategoryValue(result.data.category, categories),
+    }
+    onSubmit(data)
   }
 
   return (
@@ -73,6 +107,7 @@ export function ProductForm({
           value={form.name}
           onChange={(e) => updateField('name', e.target.value)}
           placeholder="Ex: Ciment 50kg"
+          disabled={disabled}
         />
         {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
@@ -85,6 +120,7 @@ export function ProductForm({
           categories={categories}
           onCreateCategory={onCreateCategory}
           isCreating={isCreatingCategory}
+          disabled={disabled}
         />
         <div className="space-y-2">
           <Label htmlFor="unit">Unité *</Label>
@@ -93,6 +129,7 @@ export function ProductForm({
             value={form.unit}
             onChange={(e) => updateField('unit', e.target.value)}
             placeholder="Ex: sac"
+            disabled={disabled}
           />
           {errors.unit && <p className="text-xs text-destructive">{errors.unit}</p>}
         </div>
@@ -106,7 +143,8 @@ export function ProductForm({
             type="number"
             min={0}
             value={form.threshold}
-            onChange={(e) => updateField('threshold', Number(e.target.value))}
+            onChange={(e) => updateField('threshold', sanitizeNumber(e.target.value))}
+            disabled={disabled}
           />
         </div>
         <div className="space-y-2">
@@ -117,7 +155,8 @@ export function ProductForm({
             min={0}
             step="0.01"
             value={form.costPrice}
-            onChange={(e) => updateField('costPrice', Number(e.target.value))}
+            onChange={(e) => updateField('costPrice', sanitizeNumber(e.target.value))}
+            disabled={disabled}
           />
         </div>
         <div className="space-y-2">
@@ -128,7 +167,8 @@ export function ProductForm({
             min={0}
             step="0.01"
             value={form.sellingPrice}
-            onChange={(e) => updateField('sellingPrice', Number(e.target.value))}
+            onChange={(e) => updateField('sellingPrice', sanitizeNumber(e.target.value))}
+            disabled={disabled}
           />
         </div>
       </div>
@@ -141,6 +181,7 @@ export function ProductForm({
             value={form.supplier ?? ''}
             onChange={(e) => updateField('supplier', e.target.value || null)}
             placeholder="Ex: CIMTOGO"
+            disabled={disabled}
           />
         </div>
         <div className="space-y-2">
@@ -150,6 +191,7 @@ export function ProductForm({
             value={form.barcode ?? ''}
             onChange={(e) => updateField('barcode', e.target.value || null)}
             placeholder="Ex: 123456789"
+            disabled={disabled}
           />
         </div>
       </div>
@@ -161,6 +203,7 @@ export function ProductForm({
           value={form.description ?? ''}
           onChange={(e) => updateField('description', e.target.value || null)}
           placeholder="Notes sur le produit"
+          disabled={disabled}
         />
       </div>
 
@@ -170,6 +213,7 @@ export function ProductForm({
           id="isActive"
           value={form.isActive ? 'true' : 'false'}
           onChange={(e) => updateField('isActive', e.target.value === 'true')}
+          disabled={disabled}
         >
           <option value="true">Actif</option>
           <option value="false">Inactif</option>

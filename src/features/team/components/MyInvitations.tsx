@@ -1,35 +1,48 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useAcceptInvitation, useDeclineInvitation } from '../hooks/useInvitations'
+import { USER_ROLE_LABELS } from '../constants'
 import type { MyInvitation } from '../services/invitationService'
 
 interface MyInvitationsProps {
   invitations: MyInvitation[]
 }
 
-const roleLabels: Record<string, string> = {
-  super_admin: 'Super admin',
-  admin: 'Admin',
-  operator: 'Opérateur',
-  viewer: 'Lecteur',
-  reader: 'Lecteur',
-}
-
 export function MyInvitations({ invitations }: MyInvitationsProps) {
   const { switchMembership } = useAuth()
   const accept = useAcceptInvitation()
   const decline = useDeclineInvitation()
+  const [invitationError, setInvitationError] = useState<string | null>(null)
 
   const handleAccept = (invitationId: string) => {
+    setInvitationError(null)
     accept.mutate(invitationId, {
       onSuccess: (data) => {
         void switchMembership(data.membershipId)
+      },
+      onError: (err) => {
+        setInvitationError(err.message)
+      },
+    })
+  }
+
+  const handleDecline = (invitationId: string) => {
+    setInvitationError(null)
+    decline.mutate(invitationId, {
+      onError: (err) => {
+        setInvitationError(err.message)
       },
     })
   }
 
   return (
     <div className="space-y-3">
+      {(invitationError ?? accept.error ?? decline.error) && (
+        <p className="text-sm text-destructive">
+          {invitationError ?? accept.error?.message ?? decline.error?.message}
+        </p>
+      )}
       {invitations.map((invitation) => (
         <div
           key={invitation.id}
@@ -38,8 +51,7 @@ export function MyInvitations({ invitations }: MyInvitationsProps) {
           <div>
             <p className="font-medium">{invitation.organizationName}</p>
             <p className="text-sm text-muted-foreground">
-              Rôle :{' '}
-              <span className="capitalize">{roleLabels[invitation.role] ?? invitation.role}</span>
+              Rôle : <span className="capitalize">{USER_ROLE_LABELS[invitation.role]}</span>
             </p>
           </div>
           <div className="flex gap-2">
@@ -47,7 +59,7 @@ export function MyInvitations({ invitations }: MyInvitationsProps) {
               size="sm"
               variant="outline"
               disabled={decline.isPending || accept.isPending}
-              onClick={() => decline.mutate(invitation.id)}
+              onClick={() => handleDecline(invitation.id)}
             >
               Refuser
             </Button>

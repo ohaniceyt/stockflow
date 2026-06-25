@@ -1,11 +1,9 @@
 import { supabase } from '@/services/supabase'
-import type { InventoryCount, InventorySession, Product, StockLevel } from '@/types'
+import type { InventoryCount, InventorySession } from '@/types'
 import type { Database } from '@/types/database'
 
 type SessionRow = Database['public']['Tables']['inventory_sessions']['Row']
 type CountRow = Database['public']['Tables']['inventory_counts']['Row']
-type SessionInsert = Database['public']['Tables']['inventory_sessions']['Insert']
-type CountInsert = Database['public']['Tables']['inventory_counts']['Insert']
 
 function mapSessionRow(row: SessionRow): InventorySession {
   return {
@@ -20,9 +18,10 @@ function mapSessionRow(row: SessionRow): InventorySession {
   }
 }
 
-function mapCountRow(row: CountRow): InventoryCount {
+function mapCountRow(row: CountRow, orgId?: string): InventoryCount {
   return {
     id: row.id,
+    orgId: orgId ?? '',
     sessionId: row.session_id,
     productId: row.product_id,
     locationId: row.location_id,
@@ -37,7 +36,6 @@ function mapCountRow(row: CountRow): InventoryCount {
 export interface SessionWithDetails extends InventorySession {
   locationName?: string
   operatorName?: string
-  counts?: InventoryCountWithDetails[]
 }
 
 export interface InventoryCountWithDetails extends InventoryCount {
@@ -46,22 +44,26 @@ export interface InventoryCountWithDetails extends InventoryCount {
 }
 
 export async function fetchInventorySessions(orgId: string): Promise<SessionWithDetails[]> {
-  const [
-    { data: sessions, error: sessionsError },
-    { data: locations, error: locationsError },
-    { data: users, error: usersError },
-  ] = await Promise.all([
-    supabase
-      .from('inventory_sessions')
-      .select('*')
-      .eq('org_id', orgId)
-      .order('started_at', { ascending: false }),
-    supabase.from('locations').select('id, name'),
-    supabase.from('users').select('id, name'),
-  ])
+  const [{ data: sessions, error: sessionsError }, { data: locations, error: locationsError }] =
+    await Promise.all([
+      supabase
+        .from('inventory_sessions')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('started_at', { ascending: false }),
+      supabase.from('locations').select('id, name').eq('org_id', orgId),
+    ])
 
   if (sessionsError) throw new Error(sessionsError.message)
   if (locationsError) throw new Error(locationsError.message)
+
+  const operatorIds = Array.from(new Set(sessions.map((s) => s.operator_id)))
+
+  const { data: users, error: usersError } =
+    operatorIds.length > 0
+      ? await supabase.from('users').select('id, name').in('id', operatorIds)
+      : { data: [], error: null }
+
   if (usersError) throw new Error(usersError.message)
 
   const locationMap = new Map(locations.map((l) => [l.id, l.name]))
@@ -74,19 +76,20 @@ export async function fetchInventorySessions(orgId: string): Promise<SessionWith
   }))
 }
 
-export async function fetchSessionCounts(sessionId: string): Promise<InventoryCountWithDetails[]> {
+export async function fetchSessionCounts(
+  sessionId: string,
+  orgId: string
+): Promise<InventoryCountWithDetails[]> {
   const [{ data: counts, error: countsError }, { data: products, error: productsError }] =
     await Promise.all([
       supabase.from('inventory_counts').select('*').eq('session_id', sessionId).order('created_at'),
-      supabase.from('products').select('id, name, unit'),
+      supabase.from('products').select('id, name, unit').eq('org_id', orgId),
     ])
 
   if (countsError) throw new Error(countsError.message)
   if (productsError) throw new Error(productsError.message)
 
-  const productMap = new Map(
-    products.map((p) => [p.id, p as Pick<Product, 'id' | 'name' | 'unit'>])
-  )
+  const productMap = new Map(products.map((p) => [p.id, { id: p.id, name: p.name, unit: p.unit }]))
 
   return counts.map((row) => ({
     ...mapCountRow(row),
@@ -99,82 +102,41 @@ export async function createInventorySession(
   orgId: string,
   locationId: string,
   name: string,
-  operatorId: string,
-  products: Product[],
-  stockLevels: StockLevel[]
+  operatorId: string
 ): Promise<InventorySession> {
-  const sessionInsert: SessionInsert = {
-    org_id: orgId,
-    location_id: locationId,
-    name,
-    status: 'pending',
-    operator_id: operatorId,
+  const { data, error } = await supabase.rpc('create_inventory_session', {
+    p_org_id: orgId,
+    p_location_id: locationId,
+    p_name: name,
+    p_operator_id: operatorId,
+  })
+
+  if (error) {
+    throw new Error(error.message)
   }
 
-  const { data: session, error: sessionError } = await supabase
+  const { data: session, error: fetchError } = await supabase
     .from('inventory_sessions')
-    .insert([sessionInsert])
-    .select()
-    .single()
-
-  if (sessionError) {
-    throw new Error(sessionError.message)
-  }
-
-  const countsByProduct = new Map(stockLevels.map((sl) => [sl.productId, sl.quantity]))
-
-  const countInserts: CountInsert[] = products
-    .filter((p) => p.isActive)
-    .map((p) => ({
-      session_id: session.id,
-      product_id: p.id,
-      location_id: locationId,
-      theoretical_quantity: countsByProduct.get(p.id) ?? 0,
-      counted_quantity: countsByProduct.get(p.id) ?? 0,
-      difference: 0,
-      is_validated: false,
-    }))
-
-  if (countInserts.length > 0) {
-    const { error: countsError } = await supabase.from('inventory_counts').insert(countInserts)
-    if (countsError) {
-      throw new Error(countsError.message)
-    }
-  }
-
-  return mapSessionRow(session)
-}
-
-export async function updateCount(
-  countId: string,
-  countedQuantity: number
-): Promise<InventoryCount> {
-  const { data: existing, error: fetchError } = await supabase
-    .from('inventory_counts')
     .select('*')
-    .eq('id', countId)
+    .eq('id', data)
     .single()
 
   if (fetchError) {
     throw new Error(fetchError.message)
   }
 
-  const { data: count, error } = await supabase
-    .from('inventory_counts')
-    .update({
-      counted_quantity: countedQuantity,
-      difference: countedQuantity - existing.theoretical_quantity,
-      is_validated: true,
-    })
-    .eq('id', countId)
-    .select()
-    .single()
+  return mapSessionRow(session)
+}
+
+export async function updateCount(countId: string, countedQuantity: number): Promise<void> {
+  const { error } = await supabase.rpc('update_inventory_count', {
+    p_count_id: countId,
+    p_counted_quantity: countedQuantity,
+  })
 
   if (error) {
     throw new Error(error.message)
   }
-
-  return mapCountRow(count)
 }
 
 export async function applyInventorySession(sessionId: string): Promise<void> {

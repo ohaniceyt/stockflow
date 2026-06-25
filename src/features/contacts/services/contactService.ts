@@ -60,7 +60,11 @@ export async function createContact(orgId: string, input: ContactFormData): Prom
   return mapRowToContact(data)
 }
 
-export async function updateContact(id: string, input: Partial<ContactFormData>): Promise<Contact> {
+export async function updateContact(
+  id: string,
+  orgId: string,
+  input: Partial<ContactFormData>
+): Promise<Contact> {
   const update: ContactUpdate = {}
   if (input.name !== undefined) update.name = input.name
   if (input.email !== undefined) update.email = input.email?.trim() ? input.email.trim() : null
@@ -71,10 +75,12 @@ export async function updateContact(id: string, input: Partial<ContactFormData>)
   if (input.notes !== undefined) update.notes = input.notes?.trim() ? input.notes.trim() : null
   if (input.isActive !== undefined) update.is_active = input.isActive
 
+  // Authorization relies on RLS; the explicit org_id filter documents the scoping contract.
   const { data, error } = await supabase
     .from('contacts')
     .update(update)
     .eq('id', id)
+    .eq('org_id', orgId)
     .select()
     .single()
 
@@ -83,11 +89,4 @@ export async function updateContact(id: string, input: Partial<ContactFormData>)
   }
 
   return mapRowToContact(data)
-}
-
-export async function deleteContact(id: string): Promise<void> {
-  const { error } = await supabase.from('contacts').delete().eq('id', id)
-  if (error) {
-    throw new Error(error.message)
-  }
 }

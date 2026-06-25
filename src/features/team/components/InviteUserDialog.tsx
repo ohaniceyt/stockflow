@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { USER_ROLES, USER_ROLE_LABELS } from '../constants'
 import type { UserRole } from '@/types'
 
 interface InviteUserDialogProps {
@@ -145,9 +146,11 @@ export function InviteUserDialog({
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
               >
-                <option value="admin">Admin</option>
-                <option value="operator">Opérateur</option>
-                <option value="reader">Lecteur</option>
+                {USER_ROLES.filter((r) => r !== 'super_admin').map((r) => (
+                  <option key={r} value={r}>
+                    {USER_ROLE_LABELS[r]}
+                  </option>
+                ))}
               </Select>
             </div>
 
