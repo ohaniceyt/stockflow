@@ -51,12 +51,12 @@ export default function DashboardPage() {
   const orgId = session?.membership.orgId
   const { data: products, isPending: productsPending, error: productsError } = useProducts()
   const { data: stock, isPending: stockPending, error: stockError } = useStock()
-  const { data: movements, isPending: movementsPending, error: movementsError } = useMovements()
+  const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
   const queryClient = useQueryClient()
 
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
 
-  const isPending = productsPending || stockPending || movementsPending
+  const isPending = productsPending || stockPending || movementsLoading
   const errors = [productsError, stockError, movementsError].filter(Boolean)
   const queryError = errors.length > 0 ? errors : null
 
@@ -100,7 +100,7 @@ export default function DashboardPage() {
   }
 
   const recentMovements = useMemo(() => {
-    return [...(movements ?? [])].sort(
+    return [...movements].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   }, [movements])
@@ -145,14 +145,14 @@ export default function DashboardPage() {
 
             <div className="card p-4">
               <h3 className="card-t">Flux 7 jours</h3>
-              <DashboardFluxChart movements={movements ?? []} />
+              <DashboardFluxChart movements={movements} />
             </div>
 
-            <DashboardTrendChart movements={movements ?? []} />
+            <DashboardTrendChart movements={movements} />
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <DashboardTopProducts movements={movements ?? []} />
-              <DashboardRotation stock={stockItems} movements={movements ?? []} />
+              <DashboardTopProducts movements={movements} />
+              <DashboardRotation stock={stockItems} movements={movements} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">

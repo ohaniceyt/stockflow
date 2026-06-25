@@ -21,8 +21,9 @@ import {
   updateCategory,
 } from '@/features/products/services/categoryService'
 import { pullSync } from '@/features/offline/services/syncService'
+import { computeChecksum } from '@/features/offline/services/queueService'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import type { MovementType } from '@/types'
+import type { MovementType, StockLevel } from '@/types'
 
 const SYNC_META_ID = 'global'
 const MAX_RETRIES = 5
@@ -72,6 +73,7 @@ export function useSync() {
   // immediately replaying potentially non-idempotent operations.
   useEffect(() => {
     void db.pendingOperations.where('status').equals('syncing').modify({ status: 'failed' })
+    void backfillChecksums()
   }, [])
 
   const sync = useCallback(async () => {
@@ -120,6 +122,7 @@ export function useSync() {
           await db.pendingOperations.update(op.id, { status: 'syncing' })
 
           try {
+            await preExecuteCheck(op, tempToRealId)
             await executeOperation(op, orgId, tempToRealId)
             await db.pendingOperations.delete(op.id)
           } catch (err) {
@@ -258,6 +261,76 @@ export function useSync() {
   }, [sync])
 
   return { sync, isSyncing, online, lastError, deadCount, retryDead }
+}
+
+async function backfillChecksums(): Promise<void> {
+  const allOps = await db.pendingOperations.toArray()
+  const ops = allOps.filter((op) => op.checksum === undefined)
+  if (ops.length === 0) return
+
+  const updates = await Promise.all(
+    ops.map(async (op) => {
+      const checksum = await computeChecksum(op.type, op.payload, op.createdAt)
+      return { key: op.id, changes: { checksum } }
+    })
+  )
+
+  await db.pendingOperations.bulkUpdate(updates)
+}
+
+async function validateChecksum(op: QueuedOperation): Promise<void> {
+  if (!op.checksum) {
+    // Legacy operations are backfilled on mount; missing checksum here is unexpected.
+    throw new Error('Checksum manquant: opération de file hors ligne corrompue')
+  }
+  const expected = await computeChecksum(op.type, op.payload, op.createdAt)
+  if (op.checksum !== expected) {
+    throw new Error('Checksum invalide: opération de file hors ligne a été altérée')
+  }
+}
+
+async function checkMovementConflict(
+  op: QueuedOperation,
+  tempToRealId: Map<string, string>
+): Promise<void> {
+  if (op.type !== 'MOVEMENT' || op.localUpdatedAt === undefined) return
+
+  const payload = op.payload as {
+    productId: string
+    locationId: string
+  }
+  const productId = mapTempId(tempToRealId, payload.productId)
+  const locationId = mapTempId(tempToRealId, payload.locationId)
+
+  const current = await db.stockLevels
+    .where('productId')
+    .equals(productId)
+    .and((level: StockLevel) => level.locationId === locationId)
+    .first()
+
+  let currentUpdatedAt: number | undefined
+  if (current?.updatedAt) {
+    currentUpdatedAt = new Date(current.updatedAt).getTime()
+  } else {
+    const product = await db.products.get(productId)
+    if (product?.updatedAt) {
+      currentUpdatedAt = new Date(product.updatedAt).getTime()
+    }
+  }
+
+  if (currentUpdatedAt !== undefined && currentUpdatedAt > op.localUpdatedAt) {
+    throw new Error(
+      'Conflit de synchronisation: les données locales ont été modifiées après la mise en file de ce mouvement'
+    )
+  }
+}
+
+async function preExecuteCheck(
+  op: QueuedOperation,
+  tempToRealId: Map<string, string>
+): Promise<void> {
+  await validateChecksum(op)
+  await checkMovementConflict(op, tempToRealId)
 }
 
 function isRetryableError(err: Error): boolean {

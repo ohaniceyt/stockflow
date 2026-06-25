@@ -37,7 +37,7 @@ export default function RecapPage() {
 
   const activeProducts = useMemo(() => products?.filter((p) => p.isActive) ?? [], [products])
   const stockItems = useMemo(() => stock ?? [], [stock])
-  const allMovements = useMemo(() => movements ?? [], [movements])
+  const allMovements = useMemo(() => movements, [movements])
 
   const periodRange = useMemo(() => {
     const today = startOfDay(new Date())

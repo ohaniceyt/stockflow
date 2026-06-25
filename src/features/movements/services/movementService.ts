@@ -88,7 +88,23 @@ function attachDetails(
   }))
 }
 
-export async function fetchMovements(orgId: string): Promise<MovementWithDetails[]> {
+export const MOVEMENTS_PAGE_SIZE = 25
+
+export interface FetchMovementsResult {
+  movements: MovementWithDetails[]
+  total: number
+  hasMore: boolean
+}
+
+export async function fetchMovements({
+  orgId,
+  page,
+  pageSize,
+}: {
+  orgId: string
+  page: number
+  pageSize: number
+}): Promise<FetchMovementsResult> {
   if (!orgId) {
     throw new Error('Cannot fetch movements without an organization id')
   }
@@ -101,15 +117,25 @@ export async function fetchMovements(orgId: string): Promise<MovementWithDetails
   if (productsError) throw new Error(productsError.message)
 
   const productIds = products.map((p) => p.id)
-  if (productIds.length === 0) return []
+  if (productIds.length === 0) {
+    return { movements: [], total: 0, hasMore: false }
+  }
 
-  const { data: movements, error: movementsError } = await supabase
-    .from('movements')
-    .select('*')
-    .in('product_id', productIds)
-    .order('created_at', { ascending: false })
-    .limit(200)
+  const [{ count: total, error: countError }, { data: movements, error: movementsError }] =
+    await Promise.all([
+      supabase
+        .from('movements')
+        .select('*', { count: 'exact', head: true })
+        .in('product_id', productIds),
+      supabase
+        .from('movements')
+        .select('*')
+        .in('product_id', productIds)
+        .order('created_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1),
+    ])
 
+  if (countError) throw new Error(countError.message)
   if (movementsError) throw new Error(movementsError.message)
 
   const operatorIds = movements.map((row) => row.operator_id)
@@ -118,7 +144,18 @@ export async function fetchMovements(orgId: string): Promise<MovementWithDetails
     operatorIds
   )
 
-  return attachDetails(movements, productOrgMap, productMap, locationMap, userMap, contactMap)
+  return {
+    movements: attachDetails(
+      movements,
+      productOrgMap,
+      productMap,
+      locationMap,
+      userMap,
+      contactMap
+    ),
+    total: total ?? 0,
+    hasMore: (page + 1) * pageSize < (total ?? 0),
+  }
 }
 
 export async function fetchMovementsByProduct(

@@ -1,7 +1,7 @@
 import { fetchProducts } from '@/features/products/services/productService'
 import { fetchLocations } from '@/features/locations/services/locationService'
 import { fetchStock } from '@/features/stock/services/stockService'
-import { fetchMovements } from '@/features/movements/services/movementService'
+import { fetchMovements, MOVEMENTS_PAGE_SIZE } from '@/features/movements/services/movementService'
 import {
   fetchInventorySessions,
   fetchSessionCounts,
@@ -36,16 +36,25 @@ export async function pullSync(orgId: string): Promise<PullSyncResult> {
     throw new Error('Cannot pull sync without an organization id')
   }
 
-  const [products, categories, locations, stockItems, movements, sessions, contacts] =
-    await Promise.all([
-      fetchProducts(orgId),
-      fetchCategories(orgId),
-      fetchLocations(orgId),
-      fetchStock(orgId),
-      fetchMovements(orgId),
-      fetchInventorySessions(orgId),
-      fetchContacts(orgId),
-    ])
+  const [products, categories, locations, stockItems, sessions, contacts] = await Promise.all([
+    fetchProducts(orgId),
+    fetchCategories(orgId),
+    fetchLocations(orgId),
+    fetchStock(orgId),
+    fetchInventorySessions(orgId),
+    fetchContacts(orgId),
+  ])
+
+  // Pull all movements across pages for offline cache.
+  let page = 0
+  let hasMore = true
+  const movements = []
+  while (hasMore) {
+    const result = await fetchMovements({ orgId, page, pageSize: MOVEMENTS_PAGE_SIZE })
+    movements.push(...result.movements)
+    hasMore = result.hasMore
+    page++
+  }
 
   // Pull counts for all sessions
   const countsNested = await Promise.all(sessions.map((s) => fetchSessionCounts(s.id, orgId)))

@@ -23,7 +23,14 @@ import type { MovementType } from '@/types'
 type DialogMode = 'single' | 'bulk' | null
 
 export default function MovementsPage() {
-  const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
+  const {
+    data: movements,
+    isLoading: movementsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: movementsError,
+  } = useMovements()
   const { data: products, isLoading: productsLoading, error: productsError } = useProducts()
   const { data: locations, isLoading: locationsLoading, error: locationsError } = useLocations()
   const { data: contacts, isLoading: contactsLoading, error: contactsError } = useContacts()
@@ -42,7 +49,6 @@ export default function MovementsPage() {
   }, [contacts])
 
   const filteredMovements = useMemo(() => {
-    if (!movements) return []
     if (contactFilter === 'all') return movements
     if (contactFilter === 'none') return movements.filter((m) => !m.contactId)
     return movements.filter((m) => m.contactId === contactFilter)
@@ -165,7 +171,7 @@ export default function MovementsPage() {
         </DialogContent>
       </Dialog>
 
-      {!isLoading && !movementsError && movements && movements.length > 0 && (
+      {!isLoading && !movementsError && movements.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="space-y-2 sm:w-72">
             <Label htmlFor="movement-contact-filter">Filtrer par client</Label>
@@ -188,7 +194,17 @@ export default function MovementsPage() {
 
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {movementsError && <p className="text-destructive">{movementsError.message}</p>}
-      {!isLoading && !movementsError && movements && <MovementList movements={filteredMovements} />}
+      {!isLoading && !movementsError && <MovementList movements={filteredMovements} />}
+      {hasNextPage && (
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto"
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? 'Chargement…' : 'Charger plus'}
+        </Button>
+      )}
     </div>
   )
 }

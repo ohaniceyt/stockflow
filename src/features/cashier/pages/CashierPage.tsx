@@ -138,12 +138,7 @@ export default function CashierPage() {
   }, [availableProducts, search])
 
   const sessionSales = useMemo(
-    () =>
-      filterSalesBySession(
-        (movements ??
-          []) as import('@/features/movements/services/movementService').MovementWithDetails[],
-        openSession?.id ?? null
-      ),
+    () => filterSalesBySession(movements, openSession?.id ?? null),
     [movements, openSession]
   )
   const sessionRevenue = useMemo(() => computeSessionRevenue(sessionSales), [sessionSales])

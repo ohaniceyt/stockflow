@@ -282,4 +282,6 @@ export interface PendingOperation {
   status: 'pending' | 'syncing' | 'failed' | 'dead'
   error?: string
   nextRetryAt?: number
+  checksum?: string
+  localUpdatedAt?: number
 }

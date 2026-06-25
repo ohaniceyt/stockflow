@@ -205,6 +205,7 @@ export interface Database {
       movements: {
         Row: {
           id: string
+          org_id: string
           product_id: string
           location_id: string
           target_location_id: string | null

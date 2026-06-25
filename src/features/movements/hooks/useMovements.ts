@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import { db } from '@/lib/db'
@@ -14,6 +15,8 @@ import { queueOperation } from '@/features/offline/services/queueService'
 import {
   createMovement,
   fetchMovements,
+  MOVEMENTS_PAGE_SIZE,
+  type FetchMovementsResult,
   type MovementWithDetails,
 } from '../services/movementService'
 import { fetchContacts } from '@/features/contacts/services/contactService'
@@ -26,50 +29,75 @@ export function useMovements() {
   const online = useNetworkStatus()
   const orgId = session?.membership.orgId
 
-  return useQuery({
-    queryKey: [MOVEMENTS_QUERY_KEY, orgId],
-    queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
-      try {
-        const data = await fetchMovements(orgId)
-        await cacheMovements(data)
-        const contacts = await fetchContacts(orgId)
-        await cacheContacts(contacts)
-        return data
-      } catch (err) {
-        if (!online) {
-          const [cached, products, locations, contacts] = await Promise.all([
-            getCachedMovements(orgId),
-            getCachedProducts(orgId),
-            getCachedLocations(orgId),
-            getCachedContacts(orgId),
-          ])
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error, isError } =
+    useInfiniteQuery({
+      queryKey: [MOVEMENTS_QUERY_KEY, orgId],
+      queryFn: async ({ pageParam }) => {
+        if (!orgId) throw new Error('Organisation manquante')
+        try {
+          const result = await fetchMovements({
+            orgId,
+            page: pageParam,
+            pageSize: MOVEMENTS_PAGE_SIZE,
+          })
+          await cacheMovements(result.movements)
+          const contacts = await fetchContacts(orgId)
+          await cacheContacts(contacts)
+          return result
+        } catch (err) {
+          if (!online) {
+            const [cached, products, locations, contacts] = await Promise.all([
+              getCachedMovements(orgId),
+              getCachedProducts(orgId),
+              getCachedLocations(orgId),
+              getCachedContacts(orgId),
+            ])
 
-          if (cached.length > 0) {
-            const productMap = new Map(products.map((p) => [p.id, p.name]))
-            const locationMap = new Map(locations.map((l) => [l.id, l.name]))
-            const contactMap = new Map(contacts.map((c) => [c.id, c.name]))
+            if (cached.length > 0) {
+              const productMap = new Map(products.map((p) => [p.id, p.name]))
+              const locationMap = new Map(locations.map((l) => [l.id, l.name]))
+              const contactMap = new Map(contacts.map((c) => [c.id, c.name]))
 
-            return cached.map(
-              (m): MovementWithDetails => ({
-                ...m,
-                productName: productMap.get(m.productId),
-                locationName: locationMap.get(m.locationId),
-                targetLocationName: m.targetLocationId
-                  ? locationMap.get(m.targetLocationId)
-                  : undefined,
-                operatorName: undefined,
-                contactName: m.contactId ? contactMap.get(m.contactId) : undefined,
-              })
-            )
+              const movements = cached.map(
+                (m): MovementWithDetails => ({
+                  ...m,
+                  productName: productMap.get(m.productId),
+                  locationName: locationMap.get(m.locationId),
+                  targetLocationName: m.targetLocationId
+                    ? locationMap.get(m.targetLocationId)
+                    : undefined,
+                  operatorName: undefined,
+                  contactName: m.contactId ? contactMap.get(m.contactId) : undefined,
+                })
+              )
+
+              return {
+                movements,
+                total: movements.length,
+                hasMore: false,
+              }
+            }
           }
+          throw err
         }
-        throw err
-      }
-    },
-    enabled: Boolean(orgId),
-    staleTime: 30 * 1000,
-  })
+      },
+      initialPageParam: 0,
+      getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+        lastPage.hasMore ? lastPageParam + 1 : undefined,
+      enabled: Boolean(orgId),
+      staleTime: 30 * 1000,
+    })
+
+  const movements = useMemo(() => data?.pages.flatMap((page) => page.movements) ?? [], [data])
+
+  return {
+    data: movements,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: isError ? error : undefined,
+  }
 }
 
 export function useCreateMovement() {
@@ -96,10 +124,9 @@ export function useCreateMovement() {
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: [MOVEMENTS_QUERY_KEY, orgId] })
-      const previousMovements = queryClient.getQueryData<MovementWithDetails[]>([
-        MOVEMENTS_QUERY_KEY,
-        orgId,
-      ])
+      const previousMovements = queryClient.getQueryData<
+        { pages: FetchMovementsResult[]; pageParams: number[] } | undefined
+      >([MOVEMENTS_QUERY_KEY, orgId])
       const previousStock = queryClient.getQueryData<StockItem[]>(['stock', orgId])
 
       const stockBefore =
@@ -140,8 +167,14 @@ export function useCreateMovement() {
 
       queryClient.setQueryData(
         [MOVEMENTS_QUERY_KEY, orgId],
-        (old: MovementWithDetails[] | undefined) => {
-          return [optimistic, ...(old ?? [])]
+        (old: { pages: FetchMovementsResult[]; pageParams: number[] } | undefined) => {
+          if (!old?.pages.length) return old
+          const nextPages = [...old.pages]
+          nextPages[0] = {
+            ...nextPages[0],
+            movements: [optimistic, ...nextPages[0].movements],
+          }
+          return { ...old, pages: nextPages }
         }
       )
 
@@ -195,10 +228,9 @@ export function useCreateBulkMovements() {
     },
     onMutate: async (inputs) => {
       await queryClient.cancelQueries({ queryKey: [MOVEMENTS_QUERY_KEY, orgId] })
-      const previousMovements = queryClient.getQueryData<MovementWithDetails[]>([
-        MOVEMENTS_QUERY_KEY,
-        orgId,
-      ])
+      const previousMovements = queryClient.getQueryData<
+        { pages: FetchMovementsResult[]; pageParams: number[] } | undefined
+      >([MOVEMENTS_QUERY_KEY, orgId])
       const previousStock = queryClient.getQueryData<StockItem[]>(['stock', orgId])
 
       const stockMap = new Map(
@@ -244,8 +276,14 @@ export function useCreateBulkMovements() {
 
       queryClient.setQueryData(
         [MOVEMENTS_QUERY_KEY, orgId],
-        (old: MovementWithDetails[] | undefined) => {
-          return [...optimistics, ...(old ?? [])]
+        (old: { pages: FetchMovementsResult[]; pageParams: number[] } | undefined) => {
+          if (!old?.pages.length) return old
+          const nextPages = [...old.pages]
+          nextPages[0] = {
+            ...nextPages[0],
+            movements: [...optimistics, ...nextPages[0].movements],
+          }
+          return { ...old, pages: nextPages }
         }
       )
 
