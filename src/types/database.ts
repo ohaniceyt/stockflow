@@ -16,6 +16,16 @@ export interface Database {
           has_storefront_enabled: boolean
           has_api_enabled: boolean
           storefront_location_id: string | null
+          has_invoicing_enabled: boolean
+          has_tax_enabled: boolean
+          tax_name: string | null
+          tax_rate: number | null
+          tax_id: string | null
+          invoice_prefix: string | null
+          quote_prefix: string | null
+          delivery_note_prefix: string | null
+          receipt_prefix: string | null
+          legal_mentions: string | null
           created_at: string
           updated_at: string
         }
@@ -217,6 +227,7 @@ export interface Database {
           contact_id: string | null
           operator_id: string
           reference_id: string | null
+          client_operation_id: string | null
           unit_price: number | null
           is_cancelled: boolean
           cancelled_by: string | null
@@ -278,6 +289,146 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['contacts']['Insert']>
         Relationships: []
       }
+      receipts: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          cashier_session_id: string | null
+          operator_id: string
+          contact_id: string | null
+          document_number: string
+          payment_method: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+          currency: string
+          subtotal: number
+          tax_amount: number
+          total: number
+          amount_paid: number
+          change_due: number
+          notes: string | null
+          is_cancelled: boolean
+          cancelled_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['receipts']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['receipts']['Insert']>
+        Relationships: []
+      }
+      receipt_items: {
+        Row: {
+          id: string
+          receipt_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_price: number
+          discount_amount: number
+          tax_amount: number
+          total: number
+          created_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['receipt_items']['Row'],
+          'id' | 'created_at'
+        >
+        Update: Partial<Database['public']['Tables']['receipt_items']['Insert']>
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          org_id: string
+          contact_id: string | null
+          type: 'invoice' | 'quote' | 'delivery_note'
+          document_number: string
+          status: 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled' | 'converted'
+          issue_date: string
+          due_date: string | null
+          currency: string
+          subtotal: number
+          tax_total: number
+          total: number
+          paid_amount: number
+          quote_id: string | null
+          movement_ids: string[] | null
+          note: string | null
+          terms: string | null
+          delivery_address: string | null
+          delivered_at: string | null
+          converted_to_invoice_id: string | null
+          sent_at: string | null
+          converted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['invoices']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['invoices']['Insert']>
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          id: string
+          invoice_id: string
+          product_id: string | null
+          description: string
+          quantity: number
+          unit_price: number
+          tax_rate: number
+          discount_amount: number
+          total: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['invoice_items']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['invoice_items']['Insert']>
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          amount: number
+          payment_method: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+          reference: string | null
+          paid_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['payments']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['payments']['Insert']>
+        Relationships: []
+      }
+      invoice_sequences: {
+        Row: {
+          id: string
+          org_id: string
+          document_type: 'invoice' | 'quote' | 'delivery_note' | 'receipt'
+          prefix: string
+          current_number: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['invoice_sequences']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<Database['public']['Tables']['invoice_sequences']['Insert']>
+        Relationships: []
+      }
       inventory_sessions: {
         Row: {
           id: string
@@ -327,6 +478,33 @@ export interface Database {
           p_contact_id: string | null
           p_unit_price: number | null
           p_cashier_session_id: string | null
+          p_client_operation_id?: string | null
+        }
+        Returns: unknown
+      }
+      next_document_number: {
+        Args: {
+          p_org_id: string
+          p_document_type: 'invoice' | 'quote' | 'delivery_note' | 'receipt'
+          p_prefix: string
+        }
+        Returns: string
+      }
+      record_invoice_payment: {
+        Args: {
+          p_invoice_id: string
+          p_amount: number
+          p_payment_method: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+          p_reference: string | null
+          p_paid_at: string | null
+        }
+        Returns: string
+      }
+      convert_quote_to_invoice: {
+        Args: {
+          p_quote_id: string
+          p_issue_date: string | null
+          p_due_date: string | null
         }
         Returns: string
       }

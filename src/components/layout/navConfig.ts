@@ -13,6 +13,7 @@ import {
   UserCheck,
   Settings,
   Store,
+  Receipt,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -22,7 +23,7 @@ export interface NavItem {
   roles: UserRole[]
   primary?: boolean
   platformAdminOnly?: boolean
-  requiresFeature?: 'cashier' | 'storefront' | 'api'
+  requiresFeature?: 'cashier' | 'storefront' | 'api' | 'invoicing'
 }
 
 export const navItems: NavItem[] = [
@@ -74,6 +75,13 @@ export const navItems: NavItem[] = [
   { to: '/suppliers', label: 'Fournisseurs', icon: Truck, roles: ['super_admin', 'admin'] },
   { to: '/customers', label: 'Clients', icon: UserCheck, roles: ['super_admin', 'admin'] },
   { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
+  {
+    to: '/invoices',
+    label: 'Facturation',
+    icon: Receipt,
+    roles: ['super_admin', 'admin', 'operator', 'reader'],
+    requiresFeature: 'invoicing',
+  },
   {
     to: '/settings/profile',
     label: 'Réglages',

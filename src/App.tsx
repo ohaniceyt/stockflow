@@ -32,6 +32,7 @@ const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
 const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
 const ApiKeysPage = lazy(() => import('@/features/api/pages/ApiKeysPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
+const InvoicingPage = lazy(() => import('@/features/invoicing/pages/InvoicingPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
 const BackOfficeLayout = lazy(() => import('@/features/back-office/components/BackOfficeLayout'))
@@ -169,6 +170,14 @@ function App() {
               }
             />
             <Route path="/settings/profile" element={<ProfilePage />} />
+            <Route
+              path="/invoices"
+              element={
+                <RequireAuth roles={['super_admin', 'admin', 'operator', 'reader']}>
+                  <InvoicingPage />
+                </RequireAuth>
+              }
+            />
             <Route
               path="/settings/organization"
               element={

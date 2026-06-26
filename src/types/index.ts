@@ -15,6 +15,16 @@ export interface Organization {
   hasStorefrontEnabled: boolean
   hasApiEnabled: boolean
   storefrontLocationId: string | null
+  hasInvoicingEnabled: boolean
+  hasTaxEnabled: boolean
+  taxName: string | null
+  taxRate: number | null
+  taxId: string | null
+  invoicePrefix: string | null
+  quotePrefix: string | null
+  deliveryNotePrefix: string | null
+  receiptPrefix: string | null
+  legalMentions: string | null
   createdAt: string
   updatedAt: string
 }
@@ -112,7 +122,8 @@ export interface OrganizationMembership {
   orgId: string
   userId: string
   role: UserRole
-  pinHash: string | null
+  hasPin: boolean
+  pinHash?: string | null
   isActive: boolean
   forcePinChange: boolean
   lastLoginAt: string | null
@@ -257,6 +268,161 @@ export interface InventoryCount {
   difference: number
   isValidated: boolean
   createdAt: string
+}
+
+export interface Receipt {
+  id: string
+  orgId: string
+  locationId: string
+  cashierSessionId: string | null
+  operatorId: string
+  contactId: string | null
+  documentNumber: string
+  paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+  currency: string
+  subtotal: number
+  taxAmount: number
+  total: number
+  amountPaid: number
+  changeDue: number
+  notes: string | null
+  isCancelled: boolean
+  cancelledAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ReceiptItem {
+  id: string
+  receiptId: string
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  discountAmount: number
+  taxAmount: number
+  total: number
+  createdAt: string
+}
+
+export interface ReceiptWithItems extends Receipt {
+  items: ReceiptItem[]
+}
+
+export type DocumentType = 'invoice' | 'quote' | 'delivery_note'
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled' | 'converted'
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted' | 'cancelled'
+export type DeliveryNoteStatus = 'draft' | 'sent' | 'delivered' | 'cancelled'
+export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+
+export interface Invoice {
+  id: string
+  orgId: string
+  contactId: string | null
+  type: 'invoice'
+  documentNumber: string
+  status: InvoiceStatus
+  issueDate: string
+  dueDate: string | null
+  currency: string
+  subtotal: number
+  taxTotal: number
+  total: number
+  paidAmount: number
+  quoteId: string | null
+  movementIds: string[] | null
+  note: string | null
+  terms: string | null
+  sentAt: string | null
+  deliveryAddress: string | null
+  deliveredAt: string | null
+  convertedToInvoiceId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Quote {
+  id: string
+  orgId: string
+  contactId: string | null
+  type: 'quote'
+  documentNumber: string
+  status: QuoteStatus
+  issueDate: string
+  dueDate: string | null
+  currency: string
+  subtotal: number
+  taxTotal: number
+  total: number
+  convertedToInvoiceId: string | null
+  movementIds: string[] | null
+  note: string | null
+  terms: string | null
+  convertedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DeliveryNote {
+  id: string
+  orgId: string
+  contactId: string | null
+  type: 'delivery_note'
+  documentNumber: string
+  status: DeliveryNoteStatus
+  issueDate: string
+  dueDate: string | null
+  currency: string
+  subtotal: number
+  taxTotal: number
+  total: number
+  deliveryAddress: string | null
+  deliveredAt: string | null
+  sentAt: string | null
+  movementIds: string[] | null
+  note: string | null
+  terms: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DocumentItem {
+  id: string
+  documentId: string
+  productId: string | null
+  description: string
+  quantity: number
+  unitPrice: number
+  taxRate: number
+  discountAmount: number
+  total: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Payment {
+  id: string
+  orgId: string
+  invoiceId: string
+  amount: number
+  paymentMethod: PaymentMethod
+  reference: string | null
+  paidAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface InvoiceWithItems extends Invoice {
+  items: DocumentItem[]
+  payments: Payment[]
+}
+
+export interface QuoteWithItems extends Quote {
+  items: DocumentItem[]
+}
+
+export interface DeliveryNoteWithItems extends DeliveryNote {
+  items: DocumentItem[]
 }
 
 export interface PendingOperation {
