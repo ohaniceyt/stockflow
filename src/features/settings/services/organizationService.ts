@@ -5,6 +5,7 @@ import type { Database } from '@/types/database'
 export interface UpdateOrganizationInput {
   name: string
   slug: string
+  country: string | null
   currency: string
   timezone: string
   hasCashierEnabled?: boolean
@@ -29,6 +30,7 @@ export function mapOrganizationRow(data: {
   id: string
   name: string
   slug: string
+  country: string | null
   currency: string
   timezone: string
   is_active: boolean
@@ -58,6 +60,7 @@ export function mapOrganizationRow(data: {
     id: data.id,
     name: data.name,
     slug: data.slug,
+    country: data.country,
     currency: data.currency,
     timezone: data.timezone,
     isActive: data.is_active,
@@ -91,7 +94,7 @@ export async function fetchOrganization(orgId: string): Promise<Organization> {
   const { data, error } = await supabase
     .from('organizations')
     .select(
-      'id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, onboarding_completed, has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id, has_invoicing_enabled, has_tax_enabled, tax_name, tax_rate, tax_id, invoice_prefix, quote_prefix, delivery_note_prefix, receipt_prefix, legal_mentions, auto_reminder_enabled, auto_reminder_days, created_at, updated_at'
+      'id, name, slug, country, currency, timezone, is_active, is_suspended, suspension_reason, onboarding_completed, has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id, has_invoicing_enabled, has_tax_enabled, tax_name, tax_rate, tax_id, invoice_prefix, quote_prefix, delivery_note_prefix, receipt_prefix, legal_mentions, auto_reminder_enabled, auto_reminder_days, created_at, updated_at'
     )
     .eq('id', orgId)
     .single()
@@ -111,6 +114,7 @@ export async function updateOrganization(
   const updateData: Database['public']['Tables']['organizations']['Update'] = {
     name: input.name.trim(),
     slug: input.slug.trim().toLowerCase(),
+    country: input.country,
     currency: input.currency,
     timezone: input.timezone,
   }
@@ -168,7 +172,7 @@ export async function updateOrganization(
     .update(updateData)
     .eq('id', orgId)
     .select(
-      'id, name, slug, currency, timezone, is_active, is_suspended, suspension_reason, onboarding_completed, has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id, has_invoicing_enabled, has_tax_enabled, tax_name, tax_rate, tax_id, invoice_prefix, quote_prefix, delivery_note_prefix, receipt_prefix, legal_mentions, auto_reminder_enabled, auto_reminder_days, created_at, updated_at'
+      'id, name, slug, country, currency, timezone, is_active, is_suspended, suspension_reason, onboarding_completed, has_cashier_enabled, has_storefront_enabled, has_api_enabled, storefront_location_id, has_invoicing_enabled, has_tax_enabled, tax_name, tax_rate, tax_id, invoice_prefix, quote_prefix, delivery_note_prefix, receipt_prefix, legal_mentions, auto_reminder_enabled, auto_reminder_days, created_at, updated_at'
     )
     .single()
 

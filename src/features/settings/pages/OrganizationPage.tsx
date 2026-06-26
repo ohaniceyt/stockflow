@@ -11,6 +11,7 @@ import {
   FileText,
   Bell,
   ExternalLink,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,20 +22,7 @@ import { useLocations, useSetDefaultLocation } from '@/features/locations/hooks/
 import { useOrganization, useUpdateOrganization } from '../hooks/useSettings'
 import { SettingsTabs } from '../components/SettingsTabs'
 import type { Organization } from '@/types'
-
-const currencies = [
-  { value: 'XOF', label: 'Franc CFA (XOF)' },
-  { value: 'EUR', label: 'Euro (EUR)' },
-  { value: 'USD', label: 'Dollar US (USD)' },
-  { value: 'GBP', label: 'Livre sterling (GBP)' },
-]
-
-const timezones = [
-  { value: 'Africa/Abidjan', label: 'Africa/Abidjan (UTC+0)' },
-  { value: 'Africa/Lagos', label: 'Africa/Lagos (UTC+1)' },
-  { value: 'Europe/Paris', label: 'Europe/Paris (UTC+1/+2)' },
-  { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
-]
+import { COUNTRY_DEFAULTS, CURRENCIES, TIMEZONES, getCountryDefault } from '@/lib/countries'
 
 interface OrganizationFormProps {
   organization: Organization
@@ -88,9 +76,21 @@ function FeatureToggle({
 
 function OrganizationForm({ organization, canManage, update }: OrganizationFormProps) {
   const [name, setName] = useState(organization.name)
+  const [country, setCountry] = useState(organization.country ?? '')
   const [currency, setCurrency] = useState(organization.currency)
   const [timezone, setTimezone] = useState(organization.timezone)
   const [formError, setFormError] = useState<string | null>(null)
+
+  const currencyChanged = currency !== organization.currency
+
+  const applyCountryDefault = (code: string) => {
+    setCountry(code)
+    const defaults = getCountryDefault(code)
+    if (defaults) {
+      setCurrency(defaults.currency)
+      setTimezone(defaults.timezone)
+    }
+  }
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -103,6 +103,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
       {
         name: name.trim(),
         slug: organization.slug,
+        country: country || null,
         currency,
         timezone,
       },
@@ -145,6 +146,23 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         </p>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="country">Pays de l’organisation</Label>
+        <Select
+          id="country"
+          value={country}
+          onChange={(e) => applyCountryDefault(e.target.value)}
+          disabled={update.isPending || !canManage}
+        >
+          <option value="">Sélectionnez un pays…</option>
+          {COUNTRY_DEFAULTS.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="currency">Devise</Label>
@@ -154,7 +172,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
             onChange={(e) => setCurrency(e.target.value)}
             disabled={update.isPending || !canManage}
           >
-            {currencies.map((c) => (
+            {CURRENCIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
@@ -170,7 +188,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
             onChange={(e) => setTimezone(e.target.value)}
             disabled={update.isPending || !canManage}
           >
-            {timezones.map((t) => (
+            {TIMEZONES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
@@ -178,6 +196,16 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
           </Select>
         </div>
       </div>
+
+      {currencyChanged && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Vous changez la devise de l’organisation. Les futurs documents utiliseront{' '}
+            <strong>{currency}</strong>. Les documents existants conservent leur devise d’origine.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">Portail public</p>
@@ -233,6 +261,7 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
       {
         name: organization.name,
         slug: organization.slug,
+        country: organization.country,
         currency: organization.currency,
         timezone: organization.timezone,
         hasCashierEnabled,
@@ -339,6 +368,7 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
       {
         name: organization.name,
         slug: organization.slug,
+        country: organization.country,
         currency: organization.currency,
         timezone: organization.timezone,
         hasCashierEnabled: organization.hasCashierEnabled,

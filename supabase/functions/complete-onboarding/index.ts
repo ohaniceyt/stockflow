@@ -4,6 +4,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 interface OnboardingPayload {
   orgName: string
   orgSlug: string
+  country: string
   currency: string
   timezone: string
   defaultLocationName: string
@@ -58,13 +59,21 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgName, orgSlug, currency, timezone, defaultLocationName, plan }: OnboardingPayload =
-      await req.json()
+    const {
+      orgName,
+      orgSlug,
+      country,
+      currency,
+      timezone,
+      defaultLocationName,
+      plan,
+    }: OnboardingPayload = await req.json()
     const selectedPlan = plan && ['free', 'starter', 'pro'].includes(plan) ? plan : 'free'
 
     if (
       !orgName?.trim() ||
       !orgSlug?.trim() ||
+      !country ||
       !currency ||
       !timezone ||
       !defaultLocationName?.trim()
@@ -139,6 +148,7 @@ Deno.serve(async (req: Request) => {
       p_user_id: authUserId,
       p_org_name: orgName.trim(),
       p_org_slug: normalizedSlug,
+      p_country: country,
       p_currency: currency,
       p_timezone: timezone,
       p_default_location_name: defaultLocationName.trim(),

@@ -6,6 +6,7 @@ export interface Database {
           id: string
           name: string
           slug: string
+          country: string | null
           currency: string
           timezone: string
           is_active: boolean

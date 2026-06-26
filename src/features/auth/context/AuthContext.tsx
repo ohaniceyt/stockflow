@@ -75,6 +75,7 @@ interface AuthContextValue {
   completeOnboarding: (updates: {
     orgName: string
     orgSlug: string
+    country: string
     currency: string
     timezone: string
     defaultLocationName: string
@@ -203,6 +204,7 @@ function buildSession(
         id: asString(organizationRaw.id),
         name: asString(organizationRaw.name),
         slug: asString(organizationRaw.slug),
+        country: typeof organizationRaw.country === 'string' ? organizationRaw.country : null,
         currency: asString(organizationRaw.currency),
         timezone: asString(organizationRaw.timezone),
         isActive: Boolean(organizationRaw.isActive ?? true),
@@ -248,6 +250,7 @@ function buildSession(
         id: '',
         name: '',
         slug: '',
+        country: null,
         currency: 'XOF',
         timezone: 'Africa/Abidjan',
         isActive: true,
@@ -711,6 +714,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (input: {
       orgName: string
       orgSlug: string
+      country: string
       currency: string
       timezone: string
       defaultLocationName: string
@@ -726,7 +730,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Authorization: `Bearer ${session.accessToken}`,
           apikey: supabaseKey,
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          orgName: input.orgName,
+          orgSlug: input.orgSlug,
+          country: input.country,
+          currency: input.currency,
+          timezone: input.timezone,
+          defaultLocationName: input.defaultLocationName,
+          plan: input.plan,
+        }),
       })
 
       if (!response.ok) {

@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from 'react'
+import { useState, useMemo, type SyntheticEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Building2, MapPin, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,20 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
-
-const currencies = [
-  { value: 'XOF', label: 'Franc CFA (XOF)' },
-  { value: 'EUR', label: 'Euro (EUR)' },
-  { value: 'USD', label: 'Dollar US (USD)' },
-  { value: 'GBP', label: 'Livre sterling (GBP)' },
-]
-
-const timezones = [
-  { value: 'Africa/Abidjan', label: 'Africa/Abidjan (UTC+0)' },
-  { value: 'Africa/Lagos', label: 'Africa/Lagos (UTC+1)' },
-  { value: 'Europe/Paris', label: 'Europe/Paris (UTC+1/+2)' },
-  { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
-]
+import { COUNTRY_DEFAULTS, CURRENCIES, TIMEZONES, getCountryDefault } from '@/lib/countries'
 
 function slugify(value: string): string {
   return value
@@ -45,9 +32,21 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState(session?.organization.name ?? '')
   const [orgSlug, setOrgSlug] = useState(session?.organization.slug ?? '')
+  const [country, setCountry] = useState('CI')
   const [currency, setCurrency] = useState('XOF')
   const [timezone, setTimezone] = useState('Africa/Abidjan')
   const [defaultLocationName, setDefaultLocationName] = useState('Dépôt principal')
+
+  const countryDefault = useMemo(() => getCountryDefault(country), [country])
+
+  const applyCountryDefault = (code: string) => {
+    const defaults = getCountryDefault(code)
+    if (defaults) {
+      setCountry(code)
+      setCurrency(defaults.currency)
+      setTimezone(defaults.timezone)
+    }
+  }
   const [error, setError] = useState<string | null>(null)
   const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -118,6 +117,10 @@ export default function OnboardingPage() {
         )
         return false
       }
+      if (!country) {
+        setError('Le pays de l’organisation est requis')
+        return false
+      }
     }
     if (step === 2) {
       if (!defaultLocationName.trim()) {
@@ -157,6 +160,7 @@ export default function OnboardingPage() {
       await completeOnboarding({
         orgName: orgName.trim(),
         orgSlug: orgSlug.trim(),
+        country,
         currency,
         timezone,
         defaultLocationName: defaultLocationName.trim(),
@@ -241,33 +245,54 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currency">Devise</Label>
+                <Label htmlFor="country">Pays de l’organisation</Label>
                 <Select
-                  id="currency"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  id="country"
+                  value={country}
+                  onChange={(e) => applyCountryDefault(e.target.value)}
                 >
-                  {currencies.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
+                  {COUNTRY_DEFAULTS.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
                     </option>
                   ))}
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  La devise et le fuseau horaire par défaut sont automatiquement sélectionnés selon
+                  le pays. Vous pouvez les ajuster ci-dessous si nécessaire.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Fuseau horaire</Label>
-                <Select
-                  id="timezone"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                >
-                  {timezones.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </Select>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Devise</Label>
+                  <Select
+                    id="currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Fuseau horaire</Label>
+                  <Select
+                    id="timezone"
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                  >
+                    {TIMEZONES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               </div>
             </div>
           )}
@@ -306,6 +331,10 @@ export default function OnboardingPage() {
                 <p>
                   <span className="text-muted-foreground">Identifiant :</span>{' '}
                   <span className="font-medium">{orgSlug}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Pays :</span>{' '}
+                  <span className="font-medium">{countryDefault?.name ?? country}</span>
                 </p>
                 <p>
                   <span className="text-muted-foreground">Devise :</span>{' '}
