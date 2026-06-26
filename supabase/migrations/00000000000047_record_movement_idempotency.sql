@@ -1,44 +1,11 @@
--- Fix movements schema and unify record_movement signatures.
---
--- Background:
---   - Migration 31 added unit_price and defined an 8-argument record_movement that
---     inferred org_id from auth.uid() via organization_memberships.
---   - Migration 33 added cashier_session_id and created a second, incompatible
---     10-argument record_movement that expects an explicit org_id and inserts
---     org_id into movements, but the movements table itself never received an org_id
---     column. This broke normal movements (IN/OUT/TRANSFER) when migration 33 was
---     applied.
---
--- This migration:
---   1. Adds org_id to movements.
---   2. Backfills org_id from the product's owning organization.
---   3. Replaces both record_movement variants with a single canonical 10-argument
---      version that:
---        - accepts p_org_id (nullable) but always validates auth.uid() belongs to it
---        - falls back to inferring org_id from the operator's active membership
---        - validates contact, product/location ownership, cashier session
---        - treats TRANSFER correctly (decrement source + increment target)
---        - rejects OUT/TRANSFER when stock is insufficient instead of clamping to 0
---   4. Drops the 7- and 8-argument wrappers.
---   5. Backfills missing org_id on existing rows and adds a non-null constraint.
+-- Make movements idempotent for offline replay by tracking a client operation id.
+-- 1. Add the column to the movements table.
+-- 2. Replace record_movement with a version that accepts p_client_operation_id,
+--    returns the existing movement when replayed, and validates product/location
+--    ownership before touching stock.
+-- 3. Enforce uniqueness of non-null client operation ids.
 
--- 1. Add org_id column (nullable first for backfill)
-ALTER TABLE movements ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
-
-CREATE INDEX IF NOT EXISTS idx_movements_org_id ON movements(org_id);
-
--- 2. Backfill org_id from the product's organization
-UPDATE movements m
-SET org_id = p.org_id
-FROM products p
-WHERE m.product_id = p.id
-  AND m.org_id IS NULL;
-
--- 3. Canonical record_movement: 10 args, org_id explicit or inferred.
--- Drop the JSONB-returning variant from migration 33 so we can recreate it
--- with UUID return type. Other signatures are dropped at the end of this
--- migration.
-DROP FUNCTION IF EXISTS public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID);
+ALTER TABLE movements ADD COLUMN IF NOT EXISTS client_operation_id UUID;
 
 CREATE OR REPLACE FUNCTION record_movement(
   p_org_id UUID,
@@ -50,7 +17,8 @@ CREATE OR REPLACE FUNCTION record_movement(
   p_reason TEXT,
   p_contact_id UUID,
   p_unit_price NUMERIC,
-  p_cashier_session_id UUID DEFAULT NULL
+  p_cashier_session_id UUID DEFAULT NULL,
+  p_client_operation_id UUID DEFAULT NULL
 )
 RETURNS UUID AS $$
 DECLARE
@@ -147,6 +115,20 @@ BEGIN
     END IF;
   END IF;
 
+  -- Idempotency: offline queued movements are replayed with a stable client
+  -- operation id. If this id already exists, return the stored movement without
+  -- modifying stock again.
+  IF p_client_operation_id IS NOT NULL THEN
+    SELECT id INTO v_movement_id
+    FROM movements
+    WHERE client_operation_id = p_client_operation_id
+    LIMIT 1;
+
+    IF v_movement_id IS NOT NULL THEN
+      RETURN v_movement_id;
+    END IF;
+  END IF;
+
   -- Read current source stock
   SELECT quantity INTO v_current_stock
   FROM stock_levels
@@ -208,23 +190,23 @@ BEGIN
     -- Source movement
     INSERT INTO movements (
       org_id, product_id, location_id, target_location_id, type, quantity,
-      stock_before, stock_after, reason, operator_id, contact_id, unit_price
+      stock_before, stock_after, reason, operator_id, contact_id, unit_price, client_operation_id
     ) VALUES (
       v_org_id, p_product_id, p_location_id, p_target_location_id, 'TRANSFER', p_quantity,
       v_current_stock, v_current_stock - p_quantity,
       COALESCE(p_reason, 'Transfert vers autre emplacement'),
-      v_operator_id, p_contact_id, NULL
+      v_operator_id, p_contact_id, NULL, p_client_operation_id
     );
 
     -- Target movement
     INSERT INTO movements (
       org_id, product_id, location_id, target_location_id, type, quantity,
-      stock_before, stock_after, reason, operator_id, contact_id, unit_price
+      stock_before, stock_after, reason, operator_id, contact_id, unit_price, client_operation_id
     ) VALUES (
       v_org_id, p_product_id, p_target_location_id, p_location_id, 'TRANSFER', p_quantity,
       v_target_current_stock, v_target_new_stock,
       COALESCE(p_reason, 'Transfert depuis autre emplacement'),
-      v_operator_id, p_contact_id, NULL
+      v_operator_id, p_contact_id, NULL, p_client_operation_id
     )
     RETURNING id INTO v_movement_id;
 
@@ -243,13 +225,14 @@ BEGIN
 
   INSERT INTO movements (
     org_id, product_id, location_id, target_location_id, type, quantity,
-    stock_before, stock_after, reason, operator_id, contact_id, unit_price, cashier_session_id
+    stock_before, stock_after, reason, operator_id, contact_id, unit_price, cashier_session_id, client_operation_id
   ) VALUES (
     v_org_id, p_product_id, p_location_id, p_target_location_id, p_type,
     CASE WHEN p_type = 'ADJUSTMENT' THEN v_delta ELSE p_quantity END,
     v_current_stock, v_new_stock, p_reason, v_operator_id, p_contact_id,
     CASE WHEN p_type = 'OUT' THEN p_unit_price ELSE NULL END,
-    p_cashier_session_id
+    p_cashier_session_id,
+    p_client_operation_id
   )
   RETURNING id INTO v_movement_id;
 
@@ -257,15 +240,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-ALTER FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID) SET search_path = public, pg_catalog;
+ALTER FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID, UUID) SET search_path = pg_temp, public, pg_catalog;
 
-REVOKE EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID, UUID) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.record_movement(UUID, UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, NUMERIC, UUID, UUID) TO authenticated;
 
--- 4. Drop older incompatible signatures
-DROP FUNCTION IF EXISTS public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, DECIMAL);
-DROP FUNCTION IF EXISTS public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID);
-
--- 5. After backfill, enforce org_id not null on future rows
-ALTER TABLE movements ALTER COLUMN org_id SET NOT NULL;
+-- Enforce idempotency at the database level for non-null client operation ids.
+CREATE UNIQUE INDEX IF NOT EXISTS movements_client_operation_id_idx
+  ON movements (client_operation_id)
+  WHERE client_operation_id IS NOT NULL;

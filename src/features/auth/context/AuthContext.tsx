@@ -221,8 +221,7 @@ function buildSession(
             : null,
         hasInvoicingEnabled: Boolean(organizationRaw.hasInvoicingEnabled),
         hasTaxEnabled: Boolean(organizationRaw.hasTaxEnabled),
-        taxName:
-          typeof organizationRaw.taxName === 'string' ? organizationRaw.taxName : null,
+        taxName: typeof organizationRaw.taxName === 'string' ? organizationRaw.taxName : null,
         taxRate: typeof organizationRaw.taxRate === 'number' ? organizationRaw.taxRate : null,
         taxId: typeof organizationRaw.taxId === 'string' ? organizationRaw.taxId : null,
         invoicePrefix:
@@ -239,7 +238,9 @@ function buildSession(
           typeof organizationRaw.legalMentions === 'string' ? organizationRaw.legalMentions : null,
         autoReminderEnabled: Boolean(organizationRaw.autoReminderEnabled),
         autoReminderDays:
-          typeof organizationRaw.autoReminderDays === 'number' ? organizationRaw.autoReminderDays : null,
+          typeof organizationRaw.autoReminderDays === 'number'
+            ? organizationRaw.autoReminderDays
+            : null,
         createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
         updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
       }
@@ -519,7 +520,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     if (!response.ok) {
-      const data = (await response.json().catch(() => ({}))) as { error?: { message: string } | string }
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: { message: string } | string
+      }
       const message = typeof data.error === 'string' ? data.error : data.error?.message
       throw new Error(message ?? 'Échec de la demande de réinitialisation du PIN')
     }

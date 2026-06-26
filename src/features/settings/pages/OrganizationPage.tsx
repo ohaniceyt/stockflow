@@ -1,5 +1,17 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Building2, MapPin, Star, Store, ShoppingCart, Plug, Receipt, Percent, FileText, Bell } from 'lucide-react'
+import {
+  Building2,
+  MapPin,
+  Star,
+  Store,
+  ShoppingCart,
+  Plug,
+  Receipt,
+  Percent,
+  FileText,
+  Bell,
+  ExternalLink,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,20 +35,6 @@ const timezones = [
   { value: 'Europe/Paris', label: 'Europe/Paris (UTC+1/+2)' },
   { value: 'America/New_York', label: 'America/New_York (UTC-5/-4)' },
 ]
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 50)
-}
-
-function isValidSlug(value: string): boolean {
-  return /^[a-z0-9-]+$/.test(value) && value.length >= 2 && value.length <= 50
-}
 
 interface OrganizationFormProps {
   organization: Organization
@@ -90,17 +88,9 @@ function FeatureToggle({
 
 function OrganizationForm({ organization, canManage, update }: OrganizationFormProps) {
   const [name, setName] = useState(organization.name)
-  const [slug, setSlug] = useState(organization.slug)
   const [currency, setCurrency] = useState(organization.currency)
   const [timezone, setTimezone] = useState(organization.timezone)
   const [formError, setFormError] = useState<string | null>(null)
-
-  const handleNameChange = (value: string) => {
-    setName(value)
-    if (!slug || slug === slugify(name)) {
-      setSlug(slugify(value))
-    }
-  }
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -109,16 +99,10 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
       setFormError("Le nom de l'organisation est requis.")
       return
     }
-    if (!isValidSlug(slug.trim())) {
-      setFormError(
-        "L'identifiant doit contenir entre 2 et 50 caractères, uniquement des minuscules, chiffres et tirets."
-      )
-      return
-    }
     update.mutate(
       {
         name: name.trim(),
-        slug: slug.trim(),
+        slug: organization.slug,
         currency,
         timezone,
       },
@@ -137,7 +121,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         <Input
           id="org-name"
           value={name}
-          onChange={(e) => handleNameChange(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder="Ex: Ma Boutique"
           disabled={update.isPending || !canManage}
         />
@@ -149,13 +133,15 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         </Label>
         <Input
           id="org-slug"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
+          value={organization.slug}
           placeholder="ma-boutique"
-          disabled={update.isPending || !canManage}
+          disabled
+          readOnly
         />
         <p className="text-xs text-muted-foreground">
-          Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.
+          Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.{' '}
+          <span className="font-medium text-foreground">Géré par StockFlow :</span> contactez le
+          support pour le modifier.
         </p>
       </div>
 
@@ -191,6 +177,22 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
             ))}
           </Select>
         </div>
+      </div>
+
+      <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">Portail public</p>
+        <a
+          href={`/store/${organization.slug}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-primary hover:underline"
+        >
+          {window.location.origin}/store/{organization.slug}
+          <ExternalLink className="h-3 w-3" />
+        </a>
+        <p className="mt-1 text-xs">
+          L'URL de votre boutique dépend de l'identifiant. Pour le changer, contactez le support.
+        </p>
       </div>
 
       {canManage && (
@@ -317,7 +319,9 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
   const [taxId, setTaxId] = useState(organization.taxId ?? '')
   const [invoicePrefix, setInvoicePrefix] = useState(organization.invoicePrefix ?? 'FA')
   const [quotePrefix, setQuotePrefix] = useState(organization.quotePrefix ?? 'DE')
-  const [deliveryNotePrefix, setDeliveryNotePrefix] = useState(organization.deliveryNotePrefix ?? 'BL')
+  const [deliveryNotePrefix, setDeliveryNotePrefix] = useState(
+    organization.deliveryNotePrefix ?? 'BL'
+  )
   const [receiptPrefix, setReceiptPrefix] = useState(organization.receiptPrefix ?? 'RE')
   const [legalMentions, setLegalMentions] = useState(organization.legalMentions ?? '')
   const [autoReminderEnabled, setAutoReminderEnabled] = useState(organization.autoReminderEnabled)
@@ -465,7 +469,9 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="legal-mentions">Mentions légales (affichées sur les reçus et factures)</Label>
+            <Label htmlFor="legal-mentions">
+              Mentions légales (affichées sur les reçus et factures)
+            </Label>
             <textarea
               id="legal-mentions"
               value={legalMentions}

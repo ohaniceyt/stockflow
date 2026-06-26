@@ -211,7 +211,7 @@ Deno.serve(async (req: Request) => {
           orgId: membership.org_id,
           userId: membership.user_id,
           role: membership.role,
-          pinHash: membership.pin_hash,
+          hasPin: Boolean(membership.pin_hash),
           isActive: membership.is_active,
           forcePinChange: membership.force_pin_change,
           lastLoginAt: membership.last_login_at,

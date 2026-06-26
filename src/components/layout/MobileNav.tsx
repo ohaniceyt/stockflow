@@ -13,7 +13,7 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
   const { session, hasRole, isPlatformAdmin } = useAuth()
   const org = session?.organization
 
-  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api') => {
+  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api' | 'invoicing') => {
     if (!feature) return true
     if (!org) return false
     switch (feature) {

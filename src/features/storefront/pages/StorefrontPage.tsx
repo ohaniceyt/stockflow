@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Minus, Plus, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react'
@@ -54,7 +54,14 @@ export default function StorefrontPage() {
     enabled: Boolean(orgSlug),
   })
 
-  const organization = storefront?.organization ?? null
+  const organization = storefront?.organization
+  const redirectSlug = storefront?.redirectSlug
+
+  useEffect(() => {
+    if (redirectSlug && orgSlug !== redirectSlug) {
+      window.location.replace(`/store/${redirectSlug}`)
+    }
+  }, [redirectSlug, orgSlug])
 
   const filteredProducts = useMemo(() => {
     const products = storefront?.products ?? []

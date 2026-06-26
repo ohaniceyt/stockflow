@@ -46,7 +46,7 @@ export default function SetPinPage() {
             <KeyRound className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold">
-            {session?.membership.pinHash ? 'Modifier le PIN' : 'Définir votre AppLock PIN'}
+            {session?.membership.hasPin ? 'Modifier le PIN' : 'Définir votre AppLock PIN'}
           </h1>
           <p className="text-sm text-muted-foreground">
             Choisissez un code PIN simple pour déverrouiller rapidement l’application sur cet

@@ -33,6 +33,7 @@ interface RecordMovementPayload {
   contact_id?: string | null
   unit_price?: number | null
   cashier_session_id?: string | null
+  client_operation_id?: string | null
 }
 
 export const corsHeaders = {
@@ -152,6 +153,7 @@ Deno.serve(async (req: Request) => {
       p_contact_id: payload.contact_id ?? null,
       p_unit_price: payload.unit_price ?? null,
       p_cashier_session_id: payload.cashier_session_id ?? null,
+      p_client_operation_id: payload.client_operation_id ?? null,
     })
 
     if (error) {
@@ -161,7 +163,12 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ movement_id: data }), {
+    const movementId =
+      data && typeof data === 'object' && 'id' in data && typeof data.id === 'string'
+        ? data.id
+        : data
+
+    return new Response(JSON.stringify({ movement_id: movementId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

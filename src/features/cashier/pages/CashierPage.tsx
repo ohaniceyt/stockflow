@@ -22,6 +22,8 @@ import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
 import { useCreateMovement, useMovements } from '@/features/movements/hooks/useMovements'
+import { useCreateReceipt } from '@/features/invoicing/hooks/useReceipts'
+import ReceiptActions from '@/features/invoicing/components/ReceiptActions'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useStock } from '@/features/stock/hooks/useStock'
@@ -35,7 +37,7 @@ import {
   computeSessionRevenue,
   filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
-import type { Product } from '@/types'
+import type { Product, ReceiptWithItems } from '@/types'
 
 interface CartItem {
   id: string
@@ -76,6 +78,7 @@ export default function CashierPage() {
   const { data: customers } = useContacts('CUSTOMER')
   const { data: movements, isLoading: movementsLoading } = useMovements()
   const create = useCreateMovement()
+  const createReceipt = useCreateReceipt()
   const openSessionMutation = useOpenCashierSession()
   const closeSessionMutation = useCloseCashierSession()
 
@@ -93,6 +96,12 @@ export default function CashierPage() {
   const [scannerError, setScannerError] = useState<string | null>(null)
   const [scannerStarting, setScannerStarting] = useState(false)
   const [scannerCameras, setScannerCameras] = useState<{ id: string; label: string }[]>([])
+  const [paymentMethod, setPaymentMethod] = useState<
+    'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+  >('cash')
+  const [amountPaid, setAmountPaid] = useState('')
+  const [receipt, setReceipt] = useState<ReceiptWithItems | null>(null)
+  const [showReceipt, setShowReceipt] = useState(false)
   const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
   const scannerContainerRef = useRef<HTMLDivElement | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -205,47 +214,85 @@ export default function CashierPage() {
     setCart((prev) => prev.filter((item) => item.id !== itemId))
   }
 
-  const total = cart.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+  const taxRate = session?.organization.hasTaxEnabled ? (session.organization.taxRate ?? 0) : 0
+  const taxAmount = Math.round(subtotal * (taxRate / 100) * 100) / 100
+  const total = Math.round((subtotal + taxAmount) * 100) / 100
 
-  const handleCheckout = () => {
-    if (cart.length === 0 || !openSession) return
+  const handleCheckout = async () => {
+    if (cart.length === 0 || !openSession || !session) return
     setSuccess(false)
 
     const customerContactId = customerId === 'walk-in' ? null : customerId
     const reason = note.trim() || null
 
-    let completed = 0
-    let failed = false
-
-    for (const item of cart) {
-      create.mutate(
-        {
-          productId: item.productId,
-          locationId: item.locationId,
-          targetLocationId: null,
-          type: 'OUT',
-          quantity: item.quantity,
-          reason,
-          contactId: customerContactId,
-          unitPrice: item.sellingPrice,
-          cashierSessionId: openSession.id,
-        },
-        {
-          onSuccess: () => {
-            completed += 1
-            if (completed === cart.length && !failed) {
-              setCart([])
-              setNote('')
-              setCustomerId('walk-in')
-              setNewCustomerName('')
-              setSuccess(true)
-            }
-          },
-          onError: () => {
-            failed = true
-          },
-        }
+    try {
+      await Promise.all(
+        cart.map((item) =>
+          create.mutateAsync({
+            productId: item.productId,
+            locationId: item.locationId,
+            targetLocationId: null,
+            type: 'OUT',
+            quantity: item.quantity,
+            reason,
+            contactId: customerContactId,
+            unitPrice: item.sellingPrice,
+            cashierSessionId: openSession.id,
+            clientOperationId: crypto.randomUUID(),
+          })
+        )
       )
+
+      const org = session.organization
+      const taxRate = org.hasTaxEnabled ? (org.taxRate ?? 0) : 0
+      const subtotal = cart.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
+      const taxAmount = Math.round(subtotal * (taxRate / 100) * 100) / 100
+      const total = Math.round((subtotal + taxAmount) * 100) / 100
+      const paid = Number(amountPaid) || total
+      const changeDue = Math.max(0, Math.round((paid - total) * 100) / 100)
+
+      const receiptItems = cart.map((item) => {
+        const itemSubtotal = item.sellingPrice * item.quantity
+        const itemTax = Math.round(itemSubtotal * (taxRate / 100) * 100) / 100
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.sellingPrice,
+          discountAmount: 0,
+          taxAmount: itemTax,
+          total: Math.round((itemSubtotal + itemTax) * 100) / 100,
+        }
+      })
+
+      const createdReceipt = await createReceipt.mutateAsync({
+        orgId: org.id,
+        locationId: activeLocationId,
+        cashierSessionId: openSession.id,
+        operatorId: session.user.id,
+        contactId: customerContactId,
+        paymentMethod,
+        currency: org.currency,
+        subtotal,
+        taxAmount,
+        total,
+        amountPaid: paid,
+        changeDue,
+        notes: reason,
+        items: receiptItems,
+      })
+
+      setReceipt(createdReceipt)
+      setShowReceipt(true)
+      setCart([])
+      setNote('')
+      setCustomerId('walk-in')
+      setNewCustomerName('')
+      setAmountPaid('')
+      setSuccess(true)
+    } catch {
+      // errors are surfaced by toast/query; keep UI state intact
     }
   }
 
@@ -779,7 +826,41 @@ export default function CashierPage() {
               </ul>
             )}
 
-            <div className="mt-4 border-t pt-4">
+            <div className="mt-4 space-y-3 border-t pt-4">
+              <div className="space-y-1">
+                <Label htmlFor="payment-method">Mode de paiement</Label>
+                <Select
+                  id="payment-method"
+                  value={paymentMethod}
+                  onChange={(e) =>
+                    setPaymentMethod(
+                      e.target.value as 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+                    )
+                  }
+                >
+                  <option value="cash">Espèces</option>
+                  <option value="card">Carte bancaire</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="transfer">Virement</option>
+                  <option value="other">Autre</option>
+                </Select>
+              </div>
+
+              {paymentMethod === 'cash' && (
+                <div className="space-y-1">
+                  <Label htmlFor="amount-paid">Montant reçu</Label>
+                  <Input
+                    id="amount-paid"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    placeholder={`Minimum ${formatCurrency(total)}`}
+                  />
+                </div>
+              )}
+
               <div className="space-y-1">
                 <Label htmlFor="note">Note</Label>
                 <Input
@@ -789,25 +870,55 @@ export default function CashierPage() {
                   placeholder="Référence, remise…"
                 />
               </div>
-              <div className="mt-3 flex items-center justify-between text-lg font-bold">
-                <span>Total</span>
-                <span>{formatCurrency(total)}</span>
+
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Sous-total</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {taxAmount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {session.organization.taxName ?? 'Taxe'} ({taxRate}%)
+                    </span>
+                    <span>{formatCurrency(taxAmount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+                {paymentMethod === 'cash' && Number(amountPaid) >= total && (
+                  <div className="flex items-center justify-between text-green-600">
+                    <span>Monnaie</span>
+                    <span>{formatCurrency(Number(amountPaid) - total)}</span>
+                  </div>
+                )}
               </div>
+
               <Button
                 type="button"
-                className="mt-4 w-full"
-                disabled={cart.length === 0 || create.isPending || !openSession}
+                className="w-full"
+                disabled={
+                  cart.length === 0 ||
+                  create.isPending ||
+                  createReceipt.isPending ||
+                  !openSession ||
+                  (paymentMethod === 'cash' && Number(amountPaid) < total)
+                }
                 onClick={handleCheckout}
               >
-                {create.isPending ? 'Enregistrement…' : 'Valider la vente'}
+                {create.isPending || createReceipt.isPending
+                  ? 'Enregistrement…'
+                  : 'Valider la vente'}
               </Button>
               {!openSession && (
-                <p className="mt-2 text-center text-xs text-destructive">
+                <p className="text-center text-xs text-destructive">
                   Ouvrez une caisse pour valider une vente.
                 </p>
               )}
-              {success && (
-                <p className="mt-2 text-center text-sm text-green-600">Vente enregistrée.</p>
+              {success && !showReceipt && (
+                <p className="text-center text-sm text-green-600">Vente enregistrée.</p>
               )}
             </div>
           </div>
@@ -852,6 +963,21 @@ export default function CashierPage() {
           )}
         </div>
       </div>
+
+      {showReceipt && receipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
+            <ReceiptActions
+              receipt={receipt}
+              orgName={session.organization.name}
+              onClose={() => {
+                setShowReceipt(false)
+                setReceipt(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -14,7 +14,9 @@ const EMAIL = process.env.SMOKE_EMAIL ?? ''
 const PASSWORD = process.env.SMOKE_PASSWORD ?? ''
 
 if (!EMAIL || !PASSWORD) {
-  console.error('Usage: SMOKE_EMAIL=<email> SMOKE_PASSWORD=<password> node scripts/smoke-test-receipt.mjs')
+  console.error(
+    'Usage: SMOKE_EMAIL=<email> SMOKE_PASSWORD=<password> node scripts/smoke-test-receipt.mjs'
+  )
   process.exit(1)
 }
 
@@ -68,7 +70,10 @@ async function authedFetch(path, opts = {}) {
 
 try {
   await check('Supabase Auth login', async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email: EMAIL, password: PASSWORD })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: EMAIL,
+      password: PASSWORD,
+    })
     if (error) throw error
     accessToken = data.session.access_token
     return `user=${data.user.id}`
@@ -102,7 +107,11 @@ try {
   }
 
   if (!locationId) {
-    const { data: locs } = await supabase.from('locations').select('id').eq('org_id', orgId).limit(1)
+    const { data: locs } = await supabase
+      .from('locations')
+      .select('id')
+      .eq('org_id', orgId)
+      .limit(1)
     locationId = locs?.[0]?.id ?? ''
   }
 
@@ -132,7 +141,13 @@ try {
 
   const { data: session } = await supabase
     .from('cashier_sessions')
-    .insert({ org_id: orgId, location_id: locationId, operator_id: initBody.user.id, opening_balance: 0, status: 'open' })
+    .insert({
+      org_id: orgId,
+      location_id: locationId,
+      operator_id: initBody.user.id,
+      opening_balance: 0,
+      status: 'open',
+    })
     .select('id')
     .single()
   sessionId = session.id

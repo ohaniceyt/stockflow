@@ -37,6 +37,7 @@ export default function TeamPage() {
   const [resetOpen, setResetOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createdPin, setCreatedPin] = useState<string | null>(null)
+  const [createdSetupLink, setCreatedSetupLink] = useState<string | null>(null)
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [isSwitching, setIsSwitching] = useState(false)
   const [switchError, setSwitchError] = useState<string | null>(null)
@@ -75,6 +76,7 @@ export default function TeamPage() {
     createUser.mutate(input, {
       onSuccess: (data) => {
         setCreatedPin(data.tempPin)
+        setCreatedSetupLink(data.setupLink ?? null)
       },
     })
   }
@@ -181,11 +183,13 @@ export default function TeamPage() {
           setInviteOpen(open)
           if (!open) {
             setCreatedPin(null)
+            setCreatedSetupLink(null)
           }
         }}
         onCreateUser={handleCreateUser}
         onInviteByEmail={handleInviteByEmail}
         createdPin={createdPin}
+        setupLink={createdSetupLink}
         isLoading={createUser.isPending || createInvitation.isPending}
         error={createUser.error ?? createInvitation.error}
       />

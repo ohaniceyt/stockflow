@@ -312,7 +312,14 @@ export interface ReceiptWithItems extends Receipt {
 }
 
 export type DocumentType = 'invoice' | 'quote' | 'delivery_note'
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled' | 'converted'
+export type InvoiceStatus =
+  | 'draft'
+  | 'sent'
+  | 'paid'
+  | 'partial'
+  | 'overdue'
+  | 'cancelled'
+  | 'converted'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted' | 'cancelled'
 export type DeliveryNoteStatus = 'draft' | 'sent' | 'delivered' | 'cancelled'
 export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'

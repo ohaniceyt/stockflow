@@ -341,7 +341,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url)
-    requestPath = url.pathname.replace(/^\/api\/v1\/?/, '')
+    requestPath = url.pathname
+      .replace(/^\/functions\/v1\/api-gateway\//, '')
+      .replace(/^\/api-gateway\//, '')
+      .replace(/^api\/v1\//, '')
+      .replace(/^\/api\/v1\//, '')
+      .replace(/^\//, '')
     clientIp = getClientIp(req)
 
     const response = await handleRequest(adminClient, keyRecord, features, req, url, requestPath)

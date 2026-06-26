@@ -7,6 +7,7 @@ interface OnboardingPayload {
   currency: string
   timezone: string
   defaultLocationName: string
+  plan?: 'free' | 'starter' | 'pro'
 }
 
 export const corsHeaders = {
@@ -57,8 +58,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgName, orgSlug, currency, timezone, defaultLocationName }: OnboardingPayload =
+    const { orgName, orgSlug, currency, timezone, defaultLocationName, plan }: OnboardingPayload =
       await req.json()
+    const selectedPlan = plan && ['free', 'starter', 'pro'].includes(plan) ? plan : 'free'
 
     if (
       !orgName?.trim() ||
@@ -131,7 +133,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Atomic onboarding via RPC: creates org, super_admin membership, free subscription and default location.
+    // Atomic onboarding via RPC: creates org, super_admin membership, selected subscription and default location.
     // We call it through the user client so the RPC can assert auth.uid() == p_user_id.
     const { data: rpcData, error: rpcError } = await userClient.rpc('complete_onboarding', {
       p_user_id: authUserId,
@@ -140,6 +142,7 @@ Deno.serve(async (req: Request) => {
       p_currency: currency,
       p_timezone: timezone,
       p_default_location_name: defaultLocationName.trim(),
+      p_plan_id: selectedPlan,
     })
 
     if (rpcError) {

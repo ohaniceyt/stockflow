@@ -95,25 +95,32 @@ try {
 
   // If onboarding is not completed, automatically run complete-onboarding.
   if (!initBody.organization.onboardingCompleted) {
-    await check('complete onboarding', async () => {
-      const suffix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`
-      const slug = `smoke-org-${suffix}`
-      const orgName = `Smoke Test Org ${suffix}`
-      const { body } = await authedFetch('/complete-onboarding', {
-        method: 'POST',
-        body: JSON.stringify({
-          orgName,
-          orgSlug: slug,
-          currency: 'XOF',
-          timezone: 'Africa/Abidjan',
-          defaultLocationName: 'Smoke Location',
-        }),
-      })
-      assert(body.organization, 'missing organization')
-      assert(body.membership, 'missing membership')
-      orgId = body.organization.id
-      storefrontSlug = body.organization.slug
-      locationId = body.location?.id ?? ''
+    const suffix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`
+    const slug = `smoke-org-${suffix}`
+    const orgName = `Smoke Test Org ${suffix}`
+    const onboardingResponse = await authedFetch('/complete-onboarding', {
+      method: 'POST',
+      body: JSON.stringify({
+        orgName,
+        orgSlug: slug,
+        currency: 'XOF',
+        timezone: 'Africa/Abidjan',
+        defaultLocationName: 'Smoke Location',
+      }),
+    })
+    const onboardingBody = onboardingResponse.body
+    assert(onboardingBody.success, 'onboarding failed')
+
+    // Re-fetch initialize-session to get org/membership/location.
+    const refreshedResponse = await authedFetch('/initialize-session', { method: 'POST' })
+    const refreshedBody = refreshedResponse.body
+    assert(refreshedBody.membership, 'missing membership after onboarding')
+    assert(refreshedBody.organization, 'missing organization after onboarding')
+    orgId = refreshedBody.membership.orgId
+    storefrontSlug = refreshedBody.organization.slug ?? ''
+    locationId = refreshedBody.organization.defaultLocationId ?? ''
+
+    await check('complete onboarding and refresh session', async () => {
       return `org=${orgId}, slug=${storefrontSlug}, location=${locationId}`
     })
   } else {
@@ -244,9 +251,9 @@ try {
         scopes: ['read:products', 'write:orders'],
       }),
     })
-    assert(body.api_key, 'missing api key')
-    apiKey = body.api_key
-    return `key_id=${body.id}`
+    assert(body.key, 'missing raw api key')
+    apiKey = body.key
+    return `key_id=${body.api_key?.id}`
   })
 
   await check('place order via API gateway', async () => {

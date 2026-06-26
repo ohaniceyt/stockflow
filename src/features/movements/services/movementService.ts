@@ -206,6 +206,7 @@ export async function createMovement(input: {
   contactId?: string | null
   unitPrice?: number | null
   cashierSessionId?: string | null
+  clientOperationId?: string | null
 }): Promise<void> {
   await edgeFetch('record-movement', {
     method: 'POST',
@@ -220,6 +221,7 @@ export async function createMovement(input: {
       contact_id: input.contactId ?? null,
       unit_price: input.unitPrice ?? null,
       cashier_session_id: input.cashierSessionId ?? null,
+      client_operation_id: input.clientOperationId ?? null,
     }),
   })
 }

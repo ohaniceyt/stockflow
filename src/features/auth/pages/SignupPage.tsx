@@ -1,12 +1,22 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
 
+const VALID_PLANS = ['free', 'starter', 'pro'] as const
+type PlanParam = (typeof VALID_PLANS)[number]
+
+function normalizePlan(value: string | null): PlanParam | undefined {
+  if (!value) return undefined
+  return VALID_PLANS.includes(value as PlanParam) ? (value as PlanParam) : undefined
+}
+
 export default function SignupPage() {
   const { signUp } = useAuth()
+  const [searchParams] = useSearchParams()
+  const planParam = normalizePlan(searchParams.get('plan'))
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -49,6 +59,7 @@ export default function SignupPage() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         phone: form.phone.trim() || undefined,
+        plan: planParam,
       })
       setSuccess(true)
     } catch (err) {
@@ -68,6 +79,9 @@ export default function SignupPage() {
           <h1 className="text-2xl font-bold">Créer votre compte StockFlow</h1>
           <p className="text-sm text-muted-foreground">
             Commencez gratuitement, sans carte bancaire.
+            {planParam && (
+              <span className="ml-1 font-medium text-primary">Plan sélectionné : {planParam}.</span>
+            )}
           </p>
         </div>
 

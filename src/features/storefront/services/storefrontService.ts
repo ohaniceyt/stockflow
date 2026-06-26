@@ -29,9 +29,13 @@ export interface StorefrontOrderResult {
   orderNumber: string
 }
 
-export async function getStorefrontBySlug(
-  orgSlug: string
-): Promise<{ organization: StorefrontOrganization | null; products: StorefrontProduct[] }> {
+export async function getStorefrontBySlug(orgSlug: string): Promise<{
+  organization: StorefrontOrganization | null
+  products: StorefrontProduct[]
+  redirectSlug?: string
+}> {
+  let targetSlug = orgSlug
+
   const { data: orgData, error: orgError } = await supabase
     .from('organizations')
     .select('id, name, slug, currency, timezone, has_storefront_enabled, storefront_location_id')
@@ -40,9 +44,52 @@ export async function getStorefrontBySlug(
     .single()
 
   if (orgError) {
-    return { organization: null, products: [] }
+    // Try resolving an old slug from history.
+    const { data: history, error: historyError } = await supabase
+      .from('organization_slug_history')
+      .select('new_slug')
+      .eq('old_slug', orgSlug)
+      .order('changed_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (historyError) {
+      return { organization: null, products: [] }
+    }
+
+    targetSlug = history.new_slug
+    const { data: fallbackOrg, error: fallbackError } = await supabase
+      .from('organizations')
+      .select('id, name, slug, currency, timezone, has_storefront_enabled, storefront_location_id')
+      .eq('slug', targetSlug)
+      .eq('has_storefront_enabled', true)
+      .single()
+
+    if (fallbackError) {
+      return { organization: null, products: [] }
+    }
+    return fetchStorefrontData(fallbackOrg, targetSlug)
   }
 
+  return fetchStorefrontData(orgData, targetSlug)
+}
+
+async function fetchStorefrontData(
+  orgData: {
+    id: string
+    name: string
+    slug: string
+    currency: string
+    timezone: string
+    has_storefront_enabled: boolean
+    storefront_location_id: string | null
+  },
+  resolvedSlug: string
+): Promise<{
+  organization: StorefrontOrganization | null
+  products: StorefrontProduct[]
+  redirectSlug?: string
+}> {
   const locationId = orgData.storefront_location_id
   if (!locationId) {
     return { organization: null, products: [] }
@@ -95,12 +142,13 @@ export async function getStorefrontBySlug(
     organization: {
       id: orgData.id,
       name: orgData.name,
-      slug: orgData.slug,
+      slug: resolvedSlug,
       currency: orgData.currency,
       timezone: orgData.timezone,
       storefrontLocationId: locationId,
     },
     products: mappedProducts,
+    redirectSlug: resolvedSlug !== orgData.slug ? resolvedSlug : undefined,
   }
 }
 

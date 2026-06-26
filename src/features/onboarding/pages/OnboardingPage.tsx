@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Building2, MapPin, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,6 +38,9 @@ function isValidSlug(value: string): boolean {
 export default function OnboardingPage() {
   const { session, completeOnboarding, hasRole, signOut } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const planParam = searchParams.get('plan') ?? 'free'
+  const selectedPlan = ['free', 'starter', 'pro'].includes(planParam) ? planParam : 'free'
 
   const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState(session?.organization.name ?? '')
@@ -157,6 +160,7 @@ export default function OnboardingPage() {
         currency,
         timezone,
         defaultLocationName: defaultLocationName.trim(),
+        plan: selectedPlan as 'free' | 'starter' | 'pro',
       })
       void navigate('/dashboard', { replace: true })
     } catch (err) {

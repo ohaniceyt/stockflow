@@ -214,21 +214,61 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Send welcome email with temporary PIN via Resend.
+    // Generate a password-recovery link so the new user can set a real password.
+    // The account is created with a random password; without this link the user
+    // would be unable to sign in (login uses email + password, not the temp PIN).
+    const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
+    const setupPasswordUrl = `${appUrl}/auth/reset-password`
+    let setupLink: string | null = null
+    let setupEmailSent = false
+
+    try {
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: normalizedEmail,
+        options: {
+          redirectTo: setupPasswordUrl,
+        },
+      })
+
+      if (linkError || !linkData.properties?.action_link) {
+        console.error('Failed to generate recovery link:', linkError)
+      } else {
+        setupLink = linkData.properties.action_link
+      }
+    } catch (linkErr) {
+      console.error('Failed to generate recovery link:', linkErr)
+    }
+
+    // Send welcome email with the setup link via Resend.
     // We do not block account creation if the email fails; we just log and surface it.
     let emailSent = false
     try {
-      const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
-      const loginUrl = `${appUrl}/login`
       await sendEmail({
         to: email,
-        subject: 'Bienvenue sur StockFlow — vos identifiants temporaires',
-        html: buildWelcomeEmailHtml(name, tempPin, loginUrl),
-        text: `Bonjour ${name},\n\nVotre compte StockFlow a été créé.\n\nVotre PIN temporaire est : ${tempPin}\n\nPour vous connecter : ${loginUrl}\n\nVous devrez définir un PIN définitif lors de votre première connexion.\n\nStockFlow vNext`,
+        subject: 'Bienvenue sur StockFlow — définissez votre mot de passe',
+        html: buildWelcomeEmailHtml(name, setupLink, appUrl),
+        text: buildWelcomeEmailText(name, setupLink, appUrl),
       })
       emailSent = true
     } catch (emailErr) {
       console.error('Failed to send welcome email:', emailErr)
+    }
+
+    if (setupLink && !emailSent) {
+      // Surface the raw setup link to the admin if the email provider is down,
+      // so the account is still usable.
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tempPin,
+          setupLink,
+          emailSent: false,
+          message:
+            'Utilisateur créé (envoi email échoué). Communiquez le lien de configuration ci-dessous.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     return new Response(
@@ -237,7 +277,7 @@ Deno.serve(async (req: Request) => {
         tempPin,
         emailSent,
         message: emailSent
-          ? 'Utilisateur créé. Un email avec le PIN temporaire a été envoyé.'
+          ? 'Utilisateur créé. Un email avec le lien de configuration du mot de passe a été envoyé.'
           : 'Utilisateur créé. Communiquez le PIN temporaire (envoi email échoué).',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -251,7 +291,11 @@ Deno.serve(async (req: Request) => {
   }
 })
 
-function buildWelcomeEmailHtml(name: string, tempPin: string, loginUrl: string): string {
+function buildWelcomeEmailHtml(name: string, setupLink: string | null, appUrl: string): string {
+  const linkHtml = setupLink
+    ? `<p><a class="button" href="${escapeHtml(setupLink)}" target="_blank">Définir mon mot de passe</a></p>`
+    : `<p class="text">Un problème est survenu lors de la génération du lien. Contactez votre administrateur pour obtenir un lien de configuration.</p>`
+
   return `
     <!DOCTYPE html>
     <html lang="fr">
@@ -265,9 +309,8 @@ function buildWelcomeEmailHtml(name: string, tempPin: string, loginUrl: string):
           .logo { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 8px; }
           .title { font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 16px; }
           .text { color: #6b7280; line-height: 1.6; margin-bottom: 24px; }
-          .pin-box { background: #f3f4f6; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 24px; }
-          .pin { font-size: 28px; font-weight: 700; letter-spacing: 8px; color: #111827; }
           .button { display: inline-block; padding: 14px 24px; background: #111827; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 500; }
+          .link { word-break: break-all; color: #6b7280; font-size: 12px; margin-top: 24px; }
           .footer { margin-top: 32px; font-size: 12px; color: #9ca3af; }
         </style>
       </head>
@@ -276,21 +319,25 @@ function buildWelcomeEmailHtml(name: string, tempPin: string, loginUrl: string):
           <div class="logo">StockFlow</div>
           <div class="title">Bienvenue, ${escapeHtml(name)} !</div>
           <p class="text">
-            Votre compte a été créé. Utilisez le PIN temporaire ci-dessous pour vous connecter. Vous devrez le changer lors de votre première connexion.
+            Votre compte a été créé. Cliquez sur le bouton ci-dessous pour définir votre mot de passe, puis connectez-vous avec votre email et ce mot de passe. Vous devrez ensuite définir un code PIN à votre première connexion.
           </p>
-          <div class="pin-box">
-            <div class="pin">${escapeHtml(tempPin)}</div>
-          </div>
-          <p>
-            <a class="button" href="${escapeHtml(loginUrl)}" target="_blank">Se connecter</a>
-          </p>
+          ${linkHtml}
+          ${setupLink ? `<p class="link">Si le bouton ne fonctionne pas : ${escapeHtml(setupLink)}</p>` : ''}
           <p class="footer">
-            StockFlow vNext — Ne partagez ce PIN avec personne.
+            StockFlow vNext — Ne partagez pas ce lien.
           </p>
         </div>
       </body>
     </html>
   `
+}
+
+function buildWelcomeEmailText(name: string, setupLink: string | null, appUrl: string): string {
+  const linkText = setupLink
+    ? `Définissez votre mot de passe en cliquant sur ce lien : ${setupLink}`
+    : `Un problème est survenu lors de la génération du lien. Contactez votre administrateur.`
+
+  return `Bonjour ${name},\n\nVotre compte StockFlow a été créé. ${linkText}\n\nAprès avoir défini votre mot de passe, connectez-vous avec votre email et ce mot de passe. Vous devrez ensuite définir un code PIN à votre première connexion.\n\nStockFlow vNext`
 }
 
 function escapeHtml(value: string): string {

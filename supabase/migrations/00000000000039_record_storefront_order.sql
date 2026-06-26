@@ -5,6 +5,9 @@
 -- regular record_movement (which relies on auth.uid()) from an Edge Function
 -- service client would fail. This RPC performs the same stock validation and
 -- decrement while accepting an explicit org/location and a customer contact.
+--
+-- Anonymous movements use a synthetic system operator stored in users so the
+-- NOT NULL operator_id constraint remains satisfied.
 
 CREATE OR REPLACE FUNCTION record_storefront_order(
   p_org_id UUID,
@@ -23,10 +26,24 @@ DECLARE
   v_current_stock INTEGER;
   v_new_stock INTEGER;
   v_movement_id UUID;
+  v_system_user_id UUID;
   v_result JSONB := jsonb_build_object('movement_ids', jsonb_build_array());
 BEGIN
   IF p_org_id IS NULL OR p_location_id IS NULL OR p_contact_id IS NULL THEN
     RAISE EXCEPTION 'Paramètres invalides';
+  END IF;
+
+  -- Anonymous orders need a non-null operator_id. Use/create a synthetic
+  -- storefront system user per organization.
+  SELECT id INTO v_system_user_id
+  FROM users
+  WHERE email = 'storefront-system@stockflow.local'
+  LIMIT 1;
+
+  IF v_system_user_id IS NULL THEN
+    INSERT INTO users (id, name, email, email_verified, active_org_id)
+    VALUES (gen_random_uuid(), 'Storefront System', 'storefront-system@stockflow.local', TRUE, p_org_id)
+    RETURNING id INTO v_system_user_id;
   END IF;
 
   IF jsonb_array_length(p_items) = 0 THEN
@@ -92,7 +109,7 @@ BEGIN
       p_org_id, v_product_id, p_location_id, NULL, 'OUT', v_quantity,
       v_current_stock, v_new_stock,
       COALESCE(p_reason, 'Commande storefront/API'),
-      NULL, p_contact_id, v_unit_price
+      v_system_user_id, p_contact_id, v_unit_price
     )
     RETURNING id INTO v_movement_id;
 

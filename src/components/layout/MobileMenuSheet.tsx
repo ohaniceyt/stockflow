@@ -16,7 +16,7 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
   const location = useLocation()
   const org = session?.organization
 
-  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api') => {
+  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api' | 'invoicing') => {
     if (!feature) return true
     if (!org) return false
     switch (feature) {

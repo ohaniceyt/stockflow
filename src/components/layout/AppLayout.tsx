@@ -14,7 +14,7 @@ export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const org = session?.organization
-  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api') => {
+  const featureEnabled = (feature?: 'cashier' | 'storefront' | 'api' | 'invoicing') => {
     if (!feature) return true
     if (!org) return false
     switch (feature) {
@@ -24,6 +24,8 @@ export function AppLayout() {
         return org.hasStorefrontEnabled
       case 'api':
         return org.hasApiEnabled
+      case 'invoicing':
+        return org.hasInvoicingEnabled
       default:
         return false
     }

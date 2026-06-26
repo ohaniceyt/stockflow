@@ -1,58 +1,51 @@
-import { supabase } from '@/services/supabase';
-import { mapOrganizationRow } from '@/features/settings/services/organizationService';
-import type {
-  Receipt,
-  ReceiptItem,
-  ReceiptWithItems,
-  Organization,
-} from '@/types';
-import type { Database } from '@/types/database';
+import { supabase } from '@/services/supabase'
+import { mapOrganizationRow } from '@/features/settings/services/organizationService'
+import type { Receipt, ReceiptItem, ReceiptWithItems, Organization } from '@/types'
+import type { Database } from '@/types/database'
 
-type ReceiptRow = Database['public']['Tables']['receipts']['Row'];
-type ReceiptItemRow = Database['public']['Tables']['receipt_items']['Row'];
+type ReceiptRow = Database['public']['Tables']['receipts']['Row']
+type ReceiptItemRow = Database['public']['Tables']['receipt_items']['Row']
 
 export interface CreateReceiptInput {
-  orgId: string;
-  locationId: string;
-  cashierSessionId: string;
-  operatorId: string;
-  contactId?: string | null;
-  paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other';
-  currency: string;
-  subtotal: number;
-  taxAmount: number;
-  total: number;
-  amountPaid: number;
-  changeDue: number;
-  notes?: string | null;
+  orgId: string
+  locationId: string
+  cashierSessionId: string
+  operatorId: string
+  contactId?: string | null
+  paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+  currency: string
+  subtotal: number
+  taxAmount: number
+  total: number
+  amountPaid: number
+  changeDue: number
+  notes?: string | null
   items: {
-    productId: string;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    discountAmount?: number;
-    taxAmount?: number;
-    total: number;
-  }[];
+    productId: string
+    productName: string
+    quantity: number
+    unitPrice: number
+    discountAmount?: number
+    taxAmount?: number
+    total: number
+  }[]
 }
 
-export async function createReceipt(
-  input: CreateReceiptInput,
-): Promise<ReceiptWithItems> {
+export async function createReceipt(input: CreateReceiptInput): Promise<ReceiptWithItems> {
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'receipt',
     p_prefix: '',
-  });
+  })
 
   if (numberResponse.error) {
-    throw numberResponse.error;
+    throw numberResponse.error
   }
 
-  const documentNumber = numberResponse.data;
+  const documentNumber = numberResponse.data
 
   if (!documentNumber) {
-    throw new Error('Failed to generate receipt number');
+    throw new Error('Failed to generate receipt number')
   }
 
   const { data: receipt, error: receiptError } = await supabase
@@ -76,12 +69,12 @@ export async function createReceipt(
       cancelled_at: null,
     })
     .select()
-    .single();
+    .single()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (receiptError || !receipt) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    throw receiptError ?? new Error('Failed to create receipt');
+    throw receiptError ?? new Error('Failed to create receipt')
   }
 
   const receiptItems = input.items.map((item) => ({
@@ -93,97 +86,95 @@ export async function createReceipt(
     discount_amount: item.discountAmount ?? 0,
     tax_amount: item.taxAmount ?? 0,
     total: item.total,
-  }));
+  }))
 
   const { data: items, error: itemsError } = await supabase
     .from('receipt_items')
     .insert(receiptItems)
-    .select();
+    .select()
 
   if (itemsError) {
-    throw itemsError;
+    throw itemsError
   }
 
   return {
     ...mapReceipt(receipt),
     items: items.map((item) => mapReceiptItem(item)),
-  };
+  }
 }
 
-export async function getReceiptsBySession(
-  cashierSessionId: string,
-): Promise<ReceiptWithItems[]> {
+export async function getReceiptsBySession(cashierSessionId: string): Promise<ReceiptWithItems[]> {
   const { data: receipts, error } = await supabase
     .from('receipts')
     .select('*')
     .eq('cashier_session_id', cashierSessionId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
 
   if (error) {
-    throw error;
+    throw error
   }
 
   if (receipts.length === 0) {
-    return [];
+    return []
   }
 
-  const receiptIds = receipts.map((r) => r.id);
+  const receiptIds = receipts.map((r) => r.id)
   const { data: items, error: itemsError } = await supabase
     .from('receipt_items')
     .select('*')
-    .in('receipt_id', receiptIds);
+    .in('receipt_id', receiptIds)
 
   if (itemsError) {
-    throw itemsError;
+    throw itemsError
   }
 
-  const itemsByReceipt = new Map<string, ReceiptItemRow[]>();
+  const itemsByReceipt = new Map<string, ReceiptItemRow[]>()
   for (const item of items as ReceiptItemRow[]) {
-    const list = itemsByReceipt.get(item.receipt_id) ?? [];
-    list.push(item);
-    itemsByReceipt.set(item.receipt_id, list);
+    const list = itemsByReceipt.get(item.receipt_id) ?? []
+    list.push(item)
+    itemsByReceipt.set(item.receipt_id, list)
   }
 
   return (receipts as ReceiptRow[]).map((row) => ({
     ...mapReceipt(row),
     items: (itemsByReceipt.get(row.id) ?? []).map(mapReceiptItem),
-  }));
+  }))
 }
 
 export async function getReceiptWithOrg(
-  receiptId: string,
+  receiptId: string
 ): Promise<{ receipt: ReceiptWithItems; org: Organization }> {
   const { data: receipt, error: receiptError } = await supabase
     .from('receipts')
     .select('*')
     .eq('id', receiptId)
-    .single();
+    .single()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (receiptError || !receipt) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    throw receiptError ?? new Error('Receipt not found');
+    throw receiptError ?? new Error('Receipt not found')
   }
 
   const { data: items, error: itemsError } = await supabase
     .from('receipt_items')
     .select('*')
-    .eq('receipt_id', receiptId);
+    .eq('receipt_id', receiptId)
 
   if (itemsError) {
-    throw itemsError;
+    throw itemsError
   }
 
   const { data: org, error: orgError } = await supabase
     .from('organizations')
     .select('*')
     .eq('id', receipt.org_id)
-    .single();
+    .single()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (orgError || !org) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    throw orgError ?? new Error('Organization not found');
+    throw orgError ?? new Error('Organization not found')
   }
 
   return {
@@ -192,7 +183,7 @@ export async function getReceiptWithOrg(
       items: items.map(mapReceiptItem),
     },
     org: mapOrganizationRow(org),
-  };
+  }
 }
 
 function mapReceipt(row: ReceiptRow): Receipt {
@@ -216,7 +207,7 @@ function mapReceipt(row: ReceiptRow): Receipt {
     cancelledAt: row.cancelled_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  }
 }
 
 function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
@@ -231,5 +222,5 @@ function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
     taxAmount: row.tax_amount,
     total: row.total,
     createdAt: row.created_at,
-  };
+  }
 }

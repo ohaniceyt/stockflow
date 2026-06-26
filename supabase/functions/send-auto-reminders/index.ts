@@ -56,22 +56,40 @@ Deno.serve(async (req: Request) => {
 
     if (orgsError) throw orgsError
 
-    const results: Array<{ orgId: string; invoiceId: string; status: 'sent' | 'skipped' | 'error'; detail?: string }> = []
+    const results: Array<{
+      orgId: string
+      invoiceId: string
+      status: 'sent' | 'skipped' | 'error'
+      detail?: string
+    }> = []
 
     for (const org of (orgs ?? []) as OrgReminderSettings[]) {
       const daysBefore = Math.max(0, org.auto_reminder_days ?? 3)
-      const { data: invoices, error: invoicesError } = await adminClient.rpc('get_overdue_invoices_for_org', {
-        p_org_id: org.id,
-      })
+      const { data: invoices, error: invoicesError } = await adminClient.rpc(
+        'get_overdue_invoices_for_org',
+        {
+          p_org_id: org.id,
+        }
+      )
 
       if (invoicesError) {
-        results.push({ orgId: org.id, invoiceId: '', status: 'error', detail: invoicesError.message })
+        results.push({
+          orgId: org.id,
+          invoiceId: '',
+          status: 'error',
+          detail: invoicesError.message,
+        })
         continue
       }
 
       for (const inv of (invoices ?? []) as OverdueInvoice[]) {
         if (!inv.contact_email) {
-          results.push({ orgId: org.id, invoiceId: inv.invoice_id, status: 'skipped', detail: 'no contact email' })
+          results.push({
+            orgId: org.id,
+            invoiceId: inv.invoice_id,
+            status: 'skipped',
+            detail: 'no contact email',
+          })
           continue
         }
 
@@ -80,12 +98,21 @@ Deno.serve(async (req: Request) => {
           new Date(inv.due_date).getTime() <= Date.now() + daysBefore * 24 * 60 * 60 * 1000
 
         if (!shouldRemind) {
-          results.push({ orgId: org.id, invoiceId: inv.invoice_id, status: 'skipped', detail: 'too early' })
+          results.push({
+            orgId: org.id,
+            invoiceId: inv.invoice_id,
+            status: 'skipped',
+            detail: 'too early',
+          })
           continue
         }
 
         try {
-          const { pdfBase64, filename, document } = await buildDocumentPdfBase64(adminClient, inv.invoice_id, 'invoice')
+          const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
+            adminClient,
+            inv.invoice_id,
+            'invoice'
+          )
           const orgName = (document.org as Record<string, unknown>)?.name ?? 'StockFlow'
           const paidAmount = Number((document as Record<string, unknown>).paid_amount ?? 0)
           const remaining = Math.max(0, inv.total - paidAmount)
@@ -123,21 +150,29 @@ Deno.serve(async (req: Request) => {
             .single()
           await adminClient
             .from('invoices')
-            .update({ reminders_sent: (current?.reminders_sent ?? 0) + 1, updated_at: new Date().toISOString() })
+            .update({
+              reminders_sent: (current?.reminders_sent ?? 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
             .eq('id', inv.invoice_id)
 
           results.push({ orgId: org.id, invoiceId: inv.invoice_id, status: 'sent' })
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Unknown error'
-          results.push({ orgId: org.id, invoiceId: inv.invoice_id, status: 'error', detail: message })
+          results.push({
+            orgId: org.id,
+            invoiceId: inv.invoice_id,
+            status: 'error',
+            detail: message,
+          })
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, processed: results.length, results }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (err) {
     const details =
       err instanceof Error
@@ -152,6 +187,9 @@ Deno.serve(async (req: Request) => {
 })
 
 function formatCurrency(amount: number, currency: string) {
-  const formatted = amount.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  const formatted = amount.toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
   return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
 }

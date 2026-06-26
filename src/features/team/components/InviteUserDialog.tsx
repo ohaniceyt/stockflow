@@ -19,6 +19,7 @@ interface InviteUserDialogProps {
   onCreateUser: (input: { name: string; email: string; role: UserRole }) => void
   onInviteByEmail?: (input: { email: string; role: UserRole }) => void
   createdPin: string | null
+  setupLink?: string | null
   isLoading?: boolean
   error?: Error | null
 }
@@ -29,6 +30,7 @@ export function InviteUserDialog({
   onCreateUser,
   onInviteByEmail,
   createdPin,
+  setupLink,
   isLoading,
   error,
 }: InviteUserDialogProps) {
@@ -88,8 +90,24 @@ export function InviteUserDialog({
               <p className="mt-2 text-xs text-muted-foreground">PIN temporaire :</p>
               <p className="text-2xl font-bold tracking-widest text-green-700">{createdPin}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Communiquez ce PIN de manière sécurisée.
+                L'utilisateur doit d'abord définir son mot de passe via le lien ci-dessous, puis se
+                connecter pour choisir son PIN définitif.
               </p>
+              {setupLink && (
+                <div className="mt-3 text-left">
+                  <p className="text-xs text-muted-foreground">
+                    Lien de configuration du mot de passe :
+                  </p>
+                  <a
+                    href={setupLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block break-all text-xs text-green-700 underline"
+                  >
+                    {setupLink}
+                  </a>
+                </div>
+              )}
             </div>
             <Button className="w-full" onClick={() => onOpenChange(false)}>
               Fermer

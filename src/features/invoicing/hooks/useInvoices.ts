@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createQuote,
   createInvoice,
@@ -13,8 +13,8 @@ import {
   convertQuoteToInvoice,
   recordPayment,
   markDeliveryNoteDelivered,
-} from '@/features/invoicing/services/invoiceService';
-import type { PaymentMethod } from '@/types';
+} from '@/features/invoicing/services/invoiceService'
+import type { PaymentMethod } from '@/types'
 
 const invoicesKeys = {
   all: ['invoices'] as const,
@@ -24,14 +24,14 @@ const invoicesKeys = {
   quote: (id: string) => ['invoices', 'quote', id] as const,
   invoice: (id: string) => ['invoices', 'invoice', id] as const,
   deliveryNote: (id: string) => ['invoices', 'delivery-note', id] as const,
-};
+}
 
 export function useQuotes(orgId: string) {
   return useQuery({
     queryKey: invoicesKeys.quotes(orgId),
     queryFn: () => getQuotes(orgId),
     enabled: Boolean(orgId),
-  });
+  })
 }
 
 export function useInvoices(orgId: string) {
@@ -39,7 +39,7 @@ export function useInvoices(orgId: string) {
     queryKey: invoicesKeys.invoices(orgId),
     queryFn: () => getInvoices(orgId),
     enabled: Boolean(orgId),
-  });
+  })
 }
 
 export function useDeliveryNotes(orgId: string) {
@@ -47,7 +47,7 @@ export function useDeliveryNotes(orgId: string) {
     queryKey: invoicesKeys.deliveryNotes(orgId),
     queryFn: () => getDeliveryNotes(orgId),
     enabled: Boolean(orgId),
-  });
+  })
 }
 
 export function useQuote(id: string) {
@@ -55,7 +55,7 @@ export function useQuote(id: string) {
     queryKey: invoicesKeys.quote(id),
     queryFn: () => getQuoteWithItems(id),
     enabled: Boolean(id),
-  });
+  })
 }
 
 export function useInvoice(id: string) {
@@ -63,7 +63,7 @@ export function useInvoice(id: string) {
     queryKey: invoicesKeys.invoice(id),
     queryFn: () => getInvoiceWithItems(id),
     enabled: Boolean(id),
-  });
+  })
 }
 
 export function useDeliveryNote(id: string) {
@@ -71,72 +71,72 @@ export function useDeliveryNote(id: string) {
     queryKey: invoicesKeys.deliveryNote(id),
     queryFn: () => getDeliveryNoteWithItems(id),
     enabled: Boolean(id),
-  });
+  })
 }
 
 export function useCreateQuote() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createQuote,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.quotes(data.orgId) });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.quotes(data.orgId) })
     },
-  });
+  })
 }
 
 export function useCreateInvoice() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createInvoice,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoices(data.orgId) });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoices(data.orgId) })
     },
-  });
+  })
 }
 
 export function useCreateDeliveryNote() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createDeliveryNote,
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.deliveryNotes(data.orgId) });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.deliveryNotes(data.orgId) })
     },
-  });
+  })
 }
 
 export function useUpdateDocumentStatus() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
       id,
       status,
       sentAt,
     }: {
-      id: string;
-      status: Parameters<typeof updateDocumentStatus>[1];
-      sentAt?: string | null;
+      id: string
+      status: Parameters<typeof updateDocumentStatus>[1]
+      sentAt?: string | null
     }) => updateDocumentStatus(id, status, sentAt),
     onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all });
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.quote(variables.id) });
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoice(variables.id) });
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.deliveryNote(variables.id) });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.quote(variables.id) })
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoice(variables.id) })
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.deliveryNote(variables.id) })
     },
-  });
+  })
 }
 
 export function useConvertQuoteToInvoice() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: convertQuoteToInvoice,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },
-  });
+  })
 }
 
 export function useRecordPayment() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
       invoiceId,
@@ -144,24 +144,24 @@ export function useRecordPayment() {
       paymentMethod,
       reference,
     }: {
-      invoiceId: string;
-      amount: number;
-      paymentMethod: PaymentMethod;
-      reference?: string | null;
+      invoiceId: string
+      amount: number
+      paymentMethod: PaymentMethod
+      reference?: string | null
     }) => recordPayment(invoiceId, amount, paymentMethod, reference),
     onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoice(variables.invoiceId) });
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.invoice(variables.invoiceId) })
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },
-  });
+  })
 }
 
 export function useMarkDeliveryNoteDelivered() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: markDeliveryNoteDelivered,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },
-  });
+  })
 }

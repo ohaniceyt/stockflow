@@ -1,10 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
-import { buildDocumentPdfBase64, type DocumentType } from '../_shared/documentPdf.ts'
+import { buildReceiptPdfBase64 } from '../_shared/receiptPdf.ts'
 
-interface GenerateDocumentPdfPayload {
-  document_id: string
-  type: DocumentType
+interface GenerateReceiptPdfPayload {
+  receipt_id: string
 }
 
 export const corsHeaders = {
@@ -41,9 +40,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: GenerateDocumentPdfPayload = await req.json()
-    if (!payload.document_id || !payload.type) {
-      return new Response(JSON.stringify({ error: 'document_id and type are required' }), {
+    const payload: GenerateReceiptPdfPayload = await req.json()
+    if (!payload.receipt_id) {
+      return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -53,17 +52,16 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
+    const { pdfBase64, filename, receipt } = await buildReceiptPdfBase64(
       adminClient,
-      payload.document_id,
-      payload.type
+      payload.receipt_id
     )
 
     return new Response(
       JSON.stringify({
         pdf_base64: pdfBase64,
         filename,
-        document_id: document.id,
+        receipt_id: receipt.id,
       }),
       {
         status: 200,

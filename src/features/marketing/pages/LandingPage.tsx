@@ -117,6 +117,7 @@ const pricingPlans = [
     description: 'Sur mesure',
     monthlyPrice: 0,
     yearlyPrice: 0,
+    priceMode: 'custom' as const,
     features: [
       'Utilisateurs illimités',
       'Produits illimités',
@@ -153,11 +154,11 @@ export default function LandingPage() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => (window.location.href = '/login')}>
-              Se connecter
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/login">Se connecter</Link>
             </Button>
-            <Button size="sm" onClick={() => (window.location.href = '/signup')}>
-              S'inscrire
+            <Button size="sm" asChild>
+              <Link to="/signup">S'inscrire</Link>
             </Button>
           </div>
         </div>
@@ -174,12 +175,14 @@ export default function LandingPage() {
               emplacements et leurs mouvements en temps réel — même hors ligne.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" onClick={() => (window.location.href = '/signup')}>
-                Créer un compte gratuit
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button size="lg" asChild>
+                <Link to="/signup">
+                  Créer un compte gratuit
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
-              <Button variant="outline" size="lg" onClick={() => (window.location.href = '/login')}>
-                Se connecter
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/login">Se connecter</Link>
               </Button>
             </div>
 
@@ -286,20 +289,16 @@ export default function LandingPage() {
               Rejoignez les équipes qui gagnent du temps chaque jour avec StockFlow vNext.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => (window.location.href = '/signup')}
-              >
-                Créer mon compte
+              <Button size="lg" variant="secondary" asChild>
+                <Link to="/signup">Créer mon compte</Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-                onClick={() => (window.location.href = '/login')}
+                asChild
               >
-                Se connecter
+                <Link to="/login">Se connecter</Link>
               </Button>
             </div>
           </div>

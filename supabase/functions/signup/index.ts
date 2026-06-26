@@ -6,6 +6,7 @@ interface SignupPayload {
   email: string
   password: string
   phone?: string
+  plan?: 'free' | 'starter' | 'pro'
 }
 
 export const corsHeaders = {
@@ -84,7 +85,8 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { name, email, password, phone } = payload
+    const { name, email, password, phone, plan } = payload
+    const selectedPlan = plan && ['free', 'starter', 'pro'].includes(plan) ? plan : 'free'
 
     if (!name?.trim() || !email?.trim() || !password) {
       return new Response(JSON.stringify({ error: 'Name, email and password are required' }), {
@@ -183,6 +185,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           success: true,
           message: 'Compte créé. Vérifiez votre email pour continuer.',
+          plan: selectedPlan,
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )

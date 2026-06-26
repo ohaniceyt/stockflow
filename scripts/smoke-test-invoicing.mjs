@@ -74,7 +74,10 @@ function uniqueDocNum(prefix) {
 
 try {
   await check('Supabase Auth login with email/password', async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email: EMAIL, password: PASSWORD })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: EMAIL,
+      password: PASSWORD,
+    })
     if (error) throw error
     accessToken = data.session.access_token
     return `user=${data.user.id}`
@@ -144,9 +147,12 @@ try {
     return `quote=${quoteId}, total=${quoteTotal}`
   })
 
-  const { data: invoiceData, error: convertError } = await supabase.rpc('convert_quote_to_invoice', {
-    p_quote_id: quoteId,
-  })
+  const { data: invoiceData, error: convertError } = await supabase.rpc(
+    'convert_quote_to_invoice',
+    {
+      p_quote_id: quoteId,
+    }
+  )
   if (convertError) throw convertError
   invoiceId = invoiceData
 
@@ -155,7 +161,11 @@ try {
   })
 
   await check('verify quote was marked converted', async () => {
-    const { data, error } = await supabase.from('invoices').select('status, converted_to_invoice_id').eq('id', quoteId).single()
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('status, converted_to_invoice_id')
+      .eq('id', quoteId)
+      .single()
     if (error) throw error
     assert(data.status === 'converted', `expected converted, got ${data.status}`)
     assert(data.converted_to_invoice_id === invoiceId, 'converted_to_invoice_id mismatch')
@@ -212,7 +222,11 @@ try {
   })
 
   await check('verify invoice paid after payment trigger', async () => {
-    const { data, error } = await supabase.from('invoices').select('status, paid_amount').eq('id', invoiceId).single()
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('status, paid_amount')
+      .eq('id', invoiceId)
+      .single()
     if (error) throw error
     assert(data.status === 'paid', `expected paid, got ${data.status}`)
     assert(Number(data.paid_amount) === quoteTotal, `paid_amount mismatch: ${data.paid_amount}`)

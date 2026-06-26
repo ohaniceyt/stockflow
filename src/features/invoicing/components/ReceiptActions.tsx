@@ -20,10 +20,13 @@ export default function ReceiptActions({ receipt, orgName, onClose }: ReceiptAct
   const downloadPdf = async () => {
     setStatus('Génération du PDF…')
     try {
-      const data = await edgeFetch<{ pdf_base64: string; filename: string }>('generate-receipt-pdf', {
-        method: 'POST',
-        body: JSON.stringify({ receipt_id: receipt.id }),
-      })
+      const data = await edgeFetch<{ pdf_base64: string; filename: string }>(
+        'generate-receipt-pdf',
+        {
+          method: 'POST',
+          body: JSON.stringify({ receipt_id: receipt.id }),
+        }
+      )
       if (!data.pdf_base64) {
         throw new Error('PDF generation failed')
       }

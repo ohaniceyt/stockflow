@@ -380,6 +380,7 @@ async function executeOperation(
         contactId: payload.contactId ?? null,
         unitPrice: payload.unitPrice ?? null,
         cashierSessionId: payload.cashierSessionId ?? null,
+        clientOperationId: op.id,
       })
       return
     }

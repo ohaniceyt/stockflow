@@ -38,6 +38,22 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['organizations']['Insert']>
         Relationships: []
       }
+      organization_slug_history: {
+        Row: {
+          id: string
+          org_id: string
+          old_slug: string
+          new_slug: string
+          changed_by: string | null
+          changed_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['organization_slug_history']['Row'],
+          'id' | 'changed_at'
+        >
+        Update: Partial<Database['public']['Tables']['organization_slug_history']['Insert']>
+        Relationships: []
+      }
       organization_api_keys: {
         Row: {
           id: string
@@ -333,10 +349,7 @@ export interface Database {
           total: number
           created_at: string
         }
-        Insert: Omit<
-          Database['public']['Tables']['receipt_items']['Row'],
-          'id' | 'created_at'
-        >
+        Insert: Omit<Database['public']['Tables']['receipt_items']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['receipt_items']['Insert']>
         Relationships: []
       }

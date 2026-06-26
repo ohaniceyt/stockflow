@@ -18,7 +18,8 @@ export interface MockSession {
     orgId: string
     userId: string
     role: 'super_admin' | 'admin' | 'operator' | 'reader'
-    pinHash: string | null
+    hasPin: boolean
+    pinHash?: string | null
     isActive: boolean
     forcePinChange: boolean
     lastLoginAt: string | null
@@ -55,7 +56,7 @@ export const DEFAULT_MOCK_SESSION: MockSession = {
     orgId: 'e2e-org-id',
     userId: 'e2e-user-id',
     role: 'super_admin',
-    pinHash: 'set',
+    hasPin: true,
     isActive: true,
     forcePinChange: false,
     lastLoginAt: new Date().toISOString(),

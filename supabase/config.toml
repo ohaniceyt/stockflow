@@ -111,5 +111,11 @@ verify_jwt = true
 [functions.send-auto-reminders]
 verify_jwt = false
 
+[functions.platform-update-organization-slug]
+verify_jwt = true
+
+[functions.platform-get-organization-slug-history]
+verify_jwt = true
+
 [analytics]
 enabled = false

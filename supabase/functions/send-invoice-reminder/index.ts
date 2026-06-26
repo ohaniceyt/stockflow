@@ -69,22 +69,22 @@ Deno.serve(async (req: Request) => {
     if (status === 'paid' || status === 'cancelled') {
       return new Response(
         JSON.stringify({ success: false, reason: `Invoice is already ${status}` }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
       adminClient,
       payload.invoice_id,
-      'invoice',
+      'invoice'
     )
 
     const recipient = payload.to ?? (invoice.contact as Record<string, unknown>)?.email ?? null
     if (!recipient) {
-      return new Response(
-        JSON.stringify({ error: 'No recipient email provided or found' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      return new Response(JSON.stringify({ error: 'No recipient email provided or found' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const orgName = (invoice.org as Record<string, unknown>)?.name ?? 'StockFlow'
@@ -112,8 +112,12 @@ Deno.serve(async (req: Request) => {
     const text = `Bonjour,
 
 Nous vous rappelons que votre facture ${documentNumber} de ${orgName} d'un montant de ${totalFormatted} n'a pas encore été réglée.
-${remaining > 0 ? `Reste à payer : ${formatCurrency(remaining, invoice.currency as string)}
-` : ''}La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.
+${
+  remaining > 0
+    ? `Reste à payer : ${formatCurrency(remaining, invoice.currency as string)}
+`
+    : ''
+}La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.
 
 Cet email a été envoyé automatiquement par StockFlow.`
 
@@ -146,7 +150,7 @@ Cet email a été envoyé automatiquement par StockFlow.`
         invoice_id: invoice.id,
         sent_to: recipient,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
@@ -158,6 +162,9 @@ Cet email a été envoyé automatiquement par StockFlow.`
 })
 
 function formatCurrency(amount: number, currency: string) {
-  const formatted = amount.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  const formatted = amount.toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
   return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
 }

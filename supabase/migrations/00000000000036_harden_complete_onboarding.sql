@@ -10,13 +10,15 @@ CREATE OR REPLACE FUNCTION complete_onboarding(
   p_org_slug TEXT,
   p_currency TEXT,
   p_timezone TEXT,
-  p_default_location_name TEXT
+  p_default_location_name TEXT,
+  p_plan_id TEXT DEFAULT 'free'
 )
 RETURNS UUID AS $$
 DECLARE
   v_org_id UUID;
   v_membership_id UUID;
   v_normalized_slug TEXT;
+  v_plan_id TEXT;
 BEGIN
   -- Security assertion: only the authenticated user may onboard themselves.
   IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
@@ -29,6 +31,11 @@ BEGIN
     RAISE EXCEPTION 'Invalid slug: must be 2–50 characters, lowercase letters, numbers and hyphens only';
   END IF;
 
+  v_plan_id := COALESCE(p_plan_id, 'free');
+  IF v_plan_id NOT IN ('free', 'starter', 'pro') THEN
+    RAISE EXCEPTION 'Invalid plan: must be free, starter or pro';
+  END IF;
+
   -- Create organization with the provided slug. The unique constraint will raise on conflict.
   INSERT INTO organizations (name, slug, currency, timezone, onboarding_completed)
   VALUES (p_org_name, v_normalized_slug, p_currency, p_timezone, TRUE)
@@ -39,11 +46,11 @@ BEGIN
   VALUES (v_org_id, p_user_id, 'super_admin', NULL, TRUE, FALSE)
   RETURNING id INTO v_membership_id;
 
-  -- Create free subscription.
+  -- Create subscription on the selected plan (default free).
   INSERT INTO subscriptions (org_id, plan_id, status, billing_interval, current_period_starts_at, current_period_ends_at)
   VALUES (
     v_org_id,
-    'free',
+    v_plan_id,
     'active',
     'month',
     NOW(),
@@ -57,6 +64,13 @@ BEGIN
   -- Activate org for user.
   UPDATE users SET active_org_id = v_org_id WHERE id = p_user_id;
 
+  -- Mark the default location so the frontend and Edge Functions can rely on it.
+  UPDATE organizations
+  SET storefront_location_id = (
+    SELECT id FROM locations WHERE org_id = v_org_id AND is_default = TRUE LIMIT 1
+  )
+  WHERE id = v_org_id;
+
   RETURN v_org_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -65,4 +79,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP FUNCTION IF EXISTS public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT);
 
 -- Ensure deterministic search path remains intact.
-ALTER FUNCTION public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT, TEXT) SET search_path = public, pg_catalog;
+ALTER FUNCTION public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) SET search_path = pg_temp, pg_catalog;

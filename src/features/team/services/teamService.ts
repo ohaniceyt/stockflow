@@ -100,7 +100,7 @@ export async function createUser(input: {
   name: string
   email: string
   role: UserRole
-}): Promise<{ tempPin: string }> {
+}): Promise<{ tempPin: string; setupLink?: string }> {
   const session = await supabase.auth.getSession()
   const accessToken = session.data.session?.access_token
   if (!accessToken) {
@@ -120,6 +120,7 @@ export async function createUser(input: {
 
   const data = (await response.json().catch(() => ({}))) as {
     tempPin?: string
+    setupLink?: string
     error?: { message: string }
   }
 
@@ -127,5 +128,5 @@ export async function createUser(input: {
     throw new Error(data.error?.message ?? 'Échec de la création')
   }
 
-  return { tempPin: data.tempPin }
+  return { tempPin: data.tempPin, setupLink: data.setupLink }
 }

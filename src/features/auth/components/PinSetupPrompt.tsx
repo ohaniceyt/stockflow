@@ -19,7 +19,7 @@ export function PinSetupPrompt() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  if (session?.membership.pinHash !== null) return null
+  if (session?.membership.hasPin) return null
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()

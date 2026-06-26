@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, ShieldAlert, History, Edit3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -10,6 +11,8 @@ import {
   listUsers,
   setOrganizationPlan,
   suspendOrganization,
+  updateOrganizationSlug,
+  getOrganizationSlugHistory,
 } from '../services/platformService'
 import type { ActivityLogRow, BackOfficeOrganization, BackOfficeUser, Paginated } from '../types'
 
@@ -50,6 +53,26 @@ export default function BackOfficeOrganizationDetailPage() {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['back-office', 'organization', safeOrgId] }),
   })
+
+  const slugHistoryQuery = useQuery({
+    queryKey: ['back-office', 'organization', safeOrgId, 'slug-history'],
+    queryFn: () => getOrganizationSlugHistory(safeOrgId),
+    enabled: !!orgId && isSuperAdmin,
+  })
+
+  const slugMutation = useMutation({
+    mutationFn: (newSlug: string) => updateOrganizationSlug(safeOrgId, newSlug),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['back-office', 'organization', safeOrgId] })
+      await queryClient.invalidateQueries({
+        queryKey: ['back-office', 'organization', safeOrgId, 'slug-history'],
+      })
+    },
+  })
+
+  const [showSlugForm, setShowSlugForm] = useState(false)
+  const [newSlug, setNewSlug] = useState('')
+  const [slugError, setSlugError] = useState<string | null>(null)
 
   if (!orgId) return <div>Identifiant manquant</div>
 
@@ -136,6 +159,100 @@ export default function BackOfficeOrganizationDetailPage() {
                   </option>
                 ))}
               </Select>
+            </div>
+          )}
+
+          {isSuperAdmin && (
+            <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-semibold">Identifiant public (slug)</span>
+                </div>
+                {!showSlugForm && (
+                  <Button variant="outline" size="sm" onClick={() => setShowSlugForm(true)}>
+                    Modifier
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Slug actuel : <span className="font-mono text-foreground">{org.slug}</span>
+              </p>
+              {showSlugForm && (
+                <form
+                  className="flex flex-col gap-3 sm:flex-row sm:items-start"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    setSlugError(null)
+                    if (!newSlug.trim() || newSlug.trim().length < 2) {
+                      setSlugError('Slug trop court')
+                      return
+                    }
+                    slugMutation.mutate(newSlug.trim().toLowerCase(), {
+                      onSuccess: () => {
+                        setShowSlugForm(false)
+                        setNewSlug('')
+                      },
+                      onError: (err) => setSlugError(err.message),
+                    })
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={newSlug}
+                    onChange={(e) => setNewSlug(e.target.value)}
+                    placeholder="nouveau-slug"
+                    className="rounded-md border px-3 py-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm" disabled={slugMutation.isPending}>
+                      {slugMutation.isPending ? '…' : 'Valider'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowSlugForm(false)
+                        setNewSlug('')
+                        setSlugError(null)
+                      }}
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                </form>
+              )}
+              {slugError && <p className="text-sm text-destructive">{slugError}</p>}
+              {slugMutation.isSuccess && !showSlugForm && (
+                <p className="text-sm text-green-600">Slug mis à jour.</p>
+              )}
+            </div>
+          )}
+
+          {isSuperAdmin && slugHistoryQuery.data && slugHistoryQuery.data.length > 0 && (
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold">Historique des slugs</span>
+              </div>
+              <div className="space-y-2">
+                {slugHistoryQuery.data.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-muted-foreground">{entry.old_slug}</span>
+                      <span>→</span>
+                      <span className="font-mono">{entry.new_slug}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(entry.changed_at).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

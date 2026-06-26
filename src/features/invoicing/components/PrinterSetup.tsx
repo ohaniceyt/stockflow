@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Usb, Bluetooth, Wifi, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react'
+import { Usb, Bluetooth, Wifi, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   requestUsbPrinter,
   requestBluetoothPrinter,
@@ -8,63 +8,63 @@ import {
   createEscPosBuffer,
   formatDocumentForPrinter,
   type PrinterConfig,
-} from '@/features/invoicing/services/printerService';
-import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types';
+} from '@/features/invoicing/services/printerService'
+import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types'
 
-type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems;
+type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems
 
 interface PrinterSetupProps {
-  doc: DocumentWithItems;
-  orgName: string;
-  onClose?: () => void;
+  doc: DocumentWithItems
+  orgName: string
+  onClose?: () => void
 }
 
 export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProps) {
-  const [printer, setPrinter] = useState<PrinterConfig | null>(null);
-  const [networkUrl, setNetworkUrl] = useState('http://127.0.0.1:9100/print');
-  const [status, setStatus] = useState<'idle' | 'printing' | 'done' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+  const [printer, setPrinter] = useState<PrinterConfig | null>(null)
+  const [networkUrl, setNetworkUrl] = useState('http://127.0.0.1:9100/print')
+  const [status, setStatus] = useState<'idle' | 'printing' | 'done' | 'error'>('idle')
+  const [message, setMessage] = useState('')
 
   async function handleUsb() {
-    setStatus('idle');
+    setStatus('idle')
     try {
-      const config = await requestUsbPrinter();
+      const config = await requestUsbPrinter()
       if (!config) {
-        setMessage('Aucune imprimante USB sélectionnée.');
-        return;
+        setMessage('Aucune imprimante USB sélectionnée.')
+        return
       }
-      setPrinter(config);
-      setMessage(`Imprimante USB : ${config.name ?? 'inconnue'}`);
+      setPrinter(config)
+      setMessage(`Imprimante USB : ${config.name ?? 'inconnue'}`)
     } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Erreur USB inconnue');
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : 'Erreur USB inconnue')
     }
   }
 
   async function handleBluetooth() {
-    setStatus('idle');
+    setStatus('idle')
     try {
-      const config = await requestBluetoothPrinter();
+      const config = await requestBluetoothPrinter()
       if (!config) {
-        setMessage('Aucune imprimante Bluetooth sélectionnée.');
-        return;
+        setMessage('Aucune imprimante Bluetooth sélectionnée.')
+        return
       }
-      setPrinter(config);
-      setMessage(`Imprimante Bluetooth : ${config.name ?? 'inconnue'}`);
+      setPrinter(config)
+      setMessage(`Imprimante Bluetooth : ${config.name ?? 'inconnue'}`)
     } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Erreur Bluetooth inconnue');
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : 'Erreur Bluetooth inconnue')
     }
   }
 
   function handleNetwork() {
-    setPrinter({ type: 'network', url: networkUrl });
-    setMessage(`Imprimante réseau : ${networkUrl}`);
+    setPrinter({ type: 'network', url: networkUrl })
+    setMessage(`Imprimante réseau : ${networkUrl}`)
   }
 
   async function handlePrint() {
-    if (!printer) return;
-    setStatus('printing');
+    if (!printer) return
+    setStatus('printing')
     try {
       const lines = formatDocumentForPrinter(
         {
@@ -79,16 +79,16 @@ export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProp
           paidAmount: (doc as InvoiceWithItems).paidAmount,
           items: doc.items,
         },
-        orgName,
-      );
-      const buffer = createEscPosBuffer(lines);
-      await printToPrinter(printer, buffer);
-      setStatus('done');
-      setMessage('Impression réussie.');
-      setTimeout(() => setStatus('idle'), 2000);
+        orgName
+      )
+      const buffer = createEscPosBuffer(lines)
+      await printToPrinter(printer, buffer)
+      setStatus('done')
+      setMessage('Impression réussie.')
+      setTimeout(() => setStatus('idle'), 2000)
     } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Erreur d\'impression');
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : "Erreur d'impression")
     }
   }
 
@@ -116,8 +116,9 @@ export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProp
       </div>
 
       <div className="text-muted-foreground text-xs">
-        Choisissez le mode de connexion. WebUSB/Bluetooth nécessitent HTTPS et un navigateur compatible (Chrome/Edge).
-        Le mode réseau envoie les données brutes à une petite passerelle locale.
+        Choisissez le mode de connexion. WebUSB/Bluetooth nécessitent HTTPS et un navigateur
+        compatible (Chrome/Edge). Le mode réseau envoie les données brutes à une petite passerelle
+        locale.
       </div>
 
       {printer?.type === 'network' && (
@@ -143,13 +144,11 @@ export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProp
 
       {message && (
         <p
-          className={`text-xs ${
-            status === 'error' ? 'text-destructive' : 'text-muted-foreground'
-          }`}
+          className={`text-xs ${status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
         >
           {message}
         </p>
       )}
     </div>
-  );
+  )
 }

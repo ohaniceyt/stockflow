@@ -194,6 +194,38 @@ export async function setOrganizationPlan(orgId: string, planId: string): Promis
   })
 }
 
+export async function updateOrganizationSlug(orgId: string, newSlug: string): Promise<void> {
+  await platformFetch('/platform-update-organization-slug', {
+    method: 'POST',
+    body: JSON.stringify({ orgId, newSlug }),
+  })
+}
+
+export async function getOrganizationSlugHistory(orgId: string): Promise<
+  {
+    id: string
+    old_slug: string
+    new_slug: string
+    changed_at: string
+    changed_by: string | null
+  }[]
+> {
+  const data = await platformFetch(
+    `/platform-get-organization-slug-history?orgId=${encodeURIComponent(orgId)}`
+  )
+  return (
+    (data.history as
+      | {
+          id: string
+          old_slug: string
+          new_slug: string
+          changed_at: string
+          changed_by: string | null
+        }[]
+      | undefined) ?? []
+  )
+}
+
 export async function resetUserPin(membershipId: string): Promise<void> {
   await platformFetch('/platform-reset-user-pin', {
     method: 'POST',

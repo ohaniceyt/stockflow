@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -7,6 +8,7 @@ interface PricingCardProps {
   description: string
   monthlyPrice: number
   yearlyPrice: number
+  priceMode?: 'free' | 'fixed' | 'custom'
   features: string[]
   cta: string
   href: string
@@ -19,15 +21,16 @@ export function PricingCard({
   description,
   monthlyPrice,
   yearlyPrice,
+  priceMode = monthlyPrice === 0 && yearlyPrice === 0 ? 'free' : 'fixed',
   features,
   cta,
   href,
   highlighted,
   popular,
 }: PricingCardProps) {
-  const isFree = monthlyPrice === 0 && yearlyPrice === 0
   const monthly = (monthlyPrice / 100).toLocaleString('fr-FR')
   const yearly = (yearlyPrice / 100).toLocaleString('fr-FR')
+  const isExternal = href.startsWith('mailto:') || href.startsWith('http')
 
   return (
     <div
@@ -47,11 +50,17 @@ export function PricingCard({
       </div>
 
       <div className="mb-6">
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-bold">{isFree ? '0 €' : `${monthly} €`}</span>
-          {!isFree && <span className="text-sm text-muted-foreground">/mois</span>}
-        </div>
-        {!isFree && (
+        {priceMode === 'custom' ? (
+          <span className="text-3xl font-bold">Sur mesure</span>
+        ) : (
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold">
+              {priceMode === 'free' ? '0 €' : `${monthly} €`}
+            </span>
+            {priceMode !== 'free' && <span className="text-sm text-muted-foreground">/mois</span>}
+          </div>
+        )}
+        {priceMode === 'fixed' && (
           <p className="text-xs text-muted-foreground">{yearly} €/an (économisez 2 mois)</p>
         )}
       </div>
@@ -65,12 +74,8 @@ export function PricingCard({
         ))}
       </ul>
 
-      <Button
-        variant={highlighted ? 'default' : 'outline'}
-        className="w-full"
-        onClick={() => (window.location.href = href)}
-      >
-        {cta}
+      <Button asChild variant={highlighted ? 'default' : 'outline'} className="w-full">
+        {isExternal ? <a href={href}>{cta}</a> : <Link to={href}>{cta}</Link>}
       </Button>
     </div>
   )
