@@ -1,165 +1,197 @@
-import { useState } from 'react';
-import { Download, Mail, Share2, Printer, X, Send, CheckCircle, FileCheck, Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useState } from 'react'
+import {
+  Download,
+  Mail,
+  Share2,
+  Printer,
+  X,
+  Send,
+  CheckCircle,
+  FileCheck,
+  Bell,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import {
   useUpdateDocumentStatus,
   useConvertQuoteToInvoice,
   useRecordPayment,
   useMarkDeliveryNoteDelivered,
-} from '@/features/invoicing/hooks/useInvoices';
-import PrinterSetup from '@/features/invoicing/components/PrinterSetup';
-import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems, PaymentMethod } from '@/types';
+} from '@/features/invoicing/hooks/useInvoices'
+import PrinterSetup from '@/features/invoicing/components/PrinterSetup'
+import type {
+  InvoiceWithItems,
+  QuoteWithItems,
+  DeliveryNoteWithItems,
+  PaymentMethod,
+} from '@/types'
 
-type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems;
+type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems
 
 interface DocumentActionsProps {
-  doc: DocumentWithItems;
-  type: 'quote' | 'invoice' | 'delivery_note';
-  onClose?: () => void;
+  doc: DocumentWithItems
+  type: 'quote' | 'invoice' | 'delivery_note'
+  onClose?: () => void
 }
 
 export default function DocumentActions({ doc, type, onClose }: DocumentActionsProps) {
-  const { session } = useAuth();
-  const updateStatus = useUpdateDocumentStatus();
-  const convertQuote = useConvertQuoteToInvoice();
-  const recordPayment = useRecordPayment();
-  const markDelivered = useMarkDeliveryNoteDelivered();
+  const { session } = useAuth()
+  const updateStatus = useUpdateDocumentStatus()
+  const convertQuote = useConvertQuoteToInvoice()
+  const recordPayment = useRecordPayment()
+  const markDelivered = useMarkDeliveryNoteDelivered()
 
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [pdfStatus, setPdfStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [reminderStatus, setReminderStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [paymentAmount, setPaymentAmount] = useState(String(doc.total));
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [showPrinterSetup, setShowPrinterSetup] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [pdfStatus, setPdfStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [reminderStatus, setReminderStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>(
+    'idle'
+  )
+  const [paymentAmount, setPaymentAmount] = useState(String(doc.total))
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [showPrinterSetup, setShowPrinterSetup] = useState(false)
 
-  const token = session?.accessToken;
+  const token = session?.accessToken
 
-  const title = type === 'quote' ? 'Devis' : type === 'invoice' ? 'Facture' : 'Bon de livraison';
-  const number = doc.documentNumber;
-  const totalText = `${doc.total.toLocaleString('fr-FR')} ${doc.currency}`;
-  const orgName = session?.organization?.name ?? 'StockFlow';
-  const remaining = Math.max(0, (doc as InvoiceWithItems).total - ((doc as InvoiceWithItems).paidAmount ?? 0));
+  const title = type === 'quote' ? 'Devis' : type === 'invoice' ? 'Facture' : 'Bon de livraison'
+  const number = doc.documentNumber
+  const totalText = `${doc.total.toLocaleString('fr-FR')} ${doc.currency}`
+  const orgName = session?.organization.name ?? 'StockFlow'
+  const remaining = Math.max(
+    0,
+    (doc as InvoiceWithItems).total - (doc as InvoiceWithItems).paidAmount
+  )
   const whatsappText = encodeURIComponent(
-    `Bonjour,\n\nVeuillez trouver ci-joint votre ${title.toLowerCase()} ${number} de ${orgName}.\nTotal : ${totalText}\n\nMerci pour votre confiance.`,
-  );
+    `Bonjour,\n\nVeuillez trouver ci-joint votre ${title.toLowerCase()} ${number} de ${orgName}.\nTotal : ${totalText}\n\nMerci pour votre confiance.`
+  )
 
   async function handleDownloadPdf() {
-    if (!token) return;
-    setPdfStatus('loading');
+    if (!token) return
+    setPdfStatus('loading')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-document-pdf`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ document_id: doc.id, type }),
-      });
-      const data = (await res.json()) as { pdf_base64?: string; filename?: string; error?: string };
+      const res = await fetch(
+        `${String(import.meta.env.VITE_SUPABASE_URL)}/functions/v1/generate-document-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ document_id: doc.id, type }),
+        }
+      )
+      const data = (await res.json()) as { pdf_base64?: string; filename?: string; error?: string }
       if (!res.ok || !data.pdf_base64) {
-        throw new Error(data.error ?? 'Failed to generate PDF');
+        throw new Error(data.error ?? 'Failed to generate PDF')
       }
-      const link = document.createElement('a');
-      link.href = `data:application/pdf;base64,${data.pdf_base64}`;
-      link.download = data.filename ?? `${title.toLowerCase()}-${number}.pdf`;
-      link.click();
-      setPdfStatus('done');
-      setTimeout(() => setPdfStatus('idle'), 2000);
+      const link = document.createElement('a')
+      link.href = `data:application/pdf;base64,${data.pdf_base64}`
+      link.download = data.filename ?? `${title.toLowerCase()}-${number}.pdf`
+      link.click()
+      setPdfStatus('done')
+      setTimeout(() => setPdfStatus('idle'), 2000)
     } catch (err) {
-      setPdfStatus('error');
-      // eslint-disable-next-line no-console
-      console.error(err);
+      setPdfStatus('error')
+      console.error(err)
     }
   }
 
   async function handleSendEmail() {
-    if (!token) return;
-    setEmailStatus('sending');
+    if (!token) return
+    setEmailStatus('sending')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-document-email`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ document_id: doc.id, type }),
-      });
-      const data = (await res.json()) as { success?: boolean; error?: string };
+      const res = await fetch(
+        `${String(import.meta.env.VITE_SUPABASE_URL)}/functions/v1/send-document-email`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ document_id: doc.id, type }),
+        }
+      )
+      const data = (await res.json()) as { success?: boolean; error?: string }
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? 'Failed to send email');
+        throw new Error(data.error ?? 'Failed to send email')
       }
       if (type !== 'delivery_note') {
-        void updateStatus.mutateAsync({ id: doc.id, status: 'sent', sentAt: new Date().toISOString() });
+        void updateStatus.mutateAsync({
+          id: doc.id,
+          status: 'sent',
+          sentAt: new Date().toISOString(),
+        })
       }
-      setEmailStatus('sent');
-      setTimeout(() => setEmailStatus('idle'), 3000);
+      setEmailStatus('sent')
+      setTimeout(() => setEmailStatus('idle'), 3000)
     } catch (err) {
-      setEmailStatus('error');
-      // eslint-disable-next-line no-console
-      console.error(err);
+      setEmailStatus('error')
+      console.error(err)
     }
   }
 
   async function handleSendReminder() {
-    if (!token || type !== 'invoice') return;
-    setReminderStatus('sending');
+    if (!token || type !== 'invoice') return
+    setReminderStatus('sending')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invoice-reminder`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ invoice_id: doc.id }),
-      });
-      const data = (await res.json()) as { success?: boolean; error?: string };
+      const res = await fetch(
+        `${String(import.meta.env.VITE_SUPABASE_URL)}/functions/v1/send-invoice-reminder`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ invoice_id: doc.id }),
+        }
+      )
+      const data = (await res.json()) as { success?: boolean; error?: string }
       if (!res.ok || !data.success) {
-        throw new Error(data.error ?? 'Failed to send reminder');
+        throw new Error(data.error ?? 'Failed to send reminder')
       }
-      setReminderStatus('sent');
-      setTimeout(() => setReminderStatus('idle'), 4000);
+      setReminderStatus('sent')
+      setTimeout(() => setReminderStatus('idle'), 4000)
     } catch (err) {
-      setReminderStatus('error');
-      // eslint-disable-next-line no-console
-      console.error(err);
+      setReminderStatus('error')
+      console.error(err)
     }
   }
 
   function handleWhatsApp() {
-    window.open(`https://wa.me/?text=${whatsappText}`, '_blank');
+    window.open(`https://wa.me/?text=${whatsappText}`, '_blank')
   }
 
   function handlePrint() {
-    window.print();
+    window.print()
   }
 
   function handleMarkSent() {
-    void updateStatus.mutateAsync({ id: doc.id, status: 'sent', sentAt: new Date().toISOString() });
+    void updateStatus.mutateAsync({ id: doc.id, status: 'sent', sentAt: new Date().toISOString() })
   }
 
   function handleConvertQuote() {
-    void convertQuote.mutateAsync(doc.id);
+    void convertQuote.mutateAsync(doc.id)
   }
 
-  function handleRecordPayment(e: React.FormEvent) {
-    e.preventDefault();
-    const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) return;
-    void recordPayment.mutateAsync({ invoiceId: doc.id, amount, paymentMethod });
-    setShowPaymentForm(false);
+  function handleRecordPayment(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const amount = Number(paymentAmount)
+    if (!amount || amount <= 0) return
+    void recordPayment.mutateAsync({ invoiceId: doc.id, amount, paymentMethod })
+    setShowPaymentForm(false)
   }
 
   function handleMarkDelivered() {
-    void markDelivered.mutateAsync(doc.id);
+    void markDelivered.mutateAsync(doc.id)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">{title} {number}</h3>
+          <h3 className="text-lg font-semibold">
+            {title} {number}
+          </h3>
           <p className="text-sm text-muted-foreground">Statut : {doc.status}</p>
         </div>
         {onClose && (
@@ -191,31 +223,60 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
 
       <div className="flex flex-wrap gap-2 pt-2">
         {type === 'quote' && doc.status !== 'converted' && (
-          <Button variant="secondary" size="sm" onClick={handleConvertQuote} disabled={convertQuote.isPending}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleConvertQuote}
+            disabled={convertQuote.isPending}
+          >
             <FileCheck className="mr-1 h-4 w-4" /> Convertir en facture
           </Button>
         )}
 
-        {(type === 'invoice' || type === 'quote') && doc.status !== 'sent' && doc.status !== 'paid' && doc.status !== 'converted' && (
-          <Button variant="secondary" size="sm" onClick={handleMarkSent} disabled={updateStatus.isPending}>
-            <Send className="mr-1 h-4 w-4" /> Marquer envoyé
-          </Button>
-        )}
+        {(type === 'invoice' || type === 'quote') &&
+          doc.status !== 'sent' &&
+          doc.status !== 'paid' &&
+          doc.status !== 'converted' && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleMarkSent}
+              disabled={updateStatus.isPending}
+            >
+              <Send className="mr-1 h-4 w-4" /> Marquer envoyé
+            </Button>
+          )}
 
         {type === 'invoice' && doc.status !== 'paid' && (
-          <Button variant="secondary" size="sm" onClick={() => setShowPaymentForm((s) => !s)} disabled={recordPayment.isPending}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowPaymentForm((s) => !s)}
+            disabled={recordPayment.isPending}
+          >
             <CheckCircle className="mr-1 h-4 w-4" /> Enregistrer paiement
           </Button>
         )}
 
         {type === 'invoice' && doc.status !== 'paid' && doc.status !== 'cancelled' && (
-          <Button variant="secondary" size="sm" onClick={handleSendReminder} disabled={reminderStatus === 'sending'}>
-            <Bell className="mr-1 h-4 w-4" /> {reminderStatus === 'sending' ? 'Rappel...' : 'Rappeler'}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleSendReminder}
+            disabled={reminderStatus === 'sending'}
+          >
+            <Bell className="mr-1 h-4 w-4" />{' '}
+            {reminderStatus === 'sending' ? 'Rappel...' : 'Rappeler'}
           </Button>
         )}
 
         {type === 'delivery_note' && doc.status !== 'delivered' && (
-          <Button variant="secondary" size="sm" onClick={handleMarkDelivered} disabled={markDelivered.isPending}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleMarkDelivered}
+            disabled={markDelivered.isPending}
+          >
             <CheckCircle className="mr-1 h-4 w-4" /> Marquer livré
           </Button>
         )}
@@ -223,7 +284,9 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
 
       {showPaymentForm && type === 'invoice' && (
         <form onSubmit={handleRecordPayment} className="rounded-md border p-3 space-y-2">
-          <p className="text-sm font-medium">Reste à payer : {remaining.toLocaleString('fr-FR')} {doc.currency}</p>
+          <p className="text-sm font-medium">
+            Reste à payer : {remaining.toLocaleString('fr-FR')} {doc.currency}
+          </p>
           <div className="flex gap-2">
             <input
               type="number"
@@ -245,7 +308,9 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
               <option value="other">Autre</option>
             </select>
           </div>
-          <Button type="submit" size="sm" disabled={recordPayment.isPending}>Valider le paiement</Button>
+          <Button type="submit" size="sm" disabled={recordPayment.isPending}>
+            Valider le paiement
+          </Button>
         </form>
       )}
 
@@ -268,12 +333,14 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
 
       <div className="print-only border-t pt-4">
         <div className="space-y-1 text-sm">
-          <p className="font-semibold">{orgName} — {title} {number}</p>
+          <p className="font-semibold">
+            {orgName} — {title} {number}
+          </p>
           <p>Date : {new Date(doc.issueDate).toLocaleDateString('fr-FR')}</p>
           <p>Total : {totalText}</p>
           <ul className="mt-2 space-y-1">
-            {doc.items.map((item, idx) => (
-              <li key={item.id ?? idx}>
+            {doc.items.map((item) => (
+              <li key={item.id}>
                 {item.description} x {item.quantity} @ {item.unitPrice.toLocaleString('fr-FR')}{' '}
                 {doc.currency} = {item.total.toLocaleString('fr-FR')} {doc.currency}
               </li>
@@ -300,5 +367,5 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
         }
       `}</style>
     </div>
-  );
+  )
 }

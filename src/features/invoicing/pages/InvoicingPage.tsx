@@ -1,14 +1,9 @@
-import { useState } from 'react';
-import { Plus, FileText, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useState } from 'react'
+import { Plus, FileText, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import {
   useQuotes,
   useInvoices,
@@ -16,41 +11,46 @@ import {
   useCreateQuote,
   useCreateInvoice,
   useCreateDeliveryNote,
-} from '@/features/invoicing/hooks/useInvoices';
-import DocumentActions from '@/features/invoicing/components/DocumentActions';
-import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types';
+} from '@/features/invoicing/hooks/useInvoices'
+import DocumentActions from '@/features/invoicing/components/DocumentActions'
+import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types'
 
-type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems;
-type TabType = 'quotes' | 'invoices' | 'delivery-notes' | 'overview';
+type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems
+type TabType = 'quotes' | 'invoices' | 'delivery-notes' | 'overview'
 
 interface DashboardMetrics {
-  totalInvoiced: number;
-  totalPaid: number;
-  totalOverdue: number;
-  openQuotes: number;
-  sentInvoices: number;
-  deliveredNotes: number;
+  totalInvoiced: number
+  totalPaid: number
+  totalOverdue: number
+  openQuotes: number
+  sentInvoices: number
+  deliveredNotes: number
 }
 
 function computeMetrics(
   quotes: QuoteWithItems[],
   invoices: InvoiceWithItems[],
-  deliveryNotes: DeliveryNoteWithItems[],
+  deliveryNotes: DeliveryNoteWithItems[]
 ): DashboardMetrics {
-  const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total, 0);
-  const totalPaid = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
-  const now = new Date().toISOString().slice(0, 10);
+  const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total, 0)
+  const totalPaid = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0)
+  const now = new Date().toISOString().slice(0, 10)
   const totalOverdue = invoices
-    .filter((inv) => inv.status !== 'paid' && inv.status !== 'cancelled' && inv.dueDate && inv.dueDate < now)
-    .reduce((sum, inv) => sum + Math.max(0, inv.total - inv.paidAmount), 0);
+    .filter(
+      (inv) =>
+        inv.status !== 'paid' && inv.status !== 'cancelled' && inv.dueDate && inv.dueDate < now
+    )
+    .reduce((sum, inv) => sum + Math.max(0, inv.total - inv.paidAmount), 0)
   return {
     totalInvoiced,
     totalPaid,
     totalOverdue,
     openQuotes: quotes.filter((q) => q.status === 'draft' || q.status === 'sent').length,
-    sentInvoices: invoices.filter((i) => i.status === 'sent' || i.status === 'partial' || i.status === 'overdue').length,
+    sentInvoices: invoices.filter(
+      (i) => i.status === 'sent' || i.status === 'partial' || i.status === 'overdue'
+    ).length,
     deliveredNotes: deliveryNotes.filter((d) => d.status === 'delivered').length,
-  };
+  }
 }
 
 function MetricCard({
@@ -59,10 +59,10 @@ function MetricCard({
   icon: Icon,
   variant = 'default',
 }: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
+  label: string
+  value: string
+  icon: React.ElementType
+  variant?: 'default' | 'success' | 'warning' | 'danger'
 }) {
   const colorClass =
     variant === 'success'
@@ -71,7 +71,7 @@ function MetricCard({
         ? 'text-amber-600'
         : variant === 'danger'
           ? 'text-destructive'
-          : 'text-primary';
+          : 'text-primary'
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -80,11 +80,11 @@ function MetricCard({
       </div>
       <p className={`mt-1 text-2xl font-bold ${colorClass}`}>{value}</p>
     </div>
-  );
+  )
 }
 
 function formatCurrency(value: number, currency: string): string {
-  return `${value.toLocaleString('fr-FR')} ${currency}`;
+  return `${value.toLocaleString('fr-FR')} ${currency}`
 }
 
 function DocumentList({
@@ -92,9 +92,9 @@ function DocumentList({
   type,
   onSelect,
 }: {
-  items: DocumentWithItems[];
-  type: TabType;
-  onSelect: (doc: DocumentWithItems) => void;
+  items: DocumentWithItems[]
+  type: TabType
+  onSelect: (doc: DocumentWithItems) => void
 }) {
   if (items.length === 0) {
     return (
@@ -102,11 +102,10 @@ function DocumentList({
         <FileText className="mb-2 h-8 w-8" />
         <p>Aucun document.</p>
       </div>
-    );
+    )
   }
 
-  const label =
-    type === 'quotes' ? 'Devis' : type === 'invoices' ? 'Factures' : 'Bons de livraison';
+  const label = type === 'quotes' ? 'Devis' : type === 'invoices' ? 'Factures' : 'Bons de livraison'
 
   return (
     <div className="space-y-2">
@@ -130,75 +129,82 @@ function DocumentList({
         {items.length} {label.toLowerCase()}
       </p>
     </div>
-  );
+  )
 }
 
 function CreateForm({
   type,
   onClose,
 }: {
-  type: 'quote' | 'invoice' | 'delivery_note';
-  onClose: () => void;
+  type: 'quote' | 'invoice' | 'delivery_note'
+  onClose: () => void
 }) {
-  const { session } = useAuth();
-  const createQuote = useCreateQuote();
-  const createInvoice = useCreateInvoice();
-  const createDeliveryNote = useCreateDeliveryNote();
-  const [description, setDescription] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [unitPrice, setUnitPrice] = useState('');
-  const [taxRate, setTaxRate] = useState('0');
-  const [discount, setDiscount] = useState('0');
+  const { session } = useAuth()
+  const createQuote = useCreateQuote()
+  const createInvoice = useCreateInvoice()
+  const createDeliveryNote = useCreateDeliveryNote()
+  const [description, setDescription] = useState('')
+  const [quantity, setQuantity] = useState('1')
+  const [unitPrice, setUnitPrice] = useState('')
+  const [taxRate, setTaxRate] = useState('0')
+  const [discount, setDiscount] = useState('0')
 
-  const orgId = session?.organization?.id;
-  const currency = session?.organization?.currency ?? 'XOF';
+  const orgId = session?.organization.id
+  const currency = session?.organization.currency ?? 'XOF'
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!orgId) return;
-    const qty = Number(quantity) || 1;
-    const price = Number(unitPrice) || 0;
-    const tax = Number(taxRate) || 0;
-    const disc = Number(discount) || 0;
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!orgId) return
+    const qty = Number(quantity) || 1
+    const price = Number(unitPrice) || 0
+    const tax = Number(taxRate) || 0
+    const disc = Number(discount) || 0
     const line = {
       description,
       quantity: qty,
       unitPrice: price,
       taxRate: tax,
       discountAmount: disc,
-    };
+    }
     const base = {
       orgId,
       currency,
       issueDate: new Date().toISOString().split('T')[0],
       items: [line],
-    };
+    }
 
     try {
       if (type === 'quote') {
-        await createQuote.mutateAsync(base);
+        await createQuote.mutateAsync(base)
       } else if (type === 'invoice') {
-        await createInvoice.mutateAsync(base);
+        await createInvoice.mutateAsync(base)
       } else {
-        await createDeliveryNote.mutateAsync(base);
+        await createDeliveryNote.mutateAsync(base)
       }
-      onClose();
+      onClose()
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      console.error(err)
     }
   }
 
-  const title = type === 'quote' ? 'Nouveau devis' : type === 'invoice' ? 'Nouvelle facture' : 'Nouveau bon de livraison';
-  const pending = createQuote.isPending || createInvoice.isPending || createDeliveryNote.isPending;
+  const title =
+    type === 'quote'
+      ? 'Nouveau devis'
+      : type === 'invoice'
+        ? 'Nouvelle facture'
+        : 'Nouveau bon de livraison'
+  const pending = createQuote.isPending || createInvoice.isPending || createDeliveryNote.isPending
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <h4 className="font-medium">{title}</h4>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2 space-y-1">
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor="description" className="text-sm font-medium">
+            Description
+          </label>
           <input
+            id="description"
             className="w-full rounded-md border px-3 py-2 text-sm"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -206,8 +212,11 @@ function CreateForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Qté</label>
+          <label htmlFor="quantity" className="text-sm font-medium">
+            Qté
+          </label>
           <input
+            id="quantity"
             type="number"
             min="1"
             className="w-full rounded-md border px-3 py-2 text-sm"
@@ -216,8 +225,11 @@ function CreateForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">P.U.</label>
+          <label htmlFor="unitPrice" className="text-sm font-medium">
+            P.U.
+          </label>
           <input
+            id="unitPrice"
             type="number"
             min="0"
             className="w-full rounded-md border px-3 py-2 text-sm"
@@ -227,8 +239,11 @@ function CreateForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Taux taxe (%)</label>
+          <label htmlFor="taxRate" className="text-sm font-medium">
+            Taux taxe (%)
+          </label>
           <input
+            id="taxRate"
             type="number"
             min="0"
             className="w-full rounded-md border px-3 py-2 text-sm"
@@ -237,8 +252,11 @@ function CreateForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Remise</label>
+          <label htmlFor="discount" className="text-sm font-medium">
+            Remise
+          </label>
           <input
+            id="discount"
             type="number"
             min="0"
             className="w-full rounded-md border px-3 py-2 text-sm"
@@ -251,29 +269,34 @@ function CreateForm({
         Créer
       </Button>
     </form>
-  );
+  )
 }
 
 export default function InvoicingPage() {
-  const { session } = useAuth();
-  const orgId = session?.organization?.id ?? '';
-  const { data: quotes, isLoading: quotesLoading } = useQuotes(orgId);
-  const { data: invoices, isLoading: invoicesLoading } = useInvoices(orgId);
-  const { data: deliveryNotes, isLoading: dnLoading } = useDeliveryNotes(orgId);
+  const { session } = useAuth()
+  const orgId = session?.organization.id ?? ''
+  const { data: quotes, isLoading: quotesLoading } = useQuotes(orgId)
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices(orgId)
+  const { data: deliveryNotes, isLoading: dnLoading } = useDeliveryNotes(orgId)
 
-  const [selectedDoc, setSelectedDoc] = useState<DocumentWithItems | null>(null);
-  const [createType, setCreateType] = useState<'quote' | 'invoice' | 'delivery_note' | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [selectedDoc, setSelectedDoc] = useState<DocumentWithItems | null>(null)
+  const [createType, setCreateType] = useState<'quote' | 'invoice' | 'delivery_note' | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('overview')
 
   const tabs: { value: TabType; label: string; data?: DocumentWithItems[]; loading: boolean }[] = [
-    { value: 'overview', label: 'Vue d\'ensemble', data: undefined, loading: false },
+    { value: 'overview', label: "Vue d'ensemble", data: undefined, loading: false },
     { value: 'quotes', label: 'Devis', data: quotes, loading: quotesLoading },
     { value: 'invoices', label: 'Factures', data: invoices, loading: invoicesLoading },
-    { value: 'delivery-notes', label: 'Bons de livraison', data: deliveryNotes, loading: dnLoading },
-  ];
+    {
+      value: 'delivery-notes',
+      label: 'Bons de livraison',
+      data: deliveryNotes,
+      loading: dnLoading,
+    },
+  ]
 
-  const metrics = computeMetrics(quotes ?? [], invoices ?? [], deliveryNotes ?? []);
-  const anyLoading = quotesLoading || invoicesLoading || dnLoading;
+  const metrics = computeMetrics(quotes ?? [], invoices ?? [], deliveryNotes ?? [])
+  const anyLoading = quotesLoading || invoicesLoading || dnLoading
 
   return (
     <div className="space-y-4">
@@ -311,18 +334,27 @@ export default function InvoicingPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <MetricCard
                     label="Total facturé"
-                    value={formatCurrency(metrics.totalInvoiced, session?.organization?.currency ?? 'XOF')}
+                    value={formatCurrency(
+                      metrics.totalInvoiced,
+                      session?.organization.currency ?? 'XOF'
+                    )}
                     icon={TrendingUp}
                   />
                   <MetricCard
                     label="Encaissé"
-                    value={formatCurrency(metrics.totalPaid, session?.organization?.currency ?? 'XOF')}
+                    value={formatCurrency(
+                      metrics.totalPaid,
+                      session?.organization.currency ?? 'XOF'
+                    )}
                     icon={CheckCircle}
                     variant="success"
                   />
                   <MetricCard
                     label="Impayé / en retard"
-                    value={formatCurrency(metrics.totalOverdue, session?.organization?.currency ?? 'XOF')}
+                    value={formatCurrency(
+                      metrics.totalOverdue,
+                      session?.organization.currency ?? 'XOF'
+                    )}
                     icon={AlertCircle}
                     variant="danger"
                   />
@@ -391,7 +423,10 @@ export default function InvoicingPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={createType != null} onOpenChange={(open: boolean) => !open && setCreateType(null)}>
+      <Dialog
+        open={createType != null}
+        onOpenChange={(open: boolean) => !open && setCreateType(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Créer un document</DialogTitle>
@@ -400,5 +435,5 @@ export default function InvoicingPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }
