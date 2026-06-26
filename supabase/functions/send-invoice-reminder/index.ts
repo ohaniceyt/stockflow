@@ -5,6 +5,7 @@ import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 
 interface SendInvoiceReminderPayload {
   invoice_id: string
+  to?: string
 }
 
 export const corsHeaders = {
@@ -125,9 +126,17 @@ Cet email a été envoyé automatiquement par StockFlow.`
     })
 
     // Track reminder on the invoice row.
+    const { data: current } = await adminClient
+      .from('invoices')
+      .select('reminders_sent')
+      .eq('id', payload.invoice_id)
+      .single()
     await adminClient
       .from('invoices')
-      .update({ updated_at: new Date().toISOString() })
+      .update({
+        reminders_sent: (current?.reminders_sent ?? 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', payload.invoice_id)
 
     return new Response(

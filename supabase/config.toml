@@ -84,6 +84,9 @@ verify_jwt = false
 [functions.send-magic-link]
 verify_jwt = false
 
+[functions.request-pin-reset]
+verify_jwt = false
+
 [functions.lookup-user-by-email]
 verify_jwt = false
 
@@ -91,6 +94,21 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.api-gateway]
+verify_jwt = false
+
+[functions.generate-receipt-pdf]
+verify_jwt = true
+
+[functions.send-receipt-email]
+verify_jwt = true
+
+[functions.generate-document-pdf]
+verify_jwt = true
+
+[functions.send-document-email]
+verify_jwt = true
+
+[functions.send-auto-reminders]
 verify_jwt = false
 
 [analytics]
