@@ -47,6 +47,7 @@ interface SignUpInput {
   email: string
   password: string
   phone?: string
+  plan?: 'free' | 'starter' | 'pro'
 }
 
 interface AuthContextValue {
@@ -77,6 +78,7 @@ interface AuthContextValue {
     currency: string
     timezone: string
     defaultLocationName: string
+    plan?: 'free' | 'starter' | 'pro'
   }) => Promise<void>
   persistSession: (session: AuthSession | null) => void
 }
@@ -173,7 +175,8 @@ function buildSession(
         orgId: asString(membershipRaw.orgId),
         userId: asString(membershipRaw.userId),
         role: asString(membershipRaw.role) as UserRole,
-        pinHash: typeof membershipRaw.pinHash === 'string' ? membershipRaw.pinHash : null,
+        hasPin: Boolean(membershipRaw.hasPin ?? membershipRaw.pinHash),
+        pinHash: null,
         isActive: Boolean(membershipRaw.isActive ?? true),
         forcePinChange: Boolean(membershipRaw.forcePinChange),
         lastLoginAt:
@@ -186,6 +189,7 @@ function buildSession(
         orgId: '',
         userId: asString(userRaw.id),
         role: 'super_admin',
+        hasPin: false,
         pinHash: null,
         isActive: true,
         forcePinChange: false,
@@ -215,6 +219,27 @@ function buildSession(
           typeof organizationRaw.storefrontLocationId === 'string'
             ? organizationRaw.storefrontLocationId
             : null,
+        hasInvoicingEnabled: Boolean(organizationRaw.hasInvoicingEnabled),
+        hasTaxEnabled: Boolean(organizationRaw.hasTaxEnabled),
+        taxName:
+          typeof organizationRaw.taxName === 'string' ? organizationRaw.taxName : null,
+        taxRate: typeof organizationRaw.taxRate === 'number' ? organizationRaw.taxRate : null,
+        taxId: typeof organizationRaw.taxId === 'string' ? organizationRaw.taxId : null,
+        invoicePrefix:
+          typeof organizationRaw.invoicePrefix === 'string' ? organizationRaw.invoicePrefix : null,
+        quotePrefix:
+          typeof organizationRaw.quotePrefix === 'string' ? organizationRaw.quotePrefix : null,
+        deliveryNotePrefix:
+          typeof organizationRaw.deliveryNotePrefix === 'string'
+            ? organizationRaw.deliveryNotePrefix
+            : null,
+        receiptPrefix:
+          typeof organizationRaw.receiptPrefix === 'string' ? organizationRaw.receiptPrefix : null,
+        legalMentions:
+          typeof organizationRaw.legalMentions === 'string' ? organizationRaw.legalMentions : null,
+        autoReminderEnabled: Boolean(organizationRaw.autoReminderEnabled),
+        autoReminderDays:
+          typeof organizationRaw.autoReminderDays === 'number' ? organizationRaw.autoReminderDays : null,
         createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
         updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
       }
@@ -232,6 +257,18 @@ function buildSession(
         hasStorefrontEnabled: false,
         hasApiEnabled: false,
         storefrontLocationId: null,
+        hasInvoicingEnabled: false,
+        hasTaxEnabled: false,
+        taxName: null,
+        taxRate: null,
+        taxId: null,
+        invoicePrefix: null,
+        quotePrefix: null,
+        deliveryNotePrefix: null,
+        receiptPrefix: null,
+        legalMentions: null,
+        autoReminderEnabled: false,
+        autoReminderDays: null,
         createdAt: now,
         updatedAt: now,
       }
@@ -414,14 +451,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [initializeSession, clearSession, session, persistSession])
 
-  const signUp = useCallback(async ({ name, email, password, phone }: SignUpInput) => {
+  const signUp = useCallback(async ({ name, email, password, phone, plan }: SignUpInput) => {
     const data = await edgeFetch<{
       success?: boolean
       message?: string
       error?: { message: string } | string
     }>('signup', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, phone }),
+      body: JSON.stringify({ name, email, password, phone, plan }),
     })
     if (!data.success) {
       const serverError =
@@ -468,16 +505,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestPinReset = useCallback(async (email: string) => {
-    // WARNING: /auth/reset-pin (and every magic-link redirect path used here) must be listed
-    // in the Supabase Auth redirect allow-list, otherwise the link will be rejected.
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/reset-pin`,
+    // Use a server-side Edge Function so we can mark force_pin_change = true
+    // before the magic link is consumed. Without this, users who already have a
+    // PIN cannot set a new one because /change-pin requires the current PIN.
+    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+    const response = await fetch(`${supabaseUrl}/functions/v1/request-pin-reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: supabaseKey,
       },
+      body: JSON.stringify({ email }),
     })
-    if (error) {
-      throw new Error(error.message)
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: { message: string } | string }
+      const message = typeof data.error === 'string' ? data.error : data.error?.message
+      throw new Error(message ?? 'Échec de la demande de réinitialisation du PIN')
     }
   }, [])
 
@@ -507,7 +551,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...session,
         membership: {
           ...session.membership,
-          pinHash: session.membership.pinHash ?? 'set',
+          hasPin: true,
+          pinHash: null,
           forcePinChange: false,
         },
       })
@@ -549,7 +594,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...session,
         membership: {
           ...session.membership,
-          pinHash: session.membership.pinHash ?? 'set',
+          hasPin: true,
+          pinHash: null,
           forcePinChange: false,
         },
       })
@@ -665,6 +711,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currency: string
       timezone: string
       defaultLocationName: string
+      plan?: 'free' | 'starter' | 'pro'
     }) => {
       if (!session) throw new Error('Not authenticated')
 

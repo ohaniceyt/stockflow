@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,7 +21,67 @@ import DocumentActions from '@/features/invoicing/components/DocumentActions';
 import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types';
 
 type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems;
-type TabType = 'quotes' | 'invoices' | 'delivery-notes';
+type TabType = 'quotes' | 'invoices' | 'delivery-notes' | 'overview';
+
+interface DashboardMetrics {
+  totalInvoiced: number;
+  totalPaid: number;
+  totalOverdue: number;
+  openQuotes: number;
+  sentInvoices: number;
+  deliveredNotes: number;
+}
+
+function computeMetrics(
+  quotes: QuoteWithItems[],
+  invoices: InvoiceWithItems[],
+  deliveryNotes: DeliveryNoteWithItems[],
+): DashboardMetrics {
+  const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.total, 0);
+  const totalPaid = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
+  const now = new Date().toISOString().slice(0, 10);
+  const totalOverdue = invoices
+    .filter((inv) => inv.status !== 'paid' && inv.status !== 'cancelled' && inv.dueDate && inv.dueDate < now)
+    .reduce((sum, inv) => sum + Math.max(0, inv.total - inv.paidAmount), 0);
+  return {
+    totalInvoiced,
+    totalPaid,
+    totalOverdue,
+    openQuotes: quotes.filter((q) => q.status === 'draft' || q.status === 'sent').length,
+    sentInvoices: invoices.filter((i) => i.status === 'sent' || i.status === 'partial' || i.status === 'overdue').length,
+    deliveredNotes: deliveryNotes.filter((d) => d.status === 'delivered').length,
+  };
+}
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  variant = 'default',
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  variant?: 'default' | 'success' | 'warning' | 'danger';
+}) {
+  const colorClass =
+    variant === 'success'
+      ? 'text-green-600'
+      : variant === 'warning'
+        ? 'text-amber-600'
+        : variant === 'danger'
+          ? 'text-destructive'
+          : 'text-primary';
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <Icon className={`h-4 w-4 ${colorClass}`} />
+      </div>
+      <p className={`mt-1 text-2xl font-bold ${colorClass}`}>{value}</p>
+    </div>
+  );
+}
 
 function formatCurrency(value: number, currency: string): string {
   return `${value.toLocaleString('fr-FR')} ${currency}`;
@@ -203,13 +263,17 @@ export default function InvoicingPage() {
 
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithItems | null>(null);
   const [createType, setCreateType] = useState<'quote' | 'invoice' | 'delivery_note' | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('quotes');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const tabs: { value: TabType; label: string; data?: DocumentWithItems[]; loading: boolean }[] = [
+    { value: 'overview', label: 'Vue d\'ensemble', data: undefined, loading: false },
     { value: 'quotes', label: 'Devis', data: quotes, loading: quotesLoading },
     { value: 'invoices', label: 'Factures', data: invoices, loading: invoicesLoading },
     { value: 'delivery-notes', label: 'Bons de livraison', data: deliveryNotes, loading: dnLoading },
   ];
+
+  const metrics = computeMetrics(quotes ?? [], invoices ?? [], deliveryNotes ?? []);
+  const anyLoading = quotesLoading || invoicesLoading || dnLoading;
 
   return (
     <div className="space-y-4">
@@ -229,29 +293,81 @@ export default function InvoicingPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as TabType)}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           {tabs.map((t) => (
             <TabsTrigger key={t.value} value={t.value}>
               {t.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        {tabs.map((t) => (
-          <TabsContent key={t.value} value={t.value}>
-            <div className="rounded-lg border bg-card p-4 shadow-sm">
-              <h2 className="mb-3 text-base font-semibold">{t.label}</h2>
-              {t.loading ? (
-                <p className="text-sm text-muted-foreground">Chargement...</p>
-              ) : (
-                <DocumentList
-                  items={t.data ?? []}
-                  type={t.value}
-                  onSelect={(doc) => setSelectedDoc(doc)}
-                />
-              )}
-            </div>
-          </TabsContent>
-        ))}
+
+        <TabsContent value="overview">
+          <div className="space-y-4">
+            <h2 className="text-base font-semibold">Vue d'ensemble</h2>
+            {anyLoading ? (
+              <p className="text-sm text-muted-foreground">Chargement...</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <MetricCard
+                    label="Total facturé"
+                    value={formatCurrency(metrics.totalInvoiced, session?.organization?.currency ?? 'XOF')}
+                    icon={TrendingUp}
+                  />
+                  <MetricCard
+                    label="Encaissé"
+                    value={formatCurrency(metrics.totalPaid, session?.organization?.currency ?? 'XOF')}
+                    icon={CheckCircle}
+                    variant="success"
+                  />
+                  <MetricCard
+                    label="Impayé / en retard"
+                    value={formatCurrency(metrics.totalOverdue, session?.organization?.currency ?? 'XOF')}
+                    icon={AlertCircle}
+                    variant="danger"
+                  />
+                  <MetricCard
+                    label="Devis en cours"
+                    value={String(metrics.openQuotes)}
+                    icon={FileText}
+                    variant="warning"
+                  />
+                  <MetricCard
+                    label="Factures à relancer"
+                    value={String(metrics.sentInvoices)}
+                    icon={Clock}
+                    variant="warning"
+                  />
+                  <MetricCard
+                    label="BL livrés"
+                    value={String(metrics.deliveredNotes)}
+                    icon={CheckCircle}
+                    variant="success"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </TabsContent>
+
+        {tabs
+          .filter((t) => t.value !== 'overview')
+          .map((t) => (
+            <TabsContent key={t.value} value={t.value}>
+              <div className="rounded-lg border bg-card p-4 shadow-sm">
+                <h2 className="mb-3 text-base font-semibold">{t.label}</h2>
+                {t.loading ? (
+                  <p className="text-sm text-muted-foreground">Chargement...</p>
+                ) : (
+                  <DocumentList
+                    items={t.data ?? []}
+                    type={t.value}
+                    onSelect={(doc) => setSelectedDoc(doc)}
+                  />
+                )}
+              </div>
+            </TabsContent>
+          ))}
       </Tabs>
 
       <Dialog open={!!selectedDoc} onOpenChange={(open: boolean) => !open && setSelectedDoc(null)}>

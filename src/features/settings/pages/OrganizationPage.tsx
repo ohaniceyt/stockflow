@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import { Building2, MapPin, Star, Store, ShoppingCart, Plug } from 'lucide-react'
+import { Building2, MapPin, Star, Store, ShoppingCart, Plug, Receipt, Percent, FileText, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -309,6 +309,211 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
   )
 }
 
+function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
+  const [hasInvoicingEnabled, setHasInvoicingEnabled] = useState(organization.hasInvoicingEnabled)
+  const [hasTaxEnabled, setHasTaxEnabled] = useState(organization.hasTaxEnabled)
+  const [taxName, setTaxName] = useState(organization.taxName ?? 'TVA')
+  const [taxRate, setTaxRate] = useState(organization.taxRate ?? 0)
+  const [taxId, setTaxId] = useState(organization.taxId ?? '')
+  const [invoicePrefix, setInvoicePrefix] = useState(organization.invoicePrefix ?? 'FA')
+  const [quotePrefix, setQuotePrefix] = useState(organization.quotePrefix ?? 'DE')
+  const [deliveryNotePrefix, setDeliveryNotePrefix] = useState(organization.deliveryNotePrefix ?? 'BL')
+  const [receiptPrefix, setReceiptPrefix] = useState(organization.receiptPrefix ?? 'RE')
+  const [legalMentions, setLegalMentions] = useState(organization.legalMentions ?? '')
+  const [autoReminderEnabled, setAutoReminderEnabled] = useState(organization.autoReminderEnabled)
+  const [autoReminderDays, setAutoReminderDays] = useState(organization.autoReminderDays ?? 3)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setFormError(null)
+    if (hasTaxEnabled && (Number.isNaN(taxRate) || taxRate < 0)) {
+      setFormError('Le taux de taxe doit être un nombre positif.')
+      return
+    }
+    update.mutate(
+      {
+        name: organization.name,
+        slug: organization.slug,
+        currency: organization.currency,
+        timezone: organization.timezone,
+        hasCashierEnabled: organization.hasCashierEnabled,
+        hasStorefrontEnabled: organization.hasStorefrontEnabled,
+        hasApiEnabled: organization.hasApiEnabled,
+        storefrontLocationId: organization.storefrontLocationId,
+        hasInvoicingEnabled,
+        hasTaxEnabled,
+        taxName: taxName.trim() || null,
+        taxRate: hasTaxEnabled ? taxRate : null,
+        taxId: taxId.trim() || null,
+        invoicePrefix: invoicePrefix.trim() || null,
+        quotePrefix: quotePrefix.trim() || null,
+        deliveryNotePrefix: deliveryNotePrefix.trim() || null,
+        receiptPrefix: receiptPrefix.trim() || null,
+        legalMentions: legalMentions.trim() || null,
+        autoReminderEnabled,
+        autoReminderDays: autoReminderEnabled ? autoReminderDays : null,
+      },
+      {
+        onError: (err) => setFormError(err.message),
+      }
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {formError && <p className="text-destructive">{formError}</p>}
+
+      <FeatureToggle
+        label="Facturation et reçus"
+        description="Active les reçus de caisse, les devis, les factures et les bons de livraison."
+        icon={Receipt}
+        checked={hasInvoicingEnabled}
+        disabled={!canManage}
+        onChange={setHasInvoicingEnabled}
+      />
+
+      {hasInvoicingEnabled && (
+        <div className="space-y-4 rounded-lg border p-4">
+          <FeatureToggle
+            label="Taxe applicable"
+            description="Applique une taxe (TVA ou autre) aux ventes et reçus de caisse."
+            icon={Percent}
+            checked={hasTaxEnabled}
+            disabled={!canManage}
+            onChange={setHasTaxEnabled}
+          />
+
+          {hasTaxEnabled && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <Label htmlFor="tax-name">Nom de la taxe</Label>
+                <Input
+                  id="tax-name"
+                  value={taxName}
+                  onChange={(e) => setTaxName(e.target.value)}
+                  placeholder="TVA"
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tax-rate">Taux (%)</Label>
+                <Input
+                  id="tax-rate"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(Number(e.target.value))}
+                  disabled={!canManage}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tax-id">Identifiant fiscal</Label>
+                <Input
+                  id="tax-id"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="ex: 12345678"
+                  disabled={!canManage}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="invoice-prefix">Préfixe factures</Label>
+              <Input
+                id="invoice-prefix"
+                value={invoicePrefix}
+                onChange={(e) => setInvoicePrefix(e.target.value)}
+                placeholder="FA"
+                disabled={!canManage}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="quote-prefix">Préfixe devis</Label>
+              <Input
+                id="quote-prefix"
+                value={quotePrefix}
+                onChange={(e) => setQuotePrefix(e.target.value)}
+                placeholder="DE"
+                disabled={!canManage}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="delivery-prefix">Préfixe bons de livraison</Label>
+              <Input
+                id="delivery-prefix"
+                value={deliveryNotePrefix}
+                onChange={(e) => setDeliveryNotePrefix(e.target.value)}
+                placeholder="BL"
+                disabled={!canManage}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="receipt-prefix">Préfixe reçus</Label>
+              <Input
+                id="receipt-prefix"
+                value={receiptPrefix}
+                onChange={(e) => setReceiptPrefix(e.target.value)}
+                placeholder="RE"
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="legal-mentions">Mentions légales (affichées sur les reçus et factures)</Label>
+            <textarea
+              id="legal-mentions"
+              value={legalMentions}
+              onChange={(e) => setLegalMentions(e.target.value)}
+              placeholder="N° RCCM, centre fiscal, régime, etc."
+              rows={3}
+              disabled={!canManage}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <FeatureToggle
+            label="Relances automatiques"
+            description="Envoie un rappel par email X jours avant l'échéance ou après."
+            icon={Bell}
+            checked={autoReminderEnabled}
+            disabled={!canManage}
+            onChange={setAutoReminderEnabled}
+          />
+
+          {autoReminderEnabled && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="reminder-days">Jours avant/après échéance</Label>
+                <Input
+                  id="reminder-days"
+                  type="number"
+                  min={0}
+                  max={90}
+                  value={autoReminderDays}
+                  onChange={(e) => setAutoReminderDays(Number(e.target.value))}
+                  disabled={!canManage}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {canManage && (
+        <Button type="submit" disabled={update.isPending}>
+          {update.isPending ? 'Enregistrement…' : 'Enregistrer la facturation'}
+        </Button>
+      )}
+    </form>
+  )
+}
+
 function LocationsList() {
   const { data: locations, isLoading, error } = useLocations()
   const setDefault = useSetDefaultLocation()
@@ -411,6 +616,32 @@ export default function OrganizationPage() {
         ) : displayOrganization ? (
           <FeaturesCard
             key={`${formKey}-features`}
+            organization={displayOrganization}
+            locations={locations}
+            canManage={canManage}
+            update={update}
+          />
+        ) : null}
+      </div>
+
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-semibold">Facturation</h2>
+            <p className="text-sm text-muted-foreground">
+              Activez les reçus de caisse, la taxe, et configurez les numérotations.
+            </p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="text-muted-foreground">Chargement…</p>
+        ) : displayOrganization ? (
+          <BillingCard
+            key={`${formKey}-billing`}
             organization={displayOrganization}
             locations={locations}
             canManage={canManage}

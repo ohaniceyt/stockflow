@@ -1,16 +1,20 @@
 -- Invoice reminders: scheduled function to nudge customers with unpaid/overdue invoices.
--- Adds a lightweight reminders_sent counter and a function invoked by pg_cron or manually.
+-- Adds a lightweight reminders_sent counter and org-level settings.
 
 ALTER TABLE invoices
 ADD COLUMN IF NOT EXISTS reminders_sent INTEGER NOT NULL DEFAULT 0;
+
+-- Org-level reminder settings.
+ALTER TABLE organizations
+ADD COLUMN IF NOT EXISTS auto_reminder_enabled BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS auto_reminder_days INTEGER DEFAULT 3;
 
 -- Index to find invoices needing a reminder.
 CREATE INDEX IF NOT EXISTS idx_invoices_reminder_candidates
   ON invoices(org_id, type, status, due_date)
   WHERE type = 'invoice' AND status NOT IN ('paid', 'cancelled');
 
--- Function: fetch candidate invoices and send reminder via the Edge Function.
--- Designed to be called by pg_cron; the actual HTTP call is delegated to the cron job config.
+-- Function: fetch candidate invoices for a given org.
 CREATE OR REPLACE FUNCTION get_overdue_invoices_for_org(p_org_id UUID)
 RETURNS TABLE (
   invoice_id UUID,
@@ -43,5 +47,4 @@ AS $$
   ORDER BY i.due_date ASC;
 $$;
 
--- RLS: reminders are managed via service-role/Edge Function only.
 GRANT EXECUTE ON FUNCTION public.get_overdue_invoices_for_org(UUID) TO authenticated;

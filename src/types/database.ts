@@ -26,6 +26,8 @@ export interface Database {
           delivery_note_prefix: string | null
           receipt_prefix: string | null
           legal_mentions: string | null
+          auto_reminder_enabled: boolean
+          auto_reminder_days: number | null
           created_at: string
           updated_at: string
         }

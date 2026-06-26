@@ -25,6 +25,8 @@ export interface Organization {
   deliveryNotePrefix: string | null
   receiptPrefix: string | null
   legalMentions: string | null
+  autoReminderEnabled: boolean
+  autoReminderDays: number | null
   createdAt: string
   updatedAt: string
 }
