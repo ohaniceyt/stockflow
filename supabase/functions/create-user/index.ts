@@ -4,16 +4,12 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface CreateUserPayload {
   name: string
   email: string
   role: 'admin' | 'operator' | 'cashier' | 'reader'
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
@@ -45,7 +41,7 @@ function generateTempPin(length = 4): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -60,7 +56,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -68,7 +64,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -88,7 +84,7 @@ Deno.serve(async (req: Request) => {
         }),
         {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -97,14 +93,14 @@ Deno.serve(async (req: Request) => {
     if (!name || !email || !role || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (operator.role === 'admin' && role === 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -113,13 +109,13 @@ Deno.serve(async (req: Request) => {
     if (!limits) {
       return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
     if (isAtLimit(limits.usedUsers, limits.maxUsers)) {
       return new Response(JSON.stringify({ error: 'User limit reached for this plan' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -135,7 +131,7 @@ Deno.serve(async (req: Request) => {
     if (existingMembership) {
       return new Response(JSON.stringify({ error: 'User already exists in this organization' }), {
         status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -166,7 +162,7 @@ Deno.serve(async (req: Request) => {
       if (createAuthError || !createAuthData.user) {
         return new Response(
           JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
 
@@ -183,7 +179,7 @@ Deno.serve(async (req: Request) => {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
         return new Response(JSON.stringify({ error: insertProfileError.message }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
     }
@@ -210,7 +206,7 @@ Deno.serve(async (req: Request) => {
       }
       return new Response(JSON.stringify({ error: insertMembershipError.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -220,7 +216,6 @@ Deno.serve(async (req: Request) => {
     const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
     const setupPasswordUrl = `${appUrl}/auth/reset-password`
     let setupLink: string | null = null
-    let setupEmailSent = false
 
     try {
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
@@ -247,8 +242,8 @@ Deno.serve(async (req: Request) => {
       await sendEmail({
         to: email,
         subject: 'Bienvenue sur StockFlow — définissez votre mot de passe',
-        html: buildWelcomeEmailHtml(name, setupLink, appUrl),
-        text: buildWelcomeEmailText(name, setupLink, appUrl),
+        html: buildWelcomeEmailHtml(name, setupLink),
+        text: buildWelcomeEmailText(name, setupLink),
       })
       emailSent = true
     } catch (emailErr) {
@@ -267,7 +262,7 @@ Deno.serve(async (req: Request) => {
           message:
             'Utilisateur créé (envoi email échoué). Communiquez le lien de configuration ci-dessous.',
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -280,18 +275,18 @@ Deno.serve(async (req: Request) => {
           ? 'Utilisateur créé. Un email avec le lien de configuration du mot de passe a été envoyé.'
           : 'Utilisateur créé. Communiquez le PIN temporaire (envoi email échoué).',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })
 
-function buildWelcomeEmailHtml(name: string, setupLink: string | null, appUrl: string): string {
+function buildWelcomeEmailHtml(name: string, setupLink: string | null): string {
   const linkHtml = setupLink
     ? `<p><a class="button" href="${escapeHtml(setupLink)}" target="_blank">Définir mon mot de passe</a></p>`
     : `<p class="text">Un problème est survenu lors de la génération du lien. Contactez votre administrateur pour obtenir un lien de configuration.</p>`
@@ -332,7 +327,7 @@ function buildWelcomeEmailHtml(name: string, setupLink: string | null, appUrl: s
   `
 }
 
-function buildWelcomeEmailText(name: string, setupLink: string | null, appUrl: string): string {
+function buildWelcomeEmailText(name: string, setupLink: string | null): string {
   const linkText = setupLink
     ? `Définissez votre mot de passe en cliquant sur ce lien : ${setupLink}`
     : `Un problème est survenu lors de la génération du lien. Contactez votre administrateur.`

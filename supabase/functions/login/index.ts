@@ -1,14 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { decodeBase64, encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface LoginPayload {
   membershipId: string
   pin: string
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const RATE_LIMIT_WINDOW_MINUTES = 15
@@ -98,7 +94,7 @@ async function recordAttempt(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -118,7 +114,7 @@ Deno.serve(async (req: Request) => {
     if (!membershipId || !pin || pin.length < 4 || pin.length > 8) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -135,7 +131,7 @@ Deno.serve(async (req: Request) => {
       await recordAttempt(adminClient, { ipAddress: clientIp, userId: null, succeeded: false })
       return new Response(JSON.stringify({ error: 'Invalid membership' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -152,7 +148,7 @@ Deno.serve(async (req: Request) => {
     if (userFailures >= MAX_FAILED_ATTEMPTS_PER_USER) {
       return new Response(JSON.stringify({ error: 'Too many attempts. Try again later.' }), {
         status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -163,7 +159,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: 'Too many attempts from this network. Try again later.' }),
         {
           status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -182,7 +178,7 @@ Deno.serve(async (req: Request) => {
     if (orgError) {
       return new Response(JSON.stringify({ error: orgError.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -197,7 +193,7 @@ Deno.serve(async (req: Request) => {
           error: 'Organization suspended',
           message: org.suspension_reason ?? 'This organization has been suspended.',
         }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -205,7 +201,7 @@ Deno.serve(async (req: Request) => {
     if (algo !== 'pbkdf2' || !saltB64 || !expectedHashB64) {
       return new Response(JSON.stringify({ error: 'Invalid pin format' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -219,7 +215,7 @@ Deno.serve(async (req: Request) => {
       })
       return new Response(JSON.stringify({ error: 'Invalid PIN' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -258,13 +254,13 @@ Deno.serve(async (req: Request) => {
           onboardingCompleted,
         },
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

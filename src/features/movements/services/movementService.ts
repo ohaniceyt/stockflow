@@ -1,6 +1,7 @@
 import { edgeFetch } from '@/services/edgeFunctions'
 import { supabase } from '@/services/supabase'
 import type { Movement, MovementType } from '@/types'
+
 import type { Database } from '@/types/database'
 
 type MovementRow = Database['public']['Tables']['movements']['Row']
@@ -12,7 +13,7 @@ function mapRowToMovement(row: MovementRow, productOrgMap: Map<string, string>):
     productId: row.product_id,
     locationId: row.location_id,
     targetLocationId: row.target_location_id,
-    type: row.type,
+    type: row.type as MovementType,
     quantity: row.quantity,
     stockBefore: row.stock_before,
     stockAfter: row.stock_after,

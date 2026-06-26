@@ -51,7 +51,7 @@ export function mapOrganizationRow(data: {
   delivery_note_prefix: string | null
   receipt_prefix: string | null
   legal_mentions: string | null
-  auto_reminder_enabled: boolean
+  auto_reminder_enabled: boolean | null
   auto_reminder_days: number | null
   created_at: string
   updated_at: string
@@ -81,7 +81,7 @@ export function mapOrganizationRow(data: {
     deliveryNotePrefix: data.delivery_note_prefix,
     receiptPrefix: data.receipt_prefix,
     legalMentions: data.legal_mentions,
-    autoReminderEnabled: data.auto_reminder_enabled,
+    autoReminderEnabled: data.auto_reminder_enabled ?? false,
     autoReminderDays: data.auto_reminder_days,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -137,25 +137,25 @@ export async function updateOrganization(
     updateData.has_tax_enabled = input.hasTaxEnabled
   }
   if (input.taxName !== undefined) {
-    updateData.tax_name = input.taxName?.trim() ?? null
+    updateData.tax_name = input.taxName?.trim() ?? 'TVA'
   }
   if (input.taxRate !== undefined) {
-    updateData.tax_rate = input.taxRate ?? null
+    updateData.tax_rate = input.taxRate ?? 0
   }
   if (input.taxId !== undefined) {
-    updateData.tax_id = input.taxId?.trim() ?? null
+    updateData.tax_id = input.taxId?.trim() ?? ''
   }
   if (input.invoicePrefix !== undefined) {
-    updateData.invoice_prefix = input.invoicePrefix?.trim() ?? null
+    updateData.invoice_prefix = input.invoicePrefix?.trim() ?? 'FA'
   }
   if (input.quotePrefix !== undefined) {
-    updateData.quote_prefix = input.quotePrefix?.trim() ?? null
+    updateData.quote_prefix = input.quotePrefix?.trim() ?? 'DEV'
   }
   if (input.deliveryNotePrefix !== undefined) {
-    updateData.delivery_note_prefix = input.deliveryNotePrefix?.trim() ?? null
+    updateData.delivery_note_prefix = input.deliveryNotePrefix?.trim() ?? 'BL'
   }
   if (input.receiptPrefix !== undefined) {
-    updateData.receipt_prefix = input.receiptPrefix?.trim() ?? null
+    updateData.receipt_prefix = input.receiptPrefix?.trim() ?? 'REC'
   }
   if (input.legalMentions !== undefined) {
     updateData.legal_mentions = input.legalMentions?.trim() ?? null

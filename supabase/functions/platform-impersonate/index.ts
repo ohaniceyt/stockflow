@@ -1,20 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface Payload {
   userId?: string
   orgId?: string
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-platform-challenge-id',
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -32,7 +27,7 @@ Deno.serve(async (req: Request) => {
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -40,12 +35,12 @@ Deno.serve(async (req: Request) => {
     if (!userId && !orgId) {
       return new Response(JSON.stringify({ error: 'userId or orgId required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     let targetOrgId = orgId
-    let targetUserId = userId
+    const targetUserId = userId
 
     if (userId && !orgId) {
       const { data: membership } = await adminClient
@@ -60,7 +55,7 @@ Deno.serve(async (req: Request) => {
       if (!membership) {
         return new Response(JSON.stringify({ error: 'No active membership found for user' }), {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
       targetOrgId = membership.org_id
@@ -81,7 +76,7 @@ Deno.serve(async (req: Request) => {
         }),
         {
           status: orgError ? 500 : 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -105,13 +100,13 @@ Deno.serve(async (req: Request) => {
           targetUserId,
         },
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

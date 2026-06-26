@@ -1,5 +1,7 @@
 import { supabase } from '@/services/supabase'
 import type { InventoryCount, InventorySession } from '@/types'
+
+type InventorySessionStatus = InventorySession['status']
 import type { Database } from '@/types/database'
 
 type SessionRow = Database['public']['Tables']['inventory_sessions']['Row']
@@ -11,7 +13,7 @@ function mapSessionRow(row: SessionRow): InventorySession {
     orgId: row.org_id,
     locationId: row.location_id,
     name: row.name,
-    status: row.status,
+    status: row.status as InventorySessionStatus,
     startedAt: row.started_at,
     completedAt: row.completed_at,
     operatorId: row.operator_id,

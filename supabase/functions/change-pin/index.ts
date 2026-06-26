@@ -2,15 +2,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { decodeBase64, encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface ChangePinPayload {
   currentPin?: string
   newPin: string
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
@@ -45,7 +41,7 @@ function isValidPin(pin: string): boolean {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -60,7 +56,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -68,7 +64,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -81,7 +77,7 @@ Deno.serve(async (req: Request) => {
     if (!isValidPin(newPin)) {
       return new Response(JSON.stringify({ error: 'PIN must be 4 to 8 digits' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -90,14 +86,14 @@ Deno.serve(async (req: Request) => {
     if (!membership) {
       return new Response(JSON.stringify({ error: 'Membership not found' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (!membership.is_active) {
       return new Response(JSON.stringify({ error: 'Account disabled' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -108,7 +104,7 @@ Deno.serve(async (req: Request) => {
       if (!currentPin || !isValidPin(currentPin)) {
         return new Response(JSON.stringify({ error: 'Current PIN is required' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
 
@@ -116,7 +112,7 @@ Deno.serve(async (req: Request) => {
       if (algo !== 'pbkdf2' || !saltB64 || !expectedHashB64) {
         return new Response(JSON.stringify({ error: 'Invalid PIN format' }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
 
@@ -126,7 +122,7 @@ Deno.serve(async (req: Request) => {
       if (!timingSafeEqual(currentHash, expectedHashB64)) {
         return new Response(JSON.stringify({ error: 'Current PIN is incorrect' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
     }
@@ -146,19 +142,19 @@ Deno.serve(async (req: Request) => {
     if (updateError) {
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

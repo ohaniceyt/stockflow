@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface Payload {
   orgId: string
@@ -9,12 +10,6 @@ interface Payload {
 const SLUG_RE = /^[a-z0-9-]+$/
 const SLUG_MIN = 2
 const SLUG_MAX = 50
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-platform-challenge-id',
-}
 
 function normalizeSlug(value: string): string {
   return value
@@ -28,7 +23,7 @@ function normalizeSlug(value: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -46,7 +41,7 @@ Deno.serve(async (req: Request) => {
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -56,7 +51,7 @@ Deno.serve(async (req: Request) => {
     if (!orgId) {
       return new Response(JSON.stringify({ error: 'orgId is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
     if (
@@ -69,7 +64,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           error: `Slug must be ${SLUG_MIN}-${SLUG_MAX} lowercase letters, numbers, or hyphens.`,
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -85,7 +80,7 @@ Deno.serve(async (req: Request) => {
     if (existingOrg) {
       return new Response(JSON.stringify({ error: 'Slug is already in use' }), {
         status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -101,7 +96,7 @@ Deno.serve(async (req: Request) => {
     if (historyConflict) {
       return new Response(
         JSON.stringify({ error: 'Slug was previously used by another organization' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -116,7 +111,7 @@ Deno.serve(async (req: Request) => {
     if (!org) {
       return new Response(JSON.stringify({ error: 'Organization not found' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -124,7 +119,7 @@ Deno.serve(async (req: Request) => {
     if (oldSlug === newSlug) {
       return new Response(JSON.stringify({ success: true, slug: newSlug, unchanged: true }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -159,13 +154,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ success: true, orgId, oldSlug, newSlug }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

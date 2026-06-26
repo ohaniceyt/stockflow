@@ -2,7 +2,9 @@
 import { supabase } from '@/services/supabase'
 import type {
   Invoice,
+  InvoiceStatus,
   InvoiceWithItems,
+  PaymentMethod,
   Quote,
   QuoteWithItems,
   DeliveryNote,
@@ -441,8 +443,8 @@ export async function updateDocumentStatus(
 export async function convertQuoteToInvoice(quoteId: string): Promise<string> {
   const { data, error } = await supabase.rpc('convert_quote_to_invoice', {
     p_quote_id: quoteId,
-    p_issue_date: null,
-    p_due_date: null,
+    p_issue_date: undefined,
+    p_due_date: undefined,
   })
 
   if (error) throw error
@@ -460,8 +462,8 @@ export async function recordPayment(
     p_invoice_id: invoiceId,
     p_amount: amount,
     p_payment_method: paymentMethod,
-    p_reference: reference ?? null,
-    p_paid_at: null,
+    p_reference: reference ?? undefined,
+    p_paid_at: undefined,
   })
 
   if (error) throw error
@@ -484,7 +486,7 @@ function mapInvoice(row: InvoiceRow): Invoice {
     contactId: row.contact_id,
     type: 'invoice',
     documentNumber: row.document_number,
-    status: row.status,
+    status: row.status as InvoiceStatus,
     issueDate: row.issue_date,
     dueDate: row.due_date,
     currency: row.currency,
@@ -576,7 +578,7 @@ function mapPayment(row: PaymentRow): Payment {
     orgId: row.org_id,
     invoiceId: row.invoice_id,
     amount: row.amount,
-    paymentMethod: row.payment_method,
+    paymentMethod: row.payment_method as PaymentMethod,
     reference: row.reference,
     paidAt: row.paid_at,
     createdAt: row.created_at,

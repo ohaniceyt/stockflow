@@ -1,6 +1,8 @@
 import { supabase } from '@/services/supabase'
 import { edgeFetch } from '@/services/edgeFunctions'
 import type { CashierSession, Movement } from '@/types'
+
+type CashierSessionStatus = CashierSession['status']
 import type { Database } from '@/types/database'
 
 type CashierSessionRow = Database['public']['Tables']['cashier_sessions']['Row']
@@ -15,8 +17,8 @@ function mapRowToCashierSession(row: CashierSessionRow): CashierSession {
     closedAt: row.closed_at,
     openingBalance: row.opening_balance,
     closingBalance: row.closing_balance,
-    dailyRevenue: row.daily_revenue,
-    status: row.status,
+    dailyRevenue: row.daily_revenue ?? 0,
+    status: row.status as CashierSessionStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

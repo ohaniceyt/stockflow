@@ -1,14 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface Payload {
   password: string
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 async function hashPassword(password: string, salt: Uint8Array): Promise<string> {
@@ -30,7 +26,7 @@ async function hashPassword(password: string, salt: Uint8Array): Promise<string>
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -48,7 +44,7 @@ Deno.serve(async (req: Request) => {
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -56,7 +52,7 @@ Deno.serve(async (req: Request) => {
     if (!password || typeof password !== 'string') {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -78,7 +74,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: error?.message ?? 'Failed to create challenge' }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -97,13 +93,13 @@ Deno.serve(async (req: Request) => {
         challenge_id: challenge.id,
         expires_at: challenge.expires_at,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase'
 import { edgeFetch } from '@/services/edgeFunctions'
-import type { Contact } from '@/types'
+import type { Contact, ContactType } from '@/types'
 import type { Database } from '@/types/database'
 import type { ContactFormData } from '../schemas/contactSchema'
 
@@ -12,7 +12,7 @@ function mapRowToContact(row: ContactRow): Contact {
   return {
     id: row.id,
     orgId: row.org_id,
-    type: row.type,
+    type: row.type as ContactType,
     name: row.name,
     email: row.email,
     phone: row.phone,

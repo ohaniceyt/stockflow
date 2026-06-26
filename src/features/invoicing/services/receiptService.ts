@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase'
 import { mapOrganizationRow } from '@/features/settings/services/organizationService'
-import type { Receipt, ReceiptItem, ReceiptWithItems, Organization } from '@/types'
+import type { PaymentMethod, Receipt, ReceiptItem, ReceiptWithItems, Organization } from '@/types'
 import type { Database } from '@/types/database'
 
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
@@ -192,10 +192,10 @@ function mapReceipt(row: ReceiptRow): Receipt {
     orgId: row.org_id,
     locationId: row.location_id,
     cashierSessionId: row.cashier_session_id,
-    operatorId: row.operator_id,
+    operatorId: row.operator_id ?? '',
     contactId: row.contact_id,
     documentNumber: row.document_number,
-    paymentMethod: row.payment_method,
+    paymentMethod: row.payment_method ? (row.payment_method as PaymentMethod) : 'other',
     currency: row.currency,
     subtotal: row.subtotal,
     taxAmount: row.tax_amount,

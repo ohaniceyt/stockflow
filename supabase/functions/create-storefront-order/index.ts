@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface OrderItem {
   product_id: string
@@ -15,11 +16,6 @@ interface CreateStorefrontOrderPayload {
   items: OrderItem[]
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 function generateOrderNumber(): string {
   const now = new Date()
   const prefix = 'CMD'
@@ -30,7 +26,7 @@ function generateOrderNumber(): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -54,7 +50,7 @@ Deno.serve(async (req: Request) => {
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -67,14 +63,14 @@ Deno.serve(async (req: Request) => {
     if (orgError || !org) {
       return new Response(JSON.stringify({ error: 'Boutique introuvable' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (!org.has_storefront_enabled || !org.storefront_location_id) {
       return new Response(JSON.stringify({ error: 'Store front non activé' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -86,7 +82,7 @@ Deno.serve(async (req: Request) => {
       if (!item.product_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
         return new Response(JSON.stringify({ error: 'Invalid item' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
     }
@@ -103,7 +99,7 @@ Deno.serve(async (req: Request) => {
     if (productsError) {
       return new Response(JSON.stringify({ error: productsError.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -112,7 +108,7 @@ Deno.serve(async (req: Request) => {
     if (missingProducts.length > 0) {
       return new Response(JSON.stringify({ error: 'Produit non disponible' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -125,7 +121,7 @@ Deno.serve(async (req: Request) => {
     if (stockError) {
       return new Response(JSON.stringify({ error: stockError.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -134,7 +130,7 @@ Deno.serve(async (req: Request) => {
     if (insufficient) {
       return new Response(JSON.stringify({ error: 'Stock insuffisant' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -168,7 +164,7 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ error: contactError?.message ?? 'Contact creation failed' }),
           {
             status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
           }
         )
       }
@@ -195,7 +191,7 @@ Deno.serve(async (req: Request) => {
     if (orderError || !orderResult) {
       return new Response(JSON.stringify({ error: orderError?.message ?? 'Order failed' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -209,14 +205,14 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

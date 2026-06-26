@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface BulkProductInput {
   name: string
@@ -23,20 +24,21 @@ interface BulkCreateProductsPayload {
 
 const MAX_BATCH_SIZE = 500
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function jsonResponse(body: Record<string, unknown>, status = 200) {
+function jsonResponse(req: Request, body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   })
 }
 
-function errorResponse(message: string, details?: Record<string, unknown>, status = 500) {
+function errorResponse(
+  req: Request,
+  message: string,
+  details?: Record<string, unknown>,
+  status = 500
+) {
   return jsonResponse(
+    req,
     { error: { message, details }, created: 0, total: 0, errors: [message] },
     status
   )
@@ -56,7 +58,7 @@ function normalizeNumber(value: unknown, fallback = 0): number {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -69,12 +71,12 @@ Deno.serve(async (req: Request) => {
 
     const token = getBearerToken(req)
     if (!token) {
-      return jsonResponse({ error: 'Unauthorized' }, 401)
+      return jsonResponse(req, { error: 'Unauthorized' }, 401)
     }
 
     const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
-      return jsonResponse({ error: 'Unauthorized' }, 401)
+      return jsonResponse(req, { error: 'Unauthorized' }, 401)
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -85,6 +87,7 @@ Deno.serve(async (req: Request) => {
 
     if (!operator || !['super_admin', 'admin'].includes(operator.role)) {
       return jsonResponse(
+        req,
         {
           error: 'Forbidden',
           debug: 'Operator not found or insufficient role',
@@ -97,19 +100,20 @@ Deno.serve(async (req: Request) => {
     const { org_id, products } = payload
 
     if (!org_id || !Array.isArray(products)) {
-      return jsonResponse({ error: 'Invalid request' }, 400)
+      return jsonResponse(req, { error: 'Invalid request' }, 400)
     }
 
     if (operator.org_id !== org_id) {
-      return jsonResponse({ error: 'Forbidden' }, 403)
+      return jsonResponse(req, { error: 'Forbidden' }, 403)
     }
 
     if (products.length === 0) {
-      return jsonResponse({ created: 0, total: 0, errors: [] })
+      return jsonResponse(req, { created: 0, total: 0, errors: [] })
     }
 
     if (products.length > MAX_BATCH_SIZE) {
       return jsonResponse(
+        req,
         { error: `Batch too large. Maximum ${MAX_BATCH_SIZE} products allowed.` },
         400
       )
@@ -117,13 +121,13 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, org_id)
     if (!limits) {
-      return jsonResponse({ error: 'Could not load organization limits' }, 500)
+      return jsonResponse(req, { error: 'Could not load organization limits' }, 500)
     }
     if (limits.isSuspended) {
-      return jsonResponse({ error: 'Organization suspended' }, 403)
+      return jsonResponse(req, { error: 'Organization suspended' }, 403)
     }
     if (isAtLimit(limits.usedProducts + products.length - 1, limits.maxProducts)) {
-      return jsonResponse({ error: 'Product limit reached for this plan' }, 403)
+      return jsonResponse(req, { error: 'Product limit reached for this plan' }, 403)
     }
 
     // 1. Collect unique category names.
@@ -155,7 +159,7 @@ Deno.serve(async (req: Request) => {
     })
 
     if (validProducts.length === 0) {
-      return jsonResponse({ created: 0, total: products.length, errors }, 400)
+      return jsonResponse(req, { created: 0, total: products.length, errors }, 400)
     }
 
     // 2. Build category id map by upserting categories.
@@ -233,7 +237,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (newRows.length === 0) {
-      return jsonResponse({
+      return jsonResponse(req, {
         created: 0,
         total: products.length,
         errors,
@@ -253,7 +257,7 @@ Deno.serve(async (req: Request) => {
     console.log('bulk-create-products: insertedProducts count', insertedProducts?.length ?? 0)
 
     if (insertError) {
-      return errorResponse(`Erreur lors de l'insertion des produits: ${insertError.message}`, {
+      return errorResponse(req, `Erreur lors de l'insertion des produits: ${insertError.message}`, {
         code: insertError.code,
         hint: insertError.hint,
       })
@@ -264,7 +268,7 @@ Deno.serve(async (req: Request) => {
       errors.push('Aucun produit inséré : la base de données a retourné 0 lignes créées.')
     }
 
-    return jsonResponse({
+    return jsonResponse(req, {
       created,
       total: products.length,
       errors,
@@ -272,6 +276,6 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('bulk-create-products: unhandled exception', err)
-    return errorResponse(message, { stack: err instanceof Error ? err.stack : undefined })
+    return errorResponse(req, message, { stack: err instanceof Error ? err.stack : undefined })
   }
 })

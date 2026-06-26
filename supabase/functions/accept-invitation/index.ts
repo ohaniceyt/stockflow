@@ -1,10 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
-
-interface AuthenticatedPayload {
-  token?: string
-  invitationId?: string
-}
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface NewUserPayload {
   token: string
@@ -12,14 +8,9 @@ interface NewUserPayload {
   password: string
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -41,7 +32,7 @@ Deno.serve(async (req: Request) => {
     if (!token && !invitationId) {
       return new Response(JSON.stringify({ error: 'Token or invitationId required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -62,14 +53,14 @@ Deno.serve(async (req: Request) => {
     if (inviteError || !invitation) {
       return new Response(JSON.stringify({ error: 'Invitation not found or already processed' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (invitation.expires_at && new Date(invitation.expires_at as string) < new Date()) {
       return new Response(JSON.stringify({ error: 'Invitation expired' }), {
         status: 410,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -93,7 +84,7 @@ Deno.serve(async (req: Request) => {
       if (existingMembership) {
         return new Response(JSON.stringify({ error: 'Already a member of this organization' }), {
           status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
     }
@@ -107,10 +98,11 @@ Deno.serve(async (req: Request) => {
 
     if (isAuthenticated) {
       // Authenticated acceptance: email must match the invitation.
-      if (claims.email!.toLowerCase() !== normalizedEmail) {
+      const claimEmail = claims.email?.toLowerCase()
+      if (!claimEmail || claimEmail !== normalizedEmail) {
         return new Response(
           JSON.stringify({ error: 'Invitation email does not match signed-in user' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
       authUserId = claims.sub
@@ -118,7 +110,7 @@ Deno.serve(async (req: Request) => {
       if (!existingProfile) {
         return new Response(JSON.stringify({ error: 'Authenticated user profile not found' }), {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
       profileName = existingProfile.name
@@ -128,7 +120,7 @@ Deno.serve(async (req: Request) => {
       if (!name?.trim() || !password || (password as string).length < 8) {
         return new Response(
           JSON.stringify({ error: 'Name and a password of at least 8 characters are required' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
       profileName = name.trim()
@@ -141,7 +133,7 @@ Deno.serve(async (req: Request) => {
               'An account already exists for this email. Please log in to accept the invitation.',
             existingAccount: true,
           }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
 
@@ -158,7 +150,7 @@ Deno.serve(async (req: Request) => {
       if (createAuthError || !newAuthUser.user) {
         return new Response(
           JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
       authUserId = newAuthUser.user.id
@@ -176,7 +168,7 @@ Deno.serve(async (req: Request) => {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
         return new Response(JSON.stringify({ error: insertProfileError.message }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
       }
 
@@ -197,7 +189,7 @@ Deno.serve(async (req: Request) => {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
         return new Response(
           JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
 
@@ -209,7 +201,7 @@ Deno.serve(async (req: Request) => {
           membershipId: newMembership.id,
           message: 'Invitation accepted. You can now log in.',
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -230,7 +222,7 @@ Deno.serve(async (req: Request) => {
     if (insertError || !newMembership) {
       return new Response(
         JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -247,13 +239,13 @@ Deno.serve(async (req: Request) => {
         membershipId: newMembership.id,
         message: 'Invitation accepted. You can now access the organization.',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

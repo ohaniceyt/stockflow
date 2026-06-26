@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface ApiKeyRecord {
   id: string
@@ -27,11 +28,6 @@ interface CreateOrderPayload {
 interface OrgFeatures {
   has_api_enabled: boolean
   storefront_location_id: string | null
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 function generateOrderNumber(): string {
@@ -106,15 +102,15 @@ function logApiRequest(
   })
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   })
 }
 
-function errorResponse(message: string, status: number): Response {
-  return jsonResponse({ error: message }, status)
+function errorResponse(req: Request, message: string, status: number): Response {
+  return jsonResponse(req, { error: message }, status)
 }
 
 async function handleRequest(
@@ -136,7 +132,7 @@ async function handleRequest(
   // GET /products or /products/:id
   if (segments[0] === 'products' && req.method === 'GET') {
     if (!keyRecord.scopes.includes('read:products')) {
-      return errorResponse('Insufficient scope', 403)
+      return errorResponse(req, 'Insufficient scope', 403)
     }
 
     const { data: products, error } = await adminClient
@@ -147,21 +143,21 @@ async function handleRequest(
       .eq('org_id', keyRecord.org_id)
       .eq('is_active', true)
 
-    if (error) return errorResponse(error.message, 500)
+    if (error) return errorResponse(req, error.message, 500)
 
     if (segments[1]) {
       const product = products?.find((p) => p.id === segments[1])
-      if (!product) return errorResponse('Product not found', 404)
-      return jsonResponse(product)
+      if (!product) return errorResponse(req, 'Product not found', 404)
+      return jsonResponse(req, product)
     }
 
-    return jsonResponse(products ?? [])
+    return jsonResponse(req, products ?? [])
   }
 
   // GET /stock?location_id=...
   if (segments[0] === 'stock' && req.method === 'GET') {
     if (!keyRecord.scopes.includes('read:stock')) {
-      return errorResponse('Insufficient scope', 403)
+      return errorResponse(req, 'Insufficient scope', 403)
     }
 
     const requestedLocationId = url.searchParams.get('location_id')
@@ -170,7 +166,7 @@ async function handleRequest(
       keyRecord.allowed_location_ids &&
       !keyRecord.allowed_location_ids.includes(requestedLocationId)
     ) {
-      return errorResponse('Location not allowed for this API key', 403)
+      return errorResponse(req, 'Location not allowed for this API key', 403)
     }
 
     let query = adminClient
@@ -185,14 +181,14 @@ async function handleRequest(
     }
 
     const { data, error } = await query
-    if (error) return errorResponse(error.message, 500)
-    return jsonResponse(data ?? [])
+    if (error) return errorResponse(req, error.message, 500)
+    return jsonResponse(req, data ?? [])
   }
 
   // POST /orders
   if (segments[0] === 'orders' && req.method === 'POST') {
     if (!keyRecord.scopes.includes('write:orders')) {
-      return errorResponse('Insufficient scope', 403)
+      return errorResponse(req, 'Insufficient scope', 403)
     }
 
     const payload: CreateOrderPayload = await req.json()
@@ -202,16 +198,20 @@ async function handleRequest(
       !Array.isArray(payload.items) ||
       payload.items.length === 0
     ) {
-      return errorResponse('Invalid request', 400)
+      return errorResponse(req, 'Invalid request', 400)
     }
 
-    let locationId = payload.location_id ?? features.storefront_location_id
+    const locationId = payload.location_id ?? features.storefront_location_id
     if (!locationId) {
-      return errorResponse('No location_id provided and no storefront location configured', 400)
+      return errorResponse(
+        req,
+        'No location_id provided and no storefront location configured',
+        400
+      )
     }
 
     if (keyRecord.allowed_location_ids && !keyRecord.allowed_location_ids.includes(locationId)) {
-      return errorResponse('Location not allowed for this API key', 403)
+      return errorResponse(req, 'Location not allowed for this API key', 403)
     }
 
     const productIds = payload.items.map((i) => i.product_id)
@@ -222,11 +222,11 @@ async function handleRequest(
       .eq('org_id', keyRecord.org_id)
       .eq('is_active', true)
 
-    if (productsError) return errorResponse(productsError.message, 500)
+    if (productsError) return errorResponse(req, productsError.message, 500)
 
     const productMap = new Map(products?.map((p) => [p.id, p]))
     const missing = payload.items.find((i) => !productMap.has(i.product_id))
-    if (missing) return errorResponse('Product not found or inactive', 400)
+    if (missing) return errorResponse(req, 'Product not found or inactive', 400)
 
     const { data: stock, error: stockError } = await adminClient
       .from('stock_levels')
@@ -234,11 +234,11 @@ async function handleRequest(
       .eq('location_id', locationId)
       .in('product_id', productIds)
 
-    if (stockError) return errorResponse(stockError.message, 500)
+    if (stockError) return errorResponse(req, stockError.message, 500)
 
     const stockMap = new Map(stock?.map((s) => [s.product_id, s.quantity]))
     const insufficient = payload.items.find((i) => (stockMap.get(i.product_id) ?? 0) < i.quantity)
-    if (insufficient) return errorResponse('Insufficient stock', 400)
+    if (insufficient) return errorResponse(req, 'Insufficient stock', 400)
 
     // Upsert customer contact
     const { data: existingContact } = await adminClient
@@ -266,7 +266,7 @@ async function handleRequest(
         .single()
 
       if (contactError || !newContact) {
-        return errorResponse(contactError?.message ?? 'Contact creation failed', 500)
+        return errorResponse(req, contactError?.message ?? 'Contact creation failed', 500)
       }
       contactId = newContact.id
     }
@@ -289,24 +289,24 @@ async function handleRequest(
     )
 
     if (orderError || !orderResult) {
-      return errorResponse(orderError?.message ?? 'Order failed', 500)
+      return errorResponse(req, orderError?.message ?? 'Order failed', 500)
     }
 
     const movementIds = (orderResult as { movement_ids: string[] }).movement_ids
 
-    return jsonResponse({
+    return jsonResponse(req, {
       order_id: movementIds[0] ?? null,
       order_number: orderNumber,
       movement_count: movementIds.length,
     })
   }
 
-  return errorResponse('Not found', 404)
+  return errorResponse(req, 'Not found', 404)
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   let adminClient: ReturnType<typeof createClient> | null = null
@@ -327,17 +327,17 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = req.headers.get('x-stockflow-api-key')
     if (!apiKey) {
-      return errorResponse('Missing X-StockFlow-API-Key header', 401)
+      return errorResponse(req, 'Missing X-StockFlow-API-Key header', 401)
     }
 
     keyRecord = await getApiKey(adminClient, apiKey)
     if (!keyRecord) {
-      return errorResponse('Invalid or revoked API key', 401)
+      return errorResponse(req, 'Invalid or revoked API key', 401)
     }
 
     const features = await getOrgFeatures(adminClient, keyRecord.org_id)
     if (!features?.has_api_enabled) {
-      return errorResponse('API not enabled for this organization', 403)
+      return errorResponse(req, 'API not enabled for this organization', 403)
     }
 
     const url = new URL(req.url)
@@ -375,6 +375,6 @@ Deno.serve(async (req: Request) => {
         500
       )
     }
-    return errorResponse(message, 500)
+    return errorResponse(req, message, 500)
   }
 })
