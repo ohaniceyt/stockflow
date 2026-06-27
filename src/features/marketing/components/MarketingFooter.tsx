@@ -9,23 +9,12 @@ const footerLinks = {
     { label: 'Analytics', href: '/features/analytics' },
     { label: 'Tarifs', href: '/pricing' },
   ],
-  Company: [
-    { label: 'À propos', href: '#' },
-    { label: 'Blog', href: '#' },
-    { label: 'Carrières', href: '#' },
-    { label: 'Contact', href: 'mailto:team@stockflow.grandigix.com' },
-  ],
+  Company: [{ label: 'Contact', href: 'mailto:team@stockflow.grandigix.com' }],
   Resources: [
-    { label: 'Academy', href: '#' },
-    { label: 'Communauté', href: '#' },
     { label: 'Documentation API', href: '#' },
     { label: "Centre d'aide", href: '#' },
   ],
-  Legal: [
-    { label: 'Politique de confidentialité', href: '#' },
-    { label: "Conditions d'utilisation", href: '#' },
-    { label: 'Sécurité', href: '#security' },
-  ],
+  Legal: [{ label: 'Sécurité', href: '#security' }],
 }
 
 export function MarketingFooter() {
@@ -79,7 +68,7 @@ export function MarketingFooter() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} StockFlow vNext. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} StockFlow. Tous droits réservés.</p>
           <div className="flex gap-6">
             <a href="mailto:team@stockflow.grandigix.com" className="hover:text-foreground">
               Contact

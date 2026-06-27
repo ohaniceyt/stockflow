@@ -22,6 +22,7 @@ import { TopBanner } from '../components/TopBanner'
 import { MarketingHeader } from '../components/MarketingHeader'
 import { HeroSection } from '../components/HeroSection'
 import { TrustBanner } from '../components/TrustBanner'
+import { SocialProof } from '../components/SocialProof'
 import { FeatureBlock } from '../components/FeatureBlock'
 import { FeatureGrid } from '../components/FeatureGrid'
 import { MidBanner } from '../components/MidBanner'
@@ -45,7 +46,7 @@ const features = [
       'Gérez du stock dans plusieurs entrepôts, boutiques ou points de vente en temps réel.',
   },
   {
-    icon: Package,
+    icon: Box,
     title: 'Mouvements traçables',
     description:
       'Entrées, sorties, transferts, ajustements et inventaires — chaque mouvement est horodaté et rattaché à un opérateur.',
@@ -245,6 +246,7 @@ export default function LandingPage() {
       <main>
         <HeroSection />
         <TrustBanner />
+        <SocialProof />
 
         <FeatureBlock
           icon={Package}
@@ -252,10 +254,10 @@ export default function LandingPage() {
           title="Maîtrisez chaque produit, chaque emplacement"
           description="Suivez votre inventaire en temps réel, recevez des alertes de stock faible et gérez plusieurs entrepôts ou boutiques depuis un seul tableau de bord."
           bullets={[
-            'Catalogue produits avec codes-barres et photos',
-            'Gestion multi-emplacements et transferts',
-            'Mouvements traçables par opérateur',
-            'Inventaires périodiques et ajustements contrôlés',
+            'Réduisez les ruptures de stock grâce aux alertes automatiques',
+            'Gérez plusieurs entrepôts ou boutiques en temps réel',
+            'Retracez chaque mouvement jusqu’à l’opérateur',
+            'Gagnez du temps lors des inventaires périodiques',
           ]}
           image="/features/inventory-preview.png"
           imageAlt="Aperçu de la gestion de stock"
@@ -270,10 +272,10 @@ export default function LandingPage() {
           title="Vendez plus vite et encaissez sans friction"
           description="Transformez n’importe quel appareil en caisse. Scannez, encaissez, imprimez des reçus et synchronisez automatiquement le stock."
           bullets={[
-            'Panier rapide avec scan code-barres',
-            'Paiements cash, carte et mobile money',
-            'Reçus et tickets personnalisés',
-            'Annulations contrôlées et historique des ventes',
+            'Accélérez vos ventes avec le scan code-barres',
+            'Encaissez cash, carte ou mobile money sans friction',
+            'Imprimez ou partagez des reçus professionnels',
+            'Gardez le contrôle sur les annulations et les retours',
           ]}
           image="/features/pos-preview.png"
           imageAlt="Aperçu de la caisse"
@@ -287,10 +289,10 @@ export default function LandingPage() {
           title="Créez des factures professionnelles en quelques clics"
           description="Passez du devis à la facture, suivez les paiements et envoyez des rappels automatiques à vos clients."
           bullets={[
-            'Devis, factures et bons de livraison',
-            'Numérotation personnalisable',
-            'Rappels de paiement automatiques',
-            'Tableau de suivi des impayés',
+            'Convertissez vos devis en factures en un clic',
+            'Personnalisez la numérotation et l’apparence des documents',
+            'Automatisez les relances pour les paiements en retard',
+            'Suivez vos impayés dans un tableau de bord dédié',
           ]}
           image="/features/invoicing-preview.png"
           imageAlt="Aperçu de la facturation"
@@ -341,6 +343,7 @@ export default function LandingPage() {
             cta: p.cta,
             ctaLink: p.href,
             highlighted: p.highlighted,
+            yearlyPrice: p.yearlyPrice,
           }))}
         />
 

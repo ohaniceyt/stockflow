@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Play, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowRight, Play, CheckCircle2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const valueProps = [
   'Gérez le stock multi-emplacements',
@@ -10,13 +11,7 @@ const valueProps = [
 ]
 
 export function HeroSection() {
-  const [isDemoLoading, setIsDemoLoading] = useState(false)
-
-  const handleWatchDemo = () => {
-    setIsDemoLoading(true)
-    // TODO: open demo modal or scroll to video section
-    setTimeout(() => setIsDemoLoading(false), 1200)
-  }
+  const [demoOpen, setDemoOpen] = useState(false)
 
   return (
     <section className="relative overflow-hidden bg-background px-4 pt-16 pb-24 sm:px-6 lg:px-8">
@@ -25,7 +20,7 @@ export function HeroSection() {
           <div className="max-w-2xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-sm">
               <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                vNext
+                Nouveau
               </span>
               <span className="text-muted-foreground">
                 La gestion de stock repensée pour la PME africaine
@@ -55,12 +50,13 @@ export function HeroSection() {
                   Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2" onClick={handleWatchDemo}>
-                {isDemoLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={() => setDemoOpen(true)}
+              >
+                <Play className="h-4 w-4" />
                 Voir la démo
               </Button>
             </div>
@@ -87,6 +83,31 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+        <DialogContent className="max-w-3xl p-0">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle className="flex items-center justify-between">
+              Découvrez StockFlow en 2 minutes
+              <button
+                type="button"
+                onClick={() => setDemoOpen(false)}
+                className="rounded-full p-1 hover:bg-accent"
+                aria-label="Fermer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video bg-muted">
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+              <Play className="h-12 w-12" />
+              <p className="text-sm">Vidéo de démo à intégrer (YouTube, Loom ou Vimeo)</p>
+              <p className="text-xs">Remplacez ce bloc par une balise &lt;iframe&gt;.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

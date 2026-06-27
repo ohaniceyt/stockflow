@@ -46,7 +46,9 @@ export function FeatureBlock({
             <ul className="mt-6 space-y-3">
               {bullets.map((bullet) => (
                 <li key={bullet} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+                  <span className="mt-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    ✓
+                  </span>
                   {bullet}
                 </li>
               ))}
@@ -63,17 +65,22 @@ export function FeatureBlock({
           </div>
 
           <div className={reversed ? 'lg:order-1' : ''}>
-            <div className="overflow-hidden rounded-2xl border bg-card shadow-lg">
+            <div className="relative overflow-hidden rounded-2xl border bg-card shadow-lg">
               <img
                 src={image}
                 alt={imageAlt}
                 className="w-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
+                  e.currentTarget.parentElement
+                    ?.querySelector('.fallback')
+                    ?.classList.remove('hidden')
                 }}
               />
-              <div className="absolute inset-0 hidden items-center justify-center bg-muted/80 text-sm text-muted-foreground">
-                {imageAlt}
+              <div className="fallback absolute inset-0 flex flex-col items-center justify-center bg-muted/80 p-6 text-center text-sm text-muted-foreground">
+                <Icon className="mb-2 h-8 w-8 text-primary" />
+                <span className="font-medium">{imageAlt}</span>
+                <span className="mt-1 text-xs">Capture d’écran à venir</span>
               </div>
             </div>
           </div>
