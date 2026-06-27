@@ -375,7 +375,7 @@ BEGIN
 
   -- Record each line as an OUT movement linked to the receipt.
   FOR v_item IN
-    SELECT value FROM jsonb_array_elements(p_items)
+    SELECT * FROM jsonb_array_elements(p_items)
   LOOP
     SELECT record_movement(
       p_org_id,
