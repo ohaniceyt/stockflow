@@ -5,7 +5,6 @@ export interface Membership {
   org_id: string
   user_id: string
   role: 'super_admin' | 'admin' | 'operator' | 'reader'
-  pin_hash: string | null
   is_active: boolean
   force_pin_change: boolean
   last_login_at: string | null
@@ -32,7 +31,7 @@ export async function getCurrentMembership(
 
   const { data, error } = await adminClient
     .from('organization_memberships')
-    .select('id, org_id, user_id, role, pin_hash, is_active, force_pin_change, last_login_at')
+    .select('id, org_id, user_id, role, is_active, force_pin_change, last_login_at')
     .eq('user_id', authUserId)
     .eq('org_id', activeOrgId)
     .eq('is_active', true)

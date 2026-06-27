@@ -128,7 +128,13 @@ export function useUpdateDocumentStatus() {
 export function useConvertQuoteToInvoice() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: convertQuoteToInvoice,
+    mutationFn: ({
+      quoteId,
+      options,
+    }: {
+      quoteId: string
+      options?: { issueDate?: string; dueDate?: string }
+    }) => convertQuoteToInvoice(quoteId, options),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },

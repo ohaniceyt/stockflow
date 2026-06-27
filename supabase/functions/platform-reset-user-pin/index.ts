@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
     const { error: updateError } = await adminClient
       .from('organization_memberships')
-      .update({ pin_hash: null, force_pin_change: false, updated_at: new Date().toISOString() })
+      .update({ force_pin_change: false, updated_at: new Date().toISOString() })
       .eq('id', membershipId)
 
     if (updateError) {

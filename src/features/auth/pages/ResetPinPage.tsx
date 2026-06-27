@@ -88,6 +88,10 @@ export default function ResetPinPage() {
           <p className="text-sm text-muted-foreground">
             Votre identité a été confirmée. Définissez maintenant un nouveau code PIN.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Ce PIN est un verrouillage local de cet appareil. Il n’est pas synchronisé et ne
+            remplace pas votre mot de passe StockFlow.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

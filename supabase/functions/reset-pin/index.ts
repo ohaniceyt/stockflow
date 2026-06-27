@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
-import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
@@ -10,21 +8,8 @@ interface ResetPinPayload {
   forcePinChange?: boolean
 }
 
-async function hashPin(pin: string, salt: Uint8Array): Promise<string> {
-  const encoder = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(pin),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  )
-  const derived = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
-    keyMaterial,
-    256
-  )
-  return encodeBase64(new Uint8Array(derived))
+function isValidPin(pin: string): boolean {
+  return /^\d{4,8}$/.test(pin)
 }
 
 Deno.serve(async (req: Request) => {
@@ -70,7 +55,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { userId, newPin, forcePinChange = true }: ResetPinPayload = await req.json()
-    if (!userId || !newPin || newPin.length < 4 || newPin.length > 8 || !/^\d+$/.test(newPin)) {
+    if (!userId || !isValidPin(newPin)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -97,13 +82,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const newHash = `pbkdf2$${encodeBase64(salt)}$${await hashPin(newPin, salt)}`
-
     const { error: updateError } = await adminClient
       .from('organization_memberships')
       .update({
-        pin_hash: newHash,
         force_pin_change: forcePinChange,
         updated_at: new Date().toISOString(),
       })

@@ -135,7 +135,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: membership, error: membershipError } = await adminClient
       .from('organization_memberships')
-      .select('id, org_id, user_id, role, pin_hash, is_active, force_pin_change, last_login_at')
+      .select('id, org_id, user_id, role, is_active, force_pin_change, last_login_at')
       .eq('user_id', authUserId)
       .eq('org_id', activeOrgId)
       .eq('is_active', true)
@@ -207,7 +207,7 @@ Deno.serve(async (req: Request) => {
           orgId: membership.org_id,
           userId: membership.user_id,
           role: membership.role,
-          hasPin: Boolean(membership.pin_hash),
+          hasPin: false,
           isActive: membership.is_active,
           forcePinChange: membership.force_pin_change,
           lastLoginAt: membership.last_login_at,

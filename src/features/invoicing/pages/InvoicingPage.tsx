@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, FileText, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Plus, FileText, TrendingUp, AlertCircle, CheckCircle, Clock, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,8 +12,16 @@ import {
   useCreateInvoice,
   useCreateDeliveryNote,
 } from '@/features/invoicing/hooks/useInvoices'
+import { useContacts } from '@/features/contacts/hooks/useContacts'
+import { useProducts } from '@/features/products/hooks/useProducts'
 import DocumentActions from '@/features/invoicing/components/DocumentActions'
-import type { InvoiceWithItems, QuoteWithItems, DeliveryNoteWithItems } from '@/types'
+import type {
+  InvoiceWithItems,
+  QuoteWithItems,
+  DeliveryNoteWithItems,
+  Contact,
+  Product,
+} from '@/types'
 
 type DocumentWithItems = InvoiceWithItems | QuoteWithItems | DeliveryNoteWithItems
 type TabType = 'quotes' | 'invoices' | 'delivery-notes' | 'overview'
@@ -132,6 +140,38 @@ function DocumentList({
   )
 }
 
+interface LineState {
+  id: string
+  productId?: string
+  description: string
+  quantity: number
+  unitPrice: number
+  taxRate: number
+  discountAmount: number
+}
+
+function emptyLine(): LineState {
+  return {
+    id: crypto.randomUUID(),
+    description: '',
+    quantity: 1,
+    unitPrice: 0,
+    taxRate: 0,
+    discountAmount: 0,
+  }
+}
+
+function formatDateInput(d: Date): string {
+  return d.toISOString().split('T')[0]
+}
+
+function computeLineValues(line: LineState) {
+  const taxable = Math.max(0, line.quantity * line.unitPrice - line.discountAmount)
+  const tax = taxable * (line.taxRate / 100)
+  const total = taxable + tax
+  return { taxable, tax, total }
+}
+
 function CreateForm({
   type,
   onClose,
@@ -143,43 +183,107 @@ function CreateForm({
   const createQuote = useCreateQuote()
   const createInvoice = useCreateInvoice()
   const createDeliveryNote = useCreateDeliveryNote()
-  const [description, setDescription] = useState('')
-  const [quantity, setQuantity] = useState('1')
-  const [unitPrice, setUnitPrice] = useState('')
-  const [taxRate, setTaxRate] = useState('0')
-  const [discount, setDiscount] = useState('0')
+  const { data: customers } = useContacts('CUSTOMER')
+  const { data: products } = useProducts()
 
   const orgId = session?.organization.id
   const currency = session?.organization.currency ?? 'XOF'
+  const prefix =
+    type === 'quote'
+      ? (session?.organization.quotePrefix ?? '')
+      : type === 'invoice'
+        ? (session?.organization.invoicePrefix ?? '')
+        : (session?.organization.deliveryNotePrefix ?? '')
+
+  const [contactId, setContactId] = useState('')
+  const [issueDate, setIssueDate] = useState(() => formatDateInput(new Date()))
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 30)
+    return formatDateInput(d)
+  })
+  const [note, setNote] = useState('')
+  const [terms, setTerms] = useState('')
+  const [lines, setLines] = useState<LineState[]>(() => [emptyLine()])
+
+  const showDueDate = type === 'quote' || type === 'invoice'
+
+  function updateLine(id: string, patch: Partial<LineState>) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }
+
+  function removeLine(id: string) {
+    setLines((prev) => (prev.length > 1 ? prev.filter((l) => l.id !== id) : prev))
+  }
+
+  function addLine() {
+    setLines((prev) => [...prev, emptyLine()])
+  }
+
+  function handleProductChange(lineId: string, productId: string) {
+    const product = products?.find((p: Product) => p.id === productId)
+    if (!product) return
+    updateLine(lineId, {
+      productId: product.id,
+      description: product.name,
+      unitPrice: product.sellingPrice,
+    })
+  }
+
+  const totals = lines.reduce(
+    (acc, line) => {
+      const { taxable, tax, total } = computeLineValues(line)
+      return {
+        subtotal: acc.subtotal + taxable,
+        taxTotal: acc.taxTotal + tax,
+        total: acc.total + total,
+      }
+    },
+    { subtotal: 0, taxTotal: 0, total: 0 }
+  )
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!orgId) return
-    const qty = Number(quantity) || 1
-    const price = Number(unitPrice) || 0
-    const tax = Number(taxRate) || 0
-    const disc = Number(discount) || 0
-    const line = {
-      description,
-      quantity: qty,
-      unitPrice: price,
-      taxRate: tax,
-      discountAmount: disc,
-    }
+    if (!orgId || lines.length === 0) return
+
+    const items = lines.map((l) => ({
+      productId: l.productId?.trim() ? l.productId : null,
+      description: l.description,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      taxRate: l.taxRate,
+      discountAmount: l.discountAmount,
+    }))
+
     const base = {
       orgId,
+      contactId: contactId.trim() ? contactId : null,
       currency,
-      issueDate: new Date().toISOString().split('T')[0],
-      items: [line],
+      prefix,
+      note: note.trim() ? note : null,
+      terms: terms.trim() ? terms : null,
+      items,
     }
 
     try {
       if (type === 'quote') {
-        await createQuote.mutateAsync(base)
+        await createQuote.mutateAsync({
+          ...base,
+          issueDate,
+          dueDate: showDueDate ? (dueDate.trim() ? dueDate : null) : null,
+        })
       } else if (type === 'invoice') {
-        await createInvoice.mutateAsync(base)
+        await createInvoice.mutateAsync({
+          ...base,
+          issueDate,
+          dueDate: showDueDate ? (dueDate.trim() ? dueDate : null) : null,
+        })
       } else {
-        await createDeliveryNote.mutateAsync(base)
+        await createDeliveryNote.mutateAsync({
+          ...base,
+          issueDate,
+          deliveryAddress: null,
+        })
       }
       onClose()
     } catch (err) {
@@ -196,75 +300,230 @@ function CreateForm({
   const pending = createQuote.isPending || createInvoice.isPending || createDeliveryNote.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+    <form onSubmit={handleSubmit} className="max-h-[80vh] space-y-4 overflow-y-auto py-4">
       <h4 className="font-medium">{title}</h4>
+
+      <div className="space-y-1">
+        <label htmlFor="contact" className="text-sm font-medium">
+          Client
+        </label>
+        <select
+          id="contact"
+          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          value={contactId}
+          onChange={(e) => setContactId(e.target.value)}
+        >
+          <option value="">Sélectionner un client</option>
+          {customers?.map((c: Contact) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 space-y-1">
-          <label htmlFor="description" className="text-sm font-medium">
-            Description
+        <div className="space-y-1">
+          <label htmlFor="issueDate" className="text-sm font-medium">
+            Date d’émission
           </label>
           <input
-            id="description"
+            id="issueDate"
+            type="date"
             className="w-full rounded-md border px-3 py-2 text-sm"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
             required
           />
         </div>
+        {showDueDate && (
+          <div className="space-y-1">
+            <label htmlFor="dueDate" className="text-sm font-medium">
+              Date d’échéance
+            </label>
+            <input
+              id="dueDate"
+              type="date"
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Lignes</p>
+          <Button type="button" variant="outline" size="sm" onClick={addLine}>
+            <Plus className="mr-1 h-4 w-4" /> Ajouter une ligne
+          </Button>
+        </div>
+        {lines.map((line, index) => {
+          const { total } = computeLineValues(line)
+          return (
+            <div key={line.id} className="rounded-md border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Ligne {index + 1}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => removeLine(line.id)}
+                  aria-label="Supprimer la ligne"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor={`product-${line.id}`} className="text-xs font-medium">
+                  Produit (optionnel)
+                </label>
+                <select
+                  id={`product-${line.id}`}
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                  value={line.productId ?? ''}
+                  onChange={(e) => handleProductChange(line.id, e.target.value)}
+                >
+                  <option value="">Description libre</option>
+                  {products?.map((p: Product) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor={`description-${line.id}`} className="text-xs font-medium">
+                  Description
+                </label>
+                <input
+                  id={`description-${line.id}`}
+                  className="w-full rounded-md border px-2 py-1.5 text-sm"
+                  value={line.description}
+                  onChange={(e) => updateLine(line.id, { description: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="space-y-1">
+                  <label htmlFor={`qty-${line.id}`} className="text-xs font-medium">
+                    Qté
+                  </label>
+                  <input
+                    id={`qty-${line.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full rounded-md border px-2 py-1.5 text-sm"
+                    value={line.quantity}
+                    onChange={(e) => updateLine(line.id, { quantity: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor={`price-${line.id}`} className="text-xs font-medium">
+                    P.U.
+                  </label>
+                  <input
+                    id={`price-${line.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full rounded-md border px-2 py-1.5 text-sm"
+                    value={line.unitPrice}
+                    onChange={(e) => updateLine(line.id, { unitPrice: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor={`tax-${line.id}`} className="text-xs font-medium">
+                    Taxe %
+                  </label>
+                  <input
+                    id={`tax-${line.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full rounded-md border px-2 py-1.5 text-sm"
+                    value={line.taxRate}
+                    onChange={(e) => updateLine(line.id, { taxRate: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor={`discount-${line.id}`} className="text-xs font-medium">
+                    Remise
+                  </label>
+                  <input
+                    id={`discount-${line.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full rounded-md border px-2 py-1.5 text-sm"
+                    value={line.discountAmount}
+                    onChange={(e) =>
+                      updateLine(line.id, { discountAmount: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              </div>
+              <p className="text-right text-sm font-medium">
+                Total ligne : {total.toLocaleString('fr-FR')} {currency}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="rounded-md border p-3 space-y-1 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Sous-total</span>
+          <span>
+            {totals.subtotal.toLocaleString('fr-FR')} {currency}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Taxes</span>
+          <span>
+            {totals.taxTotal.toLocaleString('fr-FR')} {currency}
+          </span>
+        </div>
+        <div className="flex justify-between font-semibold">
+          <span>Total</span>
+          <span>
+            {totals.total.toLocaleString('fr-FR')} {currency}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
         <div className="space-y-1">
-          <label htmlFor="quantity" className="text-sm font-medium">
-            Qté
+          <label htmlFor="note" className="text-sm font-medium">
+            Note
           </label>
-          <input
-            id="quantity"
-            type="number"
-            min="1"
+          <textarea
+            id="note"
+            rows={2}
             className="w-full rounded-md border px-3 py-2 text-sm"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="unitPrice" className="text-sm font-medium">
-            P.U.
+          <label htmlFor="terms" className="text-sm font-medium">
+            Conditions
           </label>
-          <input
-            id="unitPrice"
-            type="number"
-            min="0"
+          <textarea
+            id="terms"
+            rows={2}
             className="w-full rounded-md border px-3 py-2 text-sm"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="taxRate" className="text-sm font-medium">
-            Taux taxe (%)
-          </label>
-          <input
-            id="taxRate"
-            type="number"
-            min="0"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={taxRate}
-            onChange={(e) => setTaxRate(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="discount" className="text-sm font-medium">
-            Remise
-          </label>
-          <input
-            id="discount"
-            type="number"
-            min="0"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
+            value={terms}
+            onChange={(e) => setTerms(e.target.value)}
           />
         </div>
       </div>
+
       <Button type="submit" className="w-full" disabled={pending}>
         Créer
       </Button>

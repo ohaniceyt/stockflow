@@ -148,7 +148,7 @@ describe('receiptService integration', () => {
     expect(rpcMock).toHaveBeenCalledWith('next_document_number', {
       p_org_id: 'org-1',
       p_document_type: 'receipt',
-      p_prefix: '',
+      p_prefix: 'REC',
     })
   })
 

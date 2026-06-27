@@ -14,6 +14,7 @@ export interface CreateReceiptInput {
   contactId?: string | null
   paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
   currency: string
+  prefix?: string
   subtotal: number
   taxAmount: number
   total: number
@@ -31,11 +32,15 @@ export interface CreateReceiptInput {
   }[]
 }
 
+function resolveReceiptPrefix(prefix: string | undefined | null): string {
+  return prefix?.trim() ? prefix.trim() : 'REC'
+}
+
 export async function createReceipt(input: CreateReceiptInput): Promise<ReceiptWithItems> {
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'receipt',
-    p_prefix: '',
+    p_prefix: resolveReceiptPrefix(input.prefix),
   })
 
   if (numberResponse.error) {

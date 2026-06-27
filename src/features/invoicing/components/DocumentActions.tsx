@@ -50,6 +50,15 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
+  const [showConvertForm, setShowConvertForm] = useState(false)
+  const [convertIssueDate, setConvertIssueDate] = useState(() =>
+    new Date().toISOString().split('T')[0]
+  )
+  const [convertDueDate, setConvertDueDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 30)
+    return d.toISOString().split('T')[0]
+  })
 
   const token = session?.accessToken
 
@@ -170,7 +179,18 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
   }
 
   function handleConvertQuote() {
-    void convertQuote.mutateAsync(doc.id)
+    if (!showConvertForm) {
+      setShowConvertForm(true)
+      return
+    }
+    void convertQuote.mutateAsync({
+      quoteId: doc.id,
+      options: {
+        issueDate: convertIssueDate,
+        dueDate: convertDueDate.trim() ? convertDueDate : undefined,
+      },
+    })
+    setShowConvertForm(false)
   }
 
   function handleRecordPayment(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -229,7 +249,8 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
             onClick={handleConvertQuote}
             disabled={convertQuote.isPending}
           >
-            <FileCheck className="mr-1 h-4 w-4" /> Convertir en facture
+            <FileCheck className="mr-1 h-4 w-4" />{' '}
+            {showConvertForm ? 'Confirmer la conversion' : 'Convertir en facture'}
           </Button>
         )}
 
@@ -281,6 +302,38 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
           </Button>
         )}
       </div>
+
+      {showConvertForm && type === 'quote' && (
+        <div className="rounded-md border p-3 space-y-2">
+          <p className="text-sm font-medium">Conversion du devis en facture</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label htmlFor="convertIssueDate" className="text-xs font-medium">
+                Date de facture
+              </label>
+              <input
+                id="convertIssueDate"
+                type="date"
+                className="w-full rounded-md border px-2 py-1 text-sm"
+                value={convertIssueDate}
+                onChange={(e) => setConvertIssueDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="convertDueDate" className="text-xs font-medium">
+                Date d’échéance
+              </label>
+              <input
+                id="convertDueDate"
+                type="date"
+                className="w-full rounded-md border px-2 py-1 text-sm"
+                value={convertDueDate}
+                onChange={(e) => setConvertDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPaymentForm && type === 'invoice' && (
         <form onSubmit={handleRecordPayment} className="rounded-md border p-3 space-y-2">

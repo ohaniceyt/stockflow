@@ -178,7 +178,6 @@ Deno.serve(async (req: Request) => {
           org_id: invitation.org_id,
           user_id: authUserId,
           role: invitation.role,
-          pin_hash: null,
           is_active: true,
           force_pin_change: false,
         })

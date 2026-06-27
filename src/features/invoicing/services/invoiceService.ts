@@ -33,6 +33,7 @@ export interface CreateQuoteInput {
   issueDate: string
   dueDate?: string | null
   currency: string
+  prefix?: string
   note?: string | null
   terms?: string | null
   items: DocumentLineInput[]
@@ -44,6 +45,7 @@ export interface CreateInvoiceInput {
   issueDate: string
   dueDate?: string | null
   currency: string
+  prefix?: string
   note?: string | null
   terms?: string | null
   quoteId?: string | null
@@ -55,6 +57,7 @@ export interface CreateDeliveryNoteInput {
   contactId?: string | null
   issueDate: string
   currency: string
+  prefix?: string
   deliveryAddress?: string | null
   note?: string | null
   terms?: string | null
@@ -86,6 +89,17 @@ function buildInvoiceItems(
   }))
 }
 
+function defaultPrefixForType(type: 'quote' | 'invoice' | 'delivery_note'): string {
+  return type === 'quote' ? 'DEV' : type === 'invoice' ? 'FA' : 'BL'
+}
+
+function resolvePrefix(
+  prefix: string | undefined | null,
+  type: 'quote' | 'invoice' | 'delivery_note'
+): string {
+  return prefix?.trim() ? prefix.trim() : defaultPrefixForType(type)
+}
+
 function computeTotals(items: DocumentLineInput[]) {
   const subtotal = items.reduce((sum, item) => {
     const qty = item.quantity ?? 1
@@ -114,7 +128,7 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteWithIte
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'quote',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'quote'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -173,7 +187,7 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceW
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'invoice',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'invoice'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -235,7 +249,7 @@ export async function createDeliveryNote(
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'delivery_note',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'delivery_note'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -440,11 +454,14 @@ export async function updateDocumentStatus(
   if (error) throw error
 }
 
-export async function convertQuoteToInvoice(quoteId: string): Promise<string> {
+export async function convertQuoteToInvoice(
+  quoteId: string,
+  options?: { issueDate?: string; dueDate?: string }
+): Promise<string> {
   const { data, error } = await supabase.rpc('convert_quote_to_invoice', {
     p_quote_id: quoteId,
-    p_issue_date: undefined,
-    p_due_date: undefined,
+    p_issue_date: options?.issueDate ?? undefined,
+    p_due_date: options?.dueDate ?? undefined,
   })
 
   if (error) throw error
