@@ -6,22 +6,6 @@ import { MarketingFooter } from '../components/MarketingFooter'
 
 const plans = [
   {
-    name: 'Gratuit',
-    price: '0 €',
-    period: '/mois',
-    description: 'Idéal pour tester et démarrer.',
-    features: [
-      '1 utilisateur',
-      '10 produits',
-      '1 emplacement',
-      '100 mouvements/mois',
-      'Gestion de stock de base',
-      'Support par email',
-    ],
-    cta: 'Commencer gratuitement',
-    ctaLink: '/signup?plan=free',
-  },
-  {
     name: 'Starter',
     price: '49 €',
     period: '/mois',
@@ -35,7 +19,7 @@ const plans = [
       'Mode offline',
       'Support prioritaire',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     ctaLink: '/signup?plan=starter',
     highlighted: true,
   },
@@ -53,7 +37,7 @@ const plans = [
       'Storefront',
       'Support dédié',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     ctaLink: '/signup?plan=pro',
   },
   {
@@ -82,8 +66,9 @@ const faqs = [
       'Oui, vous pouvez passer à un plan supérieur ou inférieur depuis les paramètres de votre organisation.',
   },
   {
-    question: 'Le plan Gratuit est-il limité dans le temps ?',
-    answer: 'Non, il reste gratuit tant que vous restez dans les limites indiquées.',
+    question: 'Puis-je essayer sans payer ?',
+    answer:
+      'Oui, chaque plan payant bénéficie d’un mois d’essai gratuit. Aucune carte bancaire n’est requise pendant la période d’essai.',
   },
   {
     question: 'Quels modes de paiement acceptez-vous ?',
@@ -104,8 +89,8 @@ export default function PricingPage() {
               Des tarifs simples et évolutifs
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Choisissez le plan adapté à votre activité. Tous les plans payants incluent 14 jours
-              d’essai.
+              Choisissez le plan adapté à votre activité. Tous les plans payants incluent 1 mois
+              d’essai gratuit, sans engagement.
             </p>
           </div>
         </section>

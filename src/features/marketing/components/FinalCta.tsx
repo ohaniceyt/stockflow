@@ -10,13 +10,13 @@ export function FinalCta() {
           Prêt à transformer votre gestion de stock ?
         </h2>
         <p className="mt-6 text-lg text-muted-foreground">
-          Créez un compte gratuit en 2 minutes et découvrez ce que StockFlow peut faire pour votre
+          Testez StockFlow 1 mois gratuitement et découvrez ce qu’il peut faire pour votre
           entreprise.
         </p>
         <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="gap-2">
             <Link to="/signup">
-              Démarrer gratuitement <ArrowRight className="h-4 w-4" />
+              Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg">

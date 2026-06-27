@@ -52,7 +52,7 @@ export function HeroSection() {
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="gap-2">
                 <Link to="/signup">
-                  Démarrer gratuitement <ArrowRight className="h-4 w-4" />
+                  Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="gap-2" onClick={handleWatchDemo}>
@@ -65,7 +65,7 @@ export function HeroSection() {
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              14 jours d’essai. Sans carte bancaire.
+              1 mois d’essai gratuit. Sans carte bancaire.
             </p>
           </div>
 

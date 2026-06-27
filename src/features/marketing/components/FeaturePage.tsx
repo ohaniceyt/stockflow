@@ -91,7 +91,7 @@ export function FeaturePage({
               Rejoignez les PME qui gagnent du temps chaque jour avec StockFlow.
             </p>
             <Button asChild size="lg" className="mt-8">
-              <Link to="/signup">Démarrer gratuitement</Link>
+              <Link to="/signup">Essayer 1 mois gratuit</Link>
             </Button>
           </div>
         </section>

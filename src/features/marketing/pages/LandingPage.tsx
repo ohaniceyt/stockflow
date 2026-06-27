@@ -128,21 +128,6 @@ const workflow = [
 
 const pricingPlans = [
   {
-    name: 'Gratuit',
-    description: 'Parfait pour tester StockFlow',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    features: [
-      '1 utilisateur',
-      '10 produits',
-      '1 emplacement',
-      '100 mouvements/mois',
-      'Support email',
-    ],
-    cta: 'Commencer gratuitement',
-    href: '/signup?plan=free',
-  },
-  {
     name: 'Starter',
     description: 'Petites équipes et boutiques',
     monthlyPrice: 4900,
@@ -155,7 +140,7 @@ const pricingPlans = [
       'Facturation incluse',
       'Support prioritaire',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     href: '/signup?plan=starter',
     highlighted: true,
     popular: true,
@@ -173,7 +158,7 @@ const pricingPlans = [
       'API + storefront',
       'Support dédié',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     href: '/signup?plan=pro',
   },
   {
@@ -217,9 +202,9 @@ const faqs = [
       'Vos données sont isolées par organisation grâce à Supabase RLS, l’authentification repose sur JWT, et l’application supporte un AppLock PIN local. Les échanges sont chiffrés en TLS.',
   },
   {
-    question: 'Puis-je essayer gratuitement ?',
+    question: 'Puis-je essayer avant de payer ?',
     answer:
-      'Oui, le plan Gratuit vous permet d’utiliser StockFlow avec 1 utilisateur, 10 produits et 1 emplacement. Les plans payants disposent d’un essai de 14 jours sans engagement.',
+      'Oui, chaque plan payant inclut 1 mois d’essai gratuit. Aucune carte bancaire n’est requise, et vous pouvez résilier à tout moment.',
   },
 ]
 
@@ -349,9 +334,7 @@ export default function LandingPage() {
             price:
               p.priceMode === 'custom'
                 ? 'Sur mesure'
-                : p.monthlyPrice === 0
-                  ? 'Gratuit'
-                  : `${(p.monthlyPrice / 100).toLocaleString('fr-FR')} €`,
+                : `${(p.monthlyPrice / 100).toLocaleString('fr-FR')} €`,
             period: p.priceMode === 'custom' ? '' : '/mois',
             description: p.description,
             features: p.features,
