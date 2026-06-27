@@ -12,8 +12,11 @@ interface FeaturePageProps {
   primaryCtaLink: string
   secondaryCta: string
   secondaryCtaLink: string
+  previewImage?: string
   previewLabel: string
+  previewIcon: LucideIcon
   features: { icon: LucideIcon; title: string; description: string }[]
+  benefits?: string[]
 }
 
 export function FeaturePage({
@@ -24,8 +27,11 @@ export function FeaturePage({
   primaryCtaLink,
   secondaryCta,
   secondaryCtaLink,
+  previewImage,
   previewLabel,
+  previewIcon: PreviewIcon,
   features,
+  benefits,
 }: FeaturePageProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -50,9 +56,29 @@ export function FeaturePage({
                   </Button>
                 </div>
               </div>
-              <div className="rounded-2xl border bg-card p-8 shadow-lg">
-                <div className="flex h-64 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                  {previewLabel}
+              <div className="relative overflow-hidden rounded-2xl border bg-card p-2 shadow-lg">
+                {previewImage ? (
+                  <img
+                    src={previewImage}
+                    alt={previewLabel}
+                    className="w-full rounded-xl object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.parentElement
+                        ?.querySelector('.fallback')
+                        ?.classList.remove('hidden')
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`fallback flex flex-col items-center justify-center rounded-xl bg-muted p-8 text-center text-sm text-muted-foreground ${
+                    previewImage ? 'hidden' : ''
+                  }`}
+                  style={{ minHeight: '16rem' }}
+                >
+                  <PreviewIcon className="mb-2 h-8 w-8 text-primary" />
+                  <span className="font-medium">{previewLabel}</span>
+                  <span className="mt-1 text-xs">Capture d’écran à venir</span>
                 </div>
               </div>
             </div>
@@ -84,13 +110,42 @@ export function FeaturePage({
           </div>
         </section>
 
+        {benefits && benefits.length > 0 && (
+          <section className="px-4 py-20 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-12 text-center">
+                <h2 className="text-3xl font-bold">
+                  Pourquoi les PME choisissent cette fonctionnalité
+                </h2>
+                <p className="mt-4 text-muted-foreground">
+                  Des bénéfices concrets pour votre activité.
+                </p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {benefits.map((benefit) => (
+                  <div
+                    key={benefit}
+                    className="flex items-start gap-3 rounded-2xl border bg-muted/30 p-6"
+                  >
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      ✓
+                    </span>
+                    <p className="text-sm font-medium">{benefit}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
+          <div className="mx-auto max-w-4xl rounded-2xl bg-primary p-8 text-center text-primary-foreground sm:p-12">
             <h2 className="text-3xl font-bold">Prêt à essayer ?</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Rejoignez les PME qui gagnent du temps chaque jour avec StockFlow.
+            <p className="mt-4 opacity-90">
+              Rejoignez les PME qui gagnent du temps chaque jour avec StockFlow. 1 mois gratuit,
+              sans engagement.
             </p>
-            <Button asChild size="lg" className="mt-8">
+            <Button asChild size="lg" variant="secondary" className="mt-8">
               <Link to="/signup">Essayer 1 mois gratuit</Link>
             </Button>
           </div>

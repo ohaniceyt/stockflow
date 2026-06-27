@@ -7,11 +7,13 @@ export default function PosCashierFeaturePage() {
       eyebrow="Caisse & POS"
       title="Une caisse rapide pour vendre sans file d’attente"
       description="Transformez n’importe quel appareil en point de vente. Scannez les produits, encaissez en cash, par carte ou mobile money, et imprimez des reçus en quelques secondes."
-      primaryCta="Essayer la caisse"
+      primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
       secondaryCtaLink="/pricing"
+      previewImage="/features/pos-preview.png"
       previewLabel="Aperçu de l’interface caisse"
+      previewIcon={Receipt}
       features={[
         {
           icon: Receipt,
@@ -43,6 +45,12 @@ export default function PosCashierFeaturePage() {
           title: 'Rapports de vente',
           description: 'Suivez les ventes par caissier, produit et mode de paiement.',
         },
+      ]}
+      benefits={[
+        'Réduisez les files d’attente',
+        'Évitez les erreurs de caisse',
+        'Accélérez les encaissements',
+        'Suivez vos ventes en temps réel',
       ]}
     />
   )

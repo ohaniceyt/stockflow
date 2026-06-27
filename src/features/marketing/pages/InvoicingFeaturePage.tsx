@@ -7,11 +7,13 @@ export default function InvoicingFeaturePage() {
       eyebrow="Facturation"
       title="Devis et factures qui donnent une image professionnelle"
       description="Créez des devis, convertissez-les en factures, suivez les paiements et relancez automatiquement vos clients en retard."
-      primaryCta="Créer ma première facture"
+      primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
       secondaryCtaLink="/pricing"
+      previewImage="/features/invoicing-preview.png"
       previewLabel="Aperçu de l’éditeur de factures"
+      previewIcon={FileText}
       features={[
         {
           icon: FileText,
@@ -43,6 +45,12 @@ export default function InvoicingFeaturePage() {
           title: 'Suivi des paiements',
           description: 'Visualisez les factures payées, en retard et en attente.',
         },
+      ]}
+      benefits={[
+        'Accélérez vos encaissements',
+        'Réduisez les impayés',
+        'Gagnez une image professionnelle',
+        'Automatisez les relances',
       ]}
     />
   )

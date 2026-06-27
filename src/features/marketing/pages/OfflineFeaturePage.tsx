@@ -7,11 +7,12 @@ export default function OfflineFeaturePage() {
       eyebrow="Mode offline"
       title="Vendez et gérez votre stock, même sans connexion"
       description="StockFlow fonctionne hors ligne. Vos ventes, mouvements et ajustements sont enregistrés localement puis synchronisés dès le retour du réseau."
-      primaryCta="Tester le mode offline"
+      primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
       secondaryCtaLink="/pricing"
       previewLabel="Synchronisation automatique en arrière-plan"
+      previewIcon={WifiOff}
       features={[
         {
           icon: WifiOff,
@@ -43,6 +44,12 @@ export default function OfflineFeaturePage() {
           title: 'Performance locale',
           description: 'Interface réactive grâce au stockage local optimisé.',
         },
+      ]}
+      benefits={[
+        'Ne perdez plus de ventes à cause du réseau',
+        'Travaillez dans les zones rurales',
+        'Synchronisez automatiquement au retour en ligne',
+        'Gardez vos données en sécurité',
       ]}
     />
   )

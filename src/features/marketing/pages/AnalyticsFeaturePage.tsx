@@ -7,11 +7,13 @@ export default function AnalyticsFeaturePage() {
       eyebrow="Analytics"
       title="Pilotez votre activité avec des données claires"
       description="Tableaux de bord, KPIs, rapports de vente, de stock et de trésorerie : prenez les bonnes décisions basées sur des chiffres actualisés en temps réel."
-      primaryCta="Voir le tableau de bord"
+      primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
       secondaryCtaLink="/pricing"
+      previewImage="/dashboard-preview.png"
       previewLabel="Aperçu du tableau de bord analytique"
+      previewIcon={BarChart3}
       features={[
         {
           icon: BarChart3,
@@ -44,6 +46,12 @@ export default function AnalyticsFeaturePage() {
           title: 'Exports',
           description: 'Exportez vos rapports en Excel ou PDF pour vos comptables.',
         },
+      ]}
+      benefits={[
+        'Identifiez les produits les plus rentables',
+        'Anticipez les ruptures de stock',
+        'Suivez votre trésorerie',
+        'Partagez des rapports avec votre comptable',
       ]}
     />
   )
