@@ -148,9 +148,9 @@ const pricingPlans = [
     monthlyPrice: 4900,
     yearlyPrice: 49900,
     features: [
-      '5 utilisateurs',
-      '500 produits',
-      '3 emplacements',
+      '2 utilisateurs',
+      '100 produits',
+      '2 emplacements',
       '2 000 mouvements/mois',
       'Facturation incluse',
       'Support prioritaire',
