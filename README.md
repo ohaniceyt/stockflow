@@ -107,9 +107,9 @@ L’application utilise **Supabase Auth email/password** pour l’authentificati
 | `create-user`                    | ✅          | Crée un utilisateur + envoie l’email de bienvenue (admin/super_admin)           |
 | `initialize-session`             | ✅          | Résout org/membership/rôle après connexion Supabase Auth                        |
 | `list-users`                     | ✅          | Liste les utilisateurs de l’organisation                                        |
-| `change-pin`                     | ✅          | Changement du PIN AppLock (hash stocké côté membership — utilisé si besoin)      |
+| `change-pin`                     | ✅          | Changement du PIN AppLock (hash stocké côté membership — utilisé si besoin)     |
 | `reset-pin`                      | ✅          | Réinitialisation forcée du PIN AppLock (admin)                                  |
-| `request-pin-reset`              | ❌ (public) | Envoie un magic link pour déverrouiller l’appareil local                         |
+| `request-pin-reset`              | ❌ (public) | Envoie un magic link pour déverrouiller l’appareil local                        |
 | `complete-onboarding`            | ✅          | Finalise l’onboarding de l’organisation                                         |
 | `org-limits`                     | ✅          | Retourne les quotas et l’utilisation courante de l’organisation                 |
 | `platform-list-organizations`    | ✅          | Liste toutes les organisations (plateforme admin)                               |

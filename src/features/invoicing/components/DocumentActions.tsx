@@ -51,8 +51,8 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showPrinterSetup, setShowPrinterSetup] = useState(false)
   const [showConvertForm, setShowConvertForm] = useState(false)
-  const [convertIssueDate, setConvertIssueDate] = useState(() =>
-    new Date().toISOString().split('T')[0]
+  const [convertIssueDate, setConvertIssueDate] = useState(
+    () => new Date().toISOString().split('T')[0]
   )
   const [convertDueDate, setConvertDueDate] = useState(() => {
     const d = new Date()
