@@ -23,7 +23,7 @@ export function ExportActions({
   products,
   productMap,
   currency,
-  orgName = 'StockFlow',
+  orgName = 'Flowbill',
   redactFinancials = false,
 }: ExportActionsProps) {
   const [loading, setLoading] = useState<'excel' | 'pdf' | 'whatsapp' | null>(null)

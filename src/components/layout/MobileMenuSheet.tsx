@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LogOut, X } from 'lucide-react'
+import { Logo } from '@/features/marketing/components/Logo'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { NavItem } from './navConfig'
@@ -55,11 +56,9 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
       <div className="absolute left-0 top-0 bottom-0 w-[80%] max-w-xs border-r bg-card p-4 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
-              S
-            </div>
+            <Logo variant="icon" className="h-9 w-9" />
             <div>
-              <p className="font-bold leading-tight">StockFlow</p>
+              <p className="font-bold leading-tight">Flowbill</p>
               <p className="text-xs text-muted-foreground">{session?.user.name}</p>
             </div>
           </div>

@@ -100,7 +100,7 @@ export default function ProfilePage() {
       <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6">
         <h2 className="font-semibold text-destructive">Zone dangereuse</h2>
         <p className="text-sm text-muted-foreground">
-          Déconnectez-vous de StockFlow sur cet appareil.
+          Déconnectez-vous de Flowbill sur cet appareil.
         </p>
         <Button type="button" variant="destructive" className="mt-4" onClick={() => void signOut()}>
           Se déconnecter

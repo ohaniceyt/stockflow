@@ -1,6 +1,6 @@
 {
-  "name": "StockFlow vNext",
-  "short_name": "StockFlow",
+  "name": "Flowbill",
+  "short_name": "Flowbill",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -8,7 +8,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

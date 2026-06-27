@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { Logo } from '@/features/marketing/components/Logo'
 
 const VALID_PLANS = ['free', 'starter', 'pro'] as const
 type PlanParam = (typeof VALID_PLANS)[number]
@@ -73,10 +74,10 @@ export default function SignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-3xl font-bold text-primary-foreground">
-            S
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+            <Logo variant="icon" className="h-16 w-16" />
           </div>
-          <h1 className="text-2xl font-bold">Créer votre compte StockFlow</h1>
+          <h1 className="text-2xl font-bold">Créer votre compte Flowbill</h1>
           <p className="text-sm text-muted-foreground">
             Commencez gratuitement, sans carte bancaire.
             {planParam && (

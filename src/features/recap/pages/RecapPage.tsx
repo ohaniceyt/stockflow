@@ -18,7 +18,7 @@ type PeriodMode = 'today' | 'week' | 'month' | 'custom'
 export default function RecapPage() {
   const { session, hasRole } = useAuth()
   const currency = session?.organization.currency ?? 'XOF'
-  const orgName = session?.organization.name ?? 'StockFlow'
+  const orgName = session?.organization.name ?? 'Flowbill'
   const canViewFinancials = hasRole(['super_admin', 'admin'])
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('week')

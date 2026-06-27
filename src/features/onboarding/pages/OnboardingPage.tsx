@@ -194,7 +194,7 @@ export default function OnboardingPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Building2 className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold">Bienvenue sur StockFlow</h1>
+          <h1 className="text-2xl font-bold">Bienvenue sur Flowbill</h1>
           <p className="text-muted-foreground">Finalisez la configuration de votre organisation.</p>
         </div>
 
@@ -304,7 +304,7 @@ export default function OnboardingPage() {
                 <h2 className="font-semibold">Emplacement par défaut</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                StockFlow a besoin d’au moins un emplacement (dépôt, magasin, etc.) pour suivre le
+                Flowbill a besoin d’au moins un emplacement (dépôt, magasin, etc.) pour suivre le
                 stock.
               </p>
               <div className="space-y-2">
