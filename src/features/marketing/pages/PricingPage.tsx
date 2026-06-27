@@ -11,8 +11,8 @@ const plans = [
     period: '/mois',
     description: 'Idéal pour tester et démarrer.',
     features: [
-      '2 utilisateurs',
-      '50 produits',
+      '1 utilisateur',
+      '10 produits',
       '1 emplacement',
       '100 mouvements/mois',
       'Gestion de stock de base',

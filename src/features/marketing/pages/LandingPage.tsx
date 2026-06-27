@@ -133,8 +133,8 @@ const pricingPlans = [
     monthlyPrice: 0,
     yearlyPrice: 0,
     features: [
-      '2 utilisateurs',
-      '50 produits',
+      '1 utilisateur',
+      '10 produits',
       '1 emplacement',
       '100 mouvements/mois',
       'Support email',
@@ -219,7 +219,7 @@ const faqs = [
   {
     question: 'Puis-je essayer gratuitement ?',
     answer:
-      'Oui, le plan Gratuit vous permet d’inviter 2 utilisateurs, de gérer 50 produits et 1 emplacement. Les plans payants disposent d’un essai de 14 jours sans engagement.',
+      'Oui, le plan Gratuit vous permet d’utiliser StockFlow avec 1 utilisateur, 10 produits et 1 emplacement. Les plans payants disposent d’un essai de 14 jours sans engagement.',
   },
 ]
 
