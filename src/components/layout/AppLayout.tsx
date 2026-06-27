@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { LogOut, Menu } from 'lucide-react'
+import { Logo } from '@/features/marketing/components/Logo'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
 import { SudoBanner } from '@/features/back-office/components/SudoBanner'
@@ -35,11 +36,9 @@ export function AppLayout() {
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-card md:flex">
         <div className="flex h-16 items-center gap-3 border-b px-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
-            S
-          </div>
+          <Logo variant="icon" className="h-9 w-9" />
           <div>
-            <p className="font-bold leading-tight">StockFlow</p>
+            <p className="font-bold leading-tight">Flowbill</p>
             <p className="text-xs text-muted-foreground">{session?.user.name}</p>
           </div>
         </div>
@@ -95,7 +94,7 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <h2 className="text-base font-semibold md:text-lg">StockFlow</h2>
+          <h2 className="text-base font-semibold md:text-lg">Flowbill</h2>
 
           <div className="text-sm text-muted-foreground">
             {session?.membership.role === 'super_admin' ? 'Super Admin' : session?.user.name}

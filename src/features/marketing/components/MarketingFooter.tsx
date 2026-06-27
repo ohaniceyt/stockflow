@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Logo } from './Logo'
 
 const footerLinks = {
   Product: [
@@ -23,14 +24,11 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                S
-              </div>
-              StockFlow
+            <Link to="/" className="flex items-center gap-2">
+              <Logo className="h-7" />
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">
-              La gestion de stock simple et moderne pour les PME, boutiques et entrepôts.
+              La gestion de stock, caisse et facturation simple et moderne pour les PME.
             </p>
           </div>
           {Object.entries(footerLinks).map(([category, links]) => (
@@ -68,7 +66,7 @@ export function MarketingFooter() {
           ))}
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} StockFlow. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} Flowbill. Tous droits réservés.</p>
           <div className="flex gap-6">
             <a href="mailto:team@stockflow.grandigix.com" className="hover:text-foreground">
               Contact

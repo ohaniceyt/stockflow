@@ -6,7 +6,7 @@ interface ExportOptions {
 
 export function exportStockToExcel(
   stock: StockItem[],
-  orgName = 'StockFlow',
+  orgName = 'Flowbill',
   options: ExportOptions = {}
 ) {
   const { redactFinancials = false } = options
@@ -80,7 +80,7 @@ export function exportStockToExcel(
 
 export function exportStockToPdf(
   stock: StockItem[],
-  orgName = 'StockFlow',
+  orgName = 'Flowbill',
   options: ExportOptions = {}
 ) {
   const { redactFinancials = false } = options
@@ -139,7 +139,7 @@ export function exportStockToPdf(
 
 export function shareStockOnWhatsApp(
   stock: StockItem[],
-  orgName = 'StockFlow',
+  orgName = 'Flowbill',
   options: ExportOptions = {}
 ) {
   const { redactFinancials = false } = options

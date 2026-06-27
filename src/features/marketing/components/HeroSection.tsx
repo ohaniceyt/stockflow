@@ -30,7 +30,7 @@ export function HeroSection() {
               Vendez plus, <span className="text-primary">gérez mieux</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              StockFlow centralise votre inventaire, votre caisse, vos factures et vos analyses en
+              Flowbill centralise votre inventaire, votre caisse, vos factures et vos analyses en
               une seule app rapide, offline-first et sécurisée.
             </p>
             <ul className="mt-8 space-y-3">
@@ -70,7 +70,7 @@ export function HeroSection() {
             <div className="relative overflow-hidden rounded-2xl border bg-card shadow-2xl">
               <img
                 src="/dashboard-preview.png"
-                alt="Tableau de bord StockFlow"
+                alt="Tableau de bord Flowbill"
                 className="w-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
@@ -88,7 +88,7 @@ export function HeroSection() {
         <DialogContent className="max-w-3xl p-0">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="flex items-center justify-between">
-              Découvrez StockFlow en 2 minutes
+              Découvrez Flowbill en 2 minutes
               <button
                 type="button"
                 onClick={() => setDemoOpen(false)}

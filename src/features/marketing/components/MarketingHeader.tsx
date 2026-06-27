@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Menu, X, ChevronDown } from 'lucide-react'
+import { Logo } from './Logo'
 
 interface NavItem {
   label: string
@@ -48,11 +49,8 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            S
-          </div>
-          StockFlow
+        <Link to="/" className="flex items-center gap-2">
+          <Logo className="h-8" />
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm font-medium md:flex">

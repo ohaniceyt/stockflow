@@ -90,7 +90,7 @@ export default function ResetPinPage() {
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             Ce PIN est un verrouillage local de cet appareil. Il n’est pas synchronisé et ne
-            remplace pas votre mot de passe StockFlow.
+            remplace pas votre mot de passe Flowbill.
           </p>
         </div>
 

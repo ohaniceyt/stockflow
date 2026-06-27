@@ -62,7 +62,7 @@ export function AppLock() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Lock className="h-7 w-7" />
           </div>
-          <h1 className="text-xl font-bold">StockFlow est verrouillé</h1>
+          <h1 className="text-xl font-bold">Flowbill est verrouillé</h1>
           {email && <p className="mt-1 text-sm text-muted-foreground">{email}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
             Ce code PIN est un verrouillage local de cet appareil. Il ne remplace pas votre mot de

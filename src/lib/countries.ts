@@ -1,4 +1,4 @@
-// Country defaults for StockFlow onboarding and organization settings.
+// Country defaults for Flowbill onboarding and organization settings.
 // Currency and timezone are the standard defaults for each country.
 
 export interface CountryDefault {

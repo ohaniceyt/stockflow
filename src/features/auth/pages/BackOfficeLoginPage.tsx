@@ -43,7 +43,7 @@ export default function BackOfficeLoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-3xl font-bold text-primary-foreground">
             <Shield className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold">Back Office StockFlow</h1>
+          <h1 className="text-2xl font-bold">Back Office Flowbill</h1>
           <p className="text-sm text-muted-foreground">
             Accès réservé aux administrateurs plateforme
           </p>

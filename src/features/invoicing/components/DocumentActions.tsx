@@ -65,7 +65,7 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
   const title = type === 'quote' ? 'Devis' : type === 'invoice' ? 'Facture' : 'Bon de livraison'
   const number = doc.documentNumber
   const totalText = `${doc.total.toLocaleString('fr-FR')} ${doc.currency}`
-  const orgName = session?.organization.name ?? 'StockFlow'
+  const orgName = session?.organization.name ?? 'Flowbill'
   const remaining = Math.max(
     0,
     (doc as InvoiceWithItems).total - (doc as InvoiceWithItems).paidAmount

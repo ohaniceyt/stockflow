@@ -12,7 +12,7 @@ const logos = [
 const testimonials = [
   {
     quote:
-      'Avant StockFlow, je perdais des heures sur Excel. Aujourd’hui je sais exactement ce qui me reste en stock et je vends plus vite en caisse.',
+      'Avant Flowbill, je perdais des heures sur Excel. Aujourd’hui je sais exactement ce qui me reste en stock et je vends plus vite en caisse.',
     author: 'Aïcha Diallo',
     role: 'Gérante, Boutique Alima',
     location: 'Dakar',

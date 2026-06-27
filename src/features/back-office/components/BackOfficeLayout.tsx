@@ -73,7 +73,7 @@ export default function BackOfficeLayout() {
 
       <main className="flex-1 overflow-auto">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-6">
-          <h2 className="text-base font-semibold md:text-lg">StockFlow Back Office</h2>
+          <h2 className="text-base font-semibold md:text-lg">Flowbill Back Office</h2>
           <div className="text-sm text-muted-foreground">
             {platformAdminRole === 'super_admin' ? 'Super Admin' : 'Modérateur'}
           </div>

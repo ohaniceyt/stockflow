@@ -6,7 +6,7 @@ export default function OfflineFeaturePage() {
     <FeaturePage
       eyebrow="Mode offline"
       title="Vendez et gérez votre stock, même sans connexion"
-      description="StockFlow fonctionne hors ligne. Vos ventes, mouvements et ajustements sont enregistrés localement puis synchronisés dès le retour du réseau."
+      description="Flowbill fonctionne hors ligne. Vos ventes, mouvements et ajustements sont enregistrés localement puis synchronisés dès le retour du réseau."
       primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
@@ -27,7 +27,7 @@ export default function OfflineFeaturePage() {
         {
           icon: ShieldCheck,
           title: 'Détection de conflits',
-          description: 'StockFlow détecte les conflits et vous aide à les résoudre.',
+          description: 'Flowbill détecte les conflits et vous aide à les résoudre.',
         },
         {
           icon: Clock,
