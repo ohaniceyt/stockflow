@@ -142,8 +142,6 @@ const pricingPlans = [
     ],
     cta: '1 mois gratuit',
     href: '/signup?plan=starter',
-    highlighted: true,
-    popular: true,
   },
   {
     name: 'Pro',
@@ -160,6 +158,8 @@ const pricingPlans = [
     ],
     cta: '1 mois gratuit',
     href: '/signup?plan=pro',
+    highlighted: true,
+    popular: true,
   },
   {
     name: 'Enterprise',

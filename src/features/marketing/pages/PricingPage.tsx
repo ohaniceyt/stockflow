@@ -21,7 +21,6 @@ const plans = [
     ],
     cta: '1 mois gratuit',
     ctaLink: '/signup?plan=starter',
-    highlighted: true,
   },
   {
     name: 'Pro',
@@ -39,6 +38,7 @@ const plans = [
     ],
     cta: '1 mois gratuit',
     ctaLink: '/signup?plan=pro',
+    highlighted: true,
   },
   {
     name: 'Enterprise',
