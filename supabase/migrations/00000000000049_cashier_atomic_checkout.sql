@@ -255,15 +255,15 @@ CREATE OR REPLACE FUNCTION complete_sale(
   p_org_id UUID,
   p_location_id UUID,
   p_cashier_session_id UUID,
-  p_contact_id UUID DEFAULT NULL,
-  p_payment_method TEXT DEFAULT 'cash',
-  p_currency TEXT DEFAULT 'XOF',
-  p_prefix TEXT DEFAULT 'REC',
   p_subtotal NUMERIC,
   p_tax_amount NUMERIC,
   p_total NUMERIC,
   p_amount_paid NUMERIC,
   p_change_due NUMERIC,
+  p_contact_id UUID DEFAULT NULL,
+  p_payment_method TEXT DEFAULT 'cash',
+  p_currency TEXT DEFAULT 'XOF',
+  p_prefix TEXT DEFAULT 'REC',
   p_notes TEXT DEFAULT NULL,
   p_items JSONB DEFAULT '[]'::jsonb
 )
@@ -407,11 +407,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-ALTER FUNCTION public.complete_sale(UUID, UUID, UUID, UUID, TEXT, TEXT, TEXT, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, TEXT, JSONB) SET search_path = pg_temp, public, pg_catalog;
+ALTER FUNCTION public.complete_sale(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, UUID, TEXT, TEXT, TEXT, TEXT, JSONB) SET search_path = pg_temp, public, pg_catalog;
 
-REVOKE EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, UUID, TEXT, TEXT, TEXT, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, TEXT, JSONB) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, UUID, TEXT, TEXT, TEXT, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, TEXT, JSONB) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, UUID, TEXT, TEXT, TEXT, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, TEXT, JSONB) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, UUID, TEXT, TEXT, TEXT, TEXT, JSONB) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, UUID, TEXT, TEXT, TEXT, TEXT, JSONB) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.complete_sale(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, NUMERIC, NUMERIC, UUID, TEXT, TEXT, TEXT, TEXT, JSONB) TO authenticated;
 
 -- 4. Cancel a receipt and reverse its movements atomically.
 CREATE OR REPLACE FUNCTION cancel_sale(
