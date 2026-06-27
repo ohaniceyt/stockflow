@@ -3,7 +3,8 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface CancelSalePayload {
-  movement_id: string
+  receipt_id?: string | null
+  movement_id?: string | null
 }
 
 Deno.serve(async (req: Request) => {
@@ -36,7 +37,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: CancelSalePayload = await req.json()
-    if (!payload.movement_id) {
+    if (!payload.receipt_id && !payload.movement_id) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -49,7 +50,8 @@ Deno.serve(async (req: Request) => {
     })
 
     const { error } = await userClient.rpc('cancel_sale', {
-      p_movement_id: payload.movement_id,
+      p_receipt_id: payload.receipt_id ?? null,
+      p_movement_id: payload.movement_id ?? null,
     })
 
     if (error) {

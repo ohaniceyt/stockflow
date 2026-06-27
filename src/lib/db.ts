@@ -25,6 +25,10 @@ export interface SyncMeta {
   id: string
   lastSyncAt: number
   status: 'idle' | 'syncing' | 'error'
+  /** Snapshots of the server-side `updatedAt` (or `createdAt` fallback) for each entity from the last successful pull sync. */
+  serverSnapshots?: Record<string, number>
+  /** Per-operation server snapshot captured at queue time, used for conflict detection during replay. */
+  opServerUpdatedAt?: Record<string, number | undefined>
 }
 
 class StockFlowDB extends Dexie {

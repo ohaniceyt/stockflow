@@ -6,9 +6,15 @@ export interface QueueOperationInput {
   payload: unknown
 }
 
-const SYNC_SECRET =
-  (import.meta.env.VITE_SYNC_SECRET as string | undefined) ??
-  'stockflow-offline-sync-fallback-secret'
+function getSyncSecret(): string {
+  const secret = (import.meta.env as Record<string, unknown>).VITE_SYNC_SECRET as string | undefined
+  if (!secret) {
+    throw new Error(
+      'Configuration manquante: VITE_SYNC_SECRET est requis pour sécuriser la file de synchronisation hors ligne'
+    )
+  }
+  return secret
+}
 
 async function sha256(input: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -24,7 +30,7 @@ export async function computeChecksum(
   payload: unknown,
   createdAt: number
 ): Promise<string> {
-  const body = `${type}:${SYNC_SECRET}:${JSON.stringify(payload)}:${String(createdAt)}`
+  const body = `${type}:${getSyncSecret()}:${JSON.stringify(payload)}:${String(createdAt)}`
   return sha256(body)
 }
 
@@ -223,11 +229,130 @@ async function resolveLocalUpdatedAt(input: QueueOperationInput): Promise<number
   return undefined
 }
 
+function parseTimestamp(value: string | undefined | null): number | undefined {
+  if (!value) return undefined
+  const ms = new Date(value).getTime()
+  return Number.isNaN(ms) ? undefined : ms
+}
+
+async function getSnapshotTimestamp(key: string): Promise<number | undefined> {
+  const meta = await db.syncMeta.get('global')
+  const snapshot = meta?.serverSnapshots?.[key]
+  if (snapshot !== undefined) return snapshot
+  return undefined
+}
+
+export async function resolveServerUpdatedAt(
+  input: QueueOperationInput
+): Promise<number | undefined> {
+  if (!isPlainObject(input.payload)) return undefined
+
+  switch (input.type) {
+    case 'MOVEMENT': {
+      const payload = input.payload as { productId?: string; locationId?: string }
+      const productId = payload.productId
+      const locationId = payload.locationId
+      if (!productId || !locationId) return undefined
+
+      const stockKey = `stockLevels:${productId}:${locationId}`
+      const stockSnapshot = await getSnapshotTimestamp(stockKey)
+      if (stockSnapshot !== undefined) return stockSnapshot
+
+      const current = await db.stockLevels
+        .where('productId')
+        .equals(productId)
+        .and((level: StockLevel) => level.locationId === locationId)
+        .first()
+      if (current?.updatedAt) return parseTimestamp(current.updatedAt)
+
+      const productSnapshot = await getSnapshotTimestamp(`products:${productId}`)
+      if (productSnapshot !== undefined) return productSnapshot
+
+      const product = await db.products.get(productId)
+      return parseTimestamp(product?.updatedAt)
+    }
+
+    case 'PRODUCT_UPDATE': {
+      const id = getString(input.payload, 'id')
+      if (!id) return undefined
+      const key = `products:${id}`
+      const snapshot = await getSnapshotTimestamp(key)
+      if (snapshot !== undefined) return snapshot
+      const product = await db.products.get(id)
+      return parseTimestamp(product?.updatedAt)
+    }
+
+    case 'CONTACT_UPDATE': {
+      const id = getString(input.payload, 'id')
+      if (!id) return undefined
+      const key = `contacts:${id}`
+      const snapshot = await getSnapshotTimestamp(key)
+      if (snapshot !== undefined) return snapshot
+      const contact = await db.contacts.get(id)
+      return parseTimestamp(contact?.updatedAt)
+    }
+
+    case 'LOCATION_UPDATE':
+    case 'LOCATION_SET_DEFAULT': {
+      const id = getString(input.payload, 'id')
+      if (!id) return undefined
+      const key = `locations:${id}`
+      const snapshot = await getSnapshotTimestamp(key)
+      if (snapshot !== undefined) return snapshot
+      const location = await db.locations.get(id)
+      return parseTimestamp(location?.createdAt)
+    }
+
+    case 'CATEGORY_UPDATE':
+    case 'CATEGORY_DELETE': {
+      const id = getString(input.payload, 'id')
+      if (!id) return undefined
+      const key = `categories:${id}`
+      const snapshot = await getSnapshotTimestamp(key)
+      if (snapshot !== undefined) return snapshot
+      const category = await db.categories.get(id)
+      return parseTimestamp(category?.updatedAt)
+    }
+
+    case 'INVENTORY_COUNT_UPDATE': {
+      const countId = getString(input.payload, 'countId')
+      if (!countId) return undefined
+      const key = `inventoryCounts:${countId}`
+      const snapshot = await getSnapshotTimestamp(key)
+      if (snapshot !== undefined) return snapshot
+      const count = await db.inventoryCounts.get(countId)
+      return parseTimestamp(count?.createdAt)
+    }
+
+    default:
+      return undefined
+  }
+}
+
+async function storeOperationServerUpdatedAt(
+  opId: string,
+  serverUpdatedAt: number | undefined
+): Promise<void> {
+  const meta = (await db.syncMeta.get('global')) ?? {
+    id: 'global',
+    lastSyncAt: Date.now(),
+    status: 'idle' as const,
+  }
+  await db.syncMeta.put({
+    ...meta,
+    opServerUpdatedAt: {
+      ...(meta.opServerUpdatedAt ?? {}),
+      [opId]: serverUpdatedAt,
+    },
+  })
+}
+
 export async function queueOperation(input: QueueOperationInput): Promise<PendingOperation> {
   validateOperation(input)
 
   const now = Date.now()
   const localUpdatedAt = await resolveLocalUpdatedAt(input)
+  const serverUpdatedAt = await resolveServerUpdatedAt(input)
   const checksum = await computeChecksum(input.type, input.payload, now)
 
   const op: PendingOperation = {
@@ -242,6 +367,7 @@ export async function queueOperation(input: QueueOperationInput): Promise<Pendin
   }
 
   await db.pendingOperations.add(op)
+  await storeOperationServerUpdatedAt(op.id, serverUpdatedAt)
   return op
 }
 

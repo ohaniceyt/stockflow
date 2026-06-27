@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
+import { useStock } from '@/features/stock/hooks/useStock'
 import { MovementForm } from '../components/MovementForm'
 import { BulkMovementForm } from '../components/BulkMovementForm'
 import { MovementList } from '../components/MovementList'
@@ -36,6 +37,7 @@ export default function MovementsPage() {
   const { data: contacts, isLoading: contactsLoading, error: contactsError } = useContacts()
   const create = useCreateMovement()
   const createBulk = useCreateBulkMovements()
+  const { data: stock } = useStock()
   const { hasRole } = useAuth()
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
 
@@ -126,6 +128,7 @@ export default function MovementsPage() {
               products={products}
               locations={locations}
               contacts={contacts ?? []}
+              stock={stock}
               onSubmit={handleSingleSubmit}
               onCancel={() => setDialogMode(null)}
               isLoading={create.isPending}

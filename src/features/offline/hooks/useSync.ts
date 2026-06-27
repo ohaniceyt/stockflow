@@ -21,7 +21,7 @@ import {
   updateCategory,
 } from '@/features/products/services/categoryService'
 import { pullSync } from '@/features/offline/services/syncService'
-import { computeChecksum } from '@/features/offline/services/queueService'
+import { computeChecksum, resolveServerUpdatedAt } from '@/features/offline/services/queueService'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { MovementType, StockLevel } from '@/types'
 
@@ -71,9 +71,12 @@ export function useSync() {
   // On mount: recover any operations stuck in 'syncing' from a previous session.
   // Mark them as failed so the retry/backoff logic re-evaluates them instead of
   // immediately replaying potentially non-idempotent operations.
+  // Also backfill missing checksums and server-side updatedAt snapshots for legacy
+  // queued operations so they benefit from the new conflict detection.
   useEffect(() => {
     void db.pendingOperations.where('status').equals('syncing').modify({ status: 'failed' })
     void backfillChecksums()
+    void backfillServerUpdatedAt()
   }, [])
 
   const sync = useCallback(async () => {
@@ -95,6 +98,7 @@ export function useSync() {
       setIsSyncing(true)
       let pullSuccess = false
       let syncError: Error | null = null
+      let hardFailure = false
       const now = Date.now()
 
       try {
@@ -113,6 +117,10 @@ export function useSync() {
         const tempToRealId = new Map<string, string>()
 
         for (const op of ready) {
+          // Stop processing further operations after a hard failure. The user must
+          // manually retry or wait for a new pull sync to resolve the issue.
+          if (hardFailure) break
+
           // Skip operations that belong to a different organization than the current one.
           const opOrgId = getPayloadOrgId(op.payload)
           if (opOrgId !== undefined && opOrgId !== orgId) {
@@ -144,6 +152,7 @@ export function useSync() {
 
             if (status === 'dead') {
               syncError = err instanceof Error ? err : new Error(message)
+              hardFailure = true
             }
           }
         }
@@ -197,8 +206,10 @@ export function useSync() {
           console.error('Failed to refetch inventory-counts caches', err)
         }
 
-        // Only claim a successful sync if both push and pull succeeded.
-        if (pullSuccess) {
+        // Only claim a successful sync if both push and pull succeeded and there was
+        // no hard failure. A hard failure blocks further push replay until the user
+        // manually retries or a fresh pull sync resolves the underlying conflict.
+        if (pullSuccess && !hardFailure) {
           await db.syncMeta.put({
             id: SYNC_META_ID,
             lastSyncAt: Date.now(),
@@ -278,6 +289,30 @@ async function backfillChecksums(): Promise<void> {
   await db.pendingOperations.bulkUpdate(updates)
 }
 
+async function backfillServerUpdatedAt(): Promise<void> {
+  const meta = await db.syncMeta.get('global')
+  const existing = meta?.opServerUpdatedAt ?? {}
+  const allOps = await db.pendingOperations.toArray()
+  const missing = allOps.filter((op) => existing[op.id] === undefined)
+  if (missing.length === 0) return
+
+  const backfill: Record<string, number | undefined> = {}
+  await Promise.all(
+    missing.map(async (op) => {
+      const snapshot = await resolveServerUpdatedAt({ type: op.type, payload: op.payload })
+      backfill[op.id] = snapshot
+    })
+  )
+
+  await db.syncMeta.put({
+    id: SYNC_META_ID,
+    lastSyncAt: meta?.lastSyncAt ?? Date.now(),
+    status: meta?.status ?? 'idle',
+    serverSnapshots: meta?.serverSnapshots,
+    opServerUpdatedAt: { ...existing, ...backfill },
+  })
+}
+
 async function validateChecksum(op: QueuedOperation): Promise<void> {
   if (!op.checksum) {
     // Legacy operations are backfilled on mount; missing checksum here is unexpected.
@@ -289,38 +324,117 @@ async function validateChecksum(op: QueuedOperation): Promise<void> {
   }
 }
 
-async function checkMovementConflict(
+function parseTimestamp(value: string | undefined | null): number | undefined {
+  if (!value) return undefined
+  const ms = new Date(value).getTime()
+  return Number.isNaN(ms) ? undefined : ms
+}
+
+async function checkConflict(
   op: QueuedOperation,
   tempToRealId: Map<string, string>
 ): Promise<void> {
-  if (op.type !== 'MOVEMENT' || op.localUpdatedAt === undefined) return
+  const meta = await db.syncMeta.get('global')
+  const opServerUpdatedAt = meta?.opServerUpdatedAt?.[op.id]
+  if (opServerUpdatedAt === undefined) return
 
-  const payload = op.payload as {
-    productId: string
-    locationId: string
-  }
-  const productId = mapTempId(tempToRealId, payload.productId)
-  const locationId = mapTempId(tempToRealId, payload.locationId)
+  const snapshots: Record<string, number | undefined> = meta?.serverSnapshots ?? {}
 
-  const current = await db.stockLevels
-    .where('productId')
-    .equals(productId)
-    .and((level: StockLevel) => level.locationId === locationId)
-    .first()
-
+  let entityKey: string | undefined
   let currentUpdatedAt: number | undefined
-  if (current?.updatedAt) {
-    currentUpdatedAt = new Date(current.updatedAt).getTime()
-  } else {
-    const product = await db.products.get(productId)
-    if (product?.updatedAt) {
-      currentUpdatedAt = new Date(product.updatedAt).getTime()
+
+  switch (op.type) {
+    case 'MOVEMENT': {
+      const payload = op.payload as { productId: string; locationId: string }
+      const productId = mapTempId(tempToRealId, payload.productId)
+      const locationId = mapTempId(tempToRealId, payload.locationId)
+      // Skip conflict detection for entities created offline (temp ids).
+      if (tempToRealId.has(payload.productId) || tempToRealId.has(payload.locationId)) return
+      entityKey = `stockLevels:${productId}:${locationId}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const current = await db.stockLevels
+          .where('productId')
+          .equals(productId)
+          .and((level: StockLevel) => level.locationId === locationId)
+          .first()
+        currentUpdatedAt = parseTimestamp(current?.updatedAt)
+      }
+      break
     }
+
+    case 'PRODUCT_UPDATE': {
+      const payload = op.payload as { id: string }
+      const id = mapTempId(tempToRealId, payload.id)
+      if (tempToRealId.has(payload.id)) return
+      entityKey = `products:${id}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const product = await db.products.get(id)
+        currentUpdatedAt = parseTimestamp(product?.updatedAt)
+      }
+      break
+    }
+
+    case 'CONTACT_UPDATE': {
+      const payload = op.payload as { id: string }
+      const id = mapTempId(tempToRealId, payload.id)
+      if (tempToRealId.has(payload.id)) return
+      entityKey = `contacts:${id}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const contact = await db.contacts.get(id)
+        currentUpdatedAt = parseTimestamp(contact?.updatedAt)
+      }
+      break
+    }
+
+    case 'LOCATION_UPDATE':
+    case 'LOCATION_SET_DEFAULT': {
+      const payload = op.payload as { id: string }
+      const id = mapTempId(tempToRealId, payload.id)
+      if (tempToRealId.has(payload.id)) return
+      entityKey = `locations:${id}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const location = await db.locations.get(id)
+        currentUpdatedAt = parseTimestamp(location?.createdAt)
+      }
+      break
+    }
+
+    case 'CATEGORY_UPDATE':
+    case 'CATEGORY_DELETE': {
+      const payload = op.payload as { id: string }
+      const id = mapTempId(tempToRealId, payload.id)
+      if (tempToRealId.has(payload.id)) return
+      entityKey = `categories:${id}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const category = await db.categories.get(id)
+        currentUpdatedAt = parseTimestamp(category?.updatedAt)
+      }
+      break
+    }
+
+    case 'INVENTORY_COUNT_UPDATE': {
+      const payload = op.payload as { countId: string }
+      entityKey = `inventoryCounts:${payload.countId}`
+      currentUpdatedAt = snapshots[entityKey]
+      if (currentUpdatedAt === undefined) {
+        const count = await db.inventoryCounts.get(payload.countId)
+        currentUpdatedAt = parseTimestamp(count?.createdAt)
+      }
+      break
+    }
+
+    default:
+      return
   }
 
-  if (currentUpdatedAt !== undefined && currentUpdatedAt > op.localUpdatedAt) {
+  if (currentUpdatedAt !== undefined && currentUpdatedAt !== opServerUpdatedAt) {
     throw new Error(
-      'Conflit de synchronisation: les données locales ont été modifiées après la mise en file de ce mouvement'
+      'Conflit de synchronisation: les données sur le serveur ont été modifiées depuis la dernière mise à jour. Veuillez rafraîchir et réessayer.'
     )
   }
 }
@@ -330,11 +444,14 @@ async function preExecuteCheck(
   tempToRealId: Map<string, string>
 ): Promise<void> {
   await validateChecksum(op)
-  await checkMovementConflict(op, tempToRealId)
+  await checkConflict(op, tempToRealId)
 }
 
 function isRetryableError(err: Error): boolean {
   const msg = err.message.toLowerCase()
+  // Corruption / conflict errors need manual intervention.
+  if (msg.includes('checksum')) return false
+  if (msg.includes('conflit de synchronisation')) return false
   // 4xx client errors are generally not retryable.
   if (/\b4\d{2}\b/.test(err.message)) return false
   if (msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not found'))

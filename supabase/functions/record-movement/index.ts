@@ -37,6 +37,83 @@ interface RecordMovementPayload {
   client_operation_id?: string | null
 }
 
+const ALLOWED_TYPES: RecordMovementPayload['type'][] = [
+  'IN',
+  'OUT',
+  'INVENTORY',
+  'ADJUSTMENT',
+  'TRANSFER',
+]
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
+function validatePayload(
+  payload: RecordMovementPayload
+): { ok: false; error: string } | { ok: true } {
+  if (!ALLOWED_TYPES.includes(payload.type)) {
+    return { ok: false, error: 'Type de mouvement invalide' }
+  }
+  const quantityValid =
+    payload.type === 'ADJUSTMENT' || payload.type === 'INVENTORY'
+      ? isNonNegativeInteger(payload.quantity)
+      : isPositiveInteger(payload.quantity)
+  if (!quantityValid) {
+    return { ok: false, error: 'La quantité doit être un entier positif' }
+  }
+  if (!payload.product_id || !payload.location_id) {
+    return { ok: false, error: 'Produit et emplacement requis' }
+  }
+  if (payload.type === 'TRANSFER') {
+    if (!payload.target_location_id) {
+      return { ok: false, error: 'Un transfert nécessite un emplacement cible' }
+    }
+    if (payload.target_location_id === payload.location_id) {
+      return { ok: false, error: "L'emplacement cible doit être différent de l'origine" }
+    }
+  }
+  return { ok: true }
+}
+
+async function validateOwnership(
+  adminClient: ReturnType<typeof createClient>,
+  orgId: string,
+  payload: RecordMovementPayload
+): Promise<boolean> {
+  const [product, location, target] = await Promise.all([
+    adminClient
+      .from('products')
+      .select('id')
+      .eq('id', payload.product_id)
+      .eq('org_id', orgId)
+      .maybeSingle(),
+    adminClient
+      .from('locations')
+      .select('id')
+      .eq('id', payload.location_id)
+      .eq('org_id', orgId)
+      .maybeSingle(),
+    payload.target_location_id
+      ? adminClient
+          .from('locations')
+          .select('id')
+          .eq('id', payload.target_location_id)
+          .eq('org_id', orgId)
+          .maybeSingle()
+      : Promise.resolve({ data: { id: 'ignored' }, error: null } as const),
+  ])
+
+  if (product.error || location.error || (payload.target_location_id && target.error)) {
+    return false
+  }
+  return Boolean(product.data && location.data && (!payload.target_location_id || target.data))
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return corsResponse(req)
@@ -86,15 +163,18 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: RecordMovementPayload = await req.json()
-    if (
-      !payload.product_id ||
-      !payload.location_id ||
-      !payload.type ||
-      typeof payload.quantity !== 'number' ||
-      payload.quantity <= 0
-    ) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const payloadValidation = validatePayload(payload)
+    if (!payloadValidation.ok) {
+      return new Response(JSON.stringify({ error: payloadValidation.error }), {
         status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const owned = await validateOwnership(adminClient, operator.org_id, payload)
+    if (!owned) {
+      return new Response(JSON.stringify({ error: 'Produit ou emplacement non autorisé' }), {
+        status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }

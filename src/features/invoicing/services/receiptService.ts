@@ -191,7 +191,7 @@ export async function getReceiptWithOrg(
   }
 }
 
-function mapReceipt(row: ReceiptRow): Receipt {
+export function mapReceipt(row: ReceiptRow): Receipt {
   return {
     id: row.id,
     orgId: row.org_id,
@@ -215,7 +215,7 @@ function mapReceipt(row: ReceiptRow): Receipt {
   }
 }
 
-function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
+export function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
   return {
     id: row.id,
     receiptId: row.receipt_id,
