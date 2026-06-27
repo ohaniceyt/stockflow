@@ -126,7 +126,6 @@ export interface OrganizationMembership {
   userId: string
   role: UserRole
   hasPin: boolean
-  pinHash?: string | null
   isActive: boolean
   forcePinChange: boolean
   lastLoginAt: string | null

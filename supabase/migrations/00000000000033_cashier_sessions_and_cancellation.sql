@@ -28,6 +28,11 @@ CREATE INDEX IF NOT EXISTS idx_movements_cashier_session_id ON movements(cashier
 CREATE INDEX IF NOT EXISTS idx_cashier_sessions_org_location ON cashier_sessions(org_id, location_id);
 CREATE INDEX IF NOT EXISTS idx_cashier_sessions_status ON cashier_sessions(status);
 
+-- Prevent two open cashier sessions on the same location.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cashier_sessions_open_location
+  ON cashier_sessions(location_id)
+  WHERE status = 'open';
+
 -- 4. Enable RLS on cashier_sessions
 ALTER TABLE cashier_sessions ENABLE ROW LEVEL SECURITY;
 

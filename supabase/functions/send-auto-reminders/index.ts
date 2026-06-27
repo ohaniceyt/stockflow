@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 import { sendEmail } from '../_shared/resend.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface OrgReminderSettings {
   id: string
@@ -17,14 +18,9 @@ interface OverdueInvoice {
   contact_email: string | null
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   const authHeader = req.headers.get('authorization')
@@ -32,7 +28,7 @@ Deno.serve(async (req: Request) => {
   if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 
@@ -171,7 +167,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const details =
@@ -181,7 +177,7 @@ Deno.serve(async (req: Request) => {
     console.error('send-auto-reminders error:', details)
     return new Response(JSON.stringify({ error: 'Internal error', details }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

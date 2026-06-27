@@ -1,14 +1,16 @@
-import { useState, useMemo, type SyntheticEvent } from 'react'
+import { useMemo, useState, type SyntheticEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import type { StockItem } from '@/features/stock/services/stockService'
 import type { Contact, Location, MovementType, Product } from '@/types'
 
 interface MovementFormProps {
   products: Product[]
   locations: Location[]
   contacts: Contact[]
+  stock?: StockItem[]
   onSubmit: (input: {
     productId: string
     locationId: string
@@ -28,10 +30,22 @@ function sanitizeNumber(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
+function findStockLevel(
+  stock: StockItem[] | undefined,
+  productId: string,
+  locationId: string
+): number | null {
+  if (!stock || !productId || !locationId) {
+    return null
+  }
+  return stock.find((s) => s.productId === productId && s.locationId === locationId)?.quantity ?? 0
+}
+
 export function MovementForm({
   products,
   locations,
   contacts,
+  stock,
   onSubmit,
   onCancel,
   isLoading,
@@ -53,6 +67,11 @@ export function MovementForm({
     [activeProducts, productId]
   )
 
+  const currentStock = useMemo(
+    () => (type === 'ADJUSTMENT' ? findStockLevel(stock, productId, locationId) : null),
+    [type, stock, productId, locationId]
+  )
+
   const contactType = type === 'IN' ? 'SUPPLIER' : type === 'OUT' ? 'CUSTOMER' : null
   const filteredContacts = contactType
     ? contacts.filter((c) => c.type === contactType && c.isActive)
@@ -66,6 +85,10 @@ export function MovementForm({
     } else if (selectedProduct) {
       setUnitPrice(String(selectedProduct.sellingPrice))
     }
+
+    if (next === 'ADJUSTMENT' && productId && locationId) {
+      setQuantity(findStockLevel(stock, productId, locationId) ?? 0)
+    }
   }
 
   const handleProductChange = (id: string) => {
@@ -73,6 +96,9 @@ export function MovementForm({
     const product = activeProducts.find((p) => p.id === id)
     if (type === 'OUT' && product) {
       setUnitPrice(String(product.sellingPrice))
+    }
+    if (type === 'ADJUSTMENT' && id && locationId) {
+      setQuantity(findStockLevel(stock, id, locationId) ?? 0)
     }
   }
 
@@ -82,7 +108,13 @@ export function MovementForm({
     if (!locationId) next.locationId = "Sélectionnez un emplacement d'origine"
     if (type === 'TRANSFER' && !targetLocationId)
       next.targetLocationId = 'Sélectionnez un emplacement de destination'
-    if (quantity <= 0) next.quantity = 'La quantité doit être positive'
+    if (!Number.isInteger(quantity)) {
+      next.quantity = 'La quantité doit être un nombre entier'
+    } else if (type === 'ADJUSTMENT') {
+      if (quantity < 0) next.quantity = 'Le nouveau stock ne peut pas être négatif'
+    } else if (quantity <= 0) {
+      next.quantity = 'La quantité doit être positive'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -203,17 +235,29 @@ export function MovementForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="quantity">Quantité</Label>
+          <Label htmlFor="quantity">{type === 'ADJUSTMENT' ? 'Nouveau stock' : 'Quantité'}</Label>
           <Input
             id="quantity"
             type="number"
-            min={1}
+            min={type === 'ADJUSTMENT' ? 0 : 1}
             value={quantity}
             onChange={(e) => {
               const raw = e.target.value
               setQuantity(raw === '' ? 0 : Number(raw))
             }}
           />
+          {type === 'ADJUSTMENT' && currentStock !== null && (
+            <p className="text-xs text-muted-foreground">
+              Stock actuel : {currentStock}
+              {quantity !== currentStock && (
+                <>
+                  {' — Ajustement : '}
+                  {quantity > currentStock ? '+' : ''}
+                  {quantity - currentStock}
+                </>
+              )}
+            </p>
+          )}
           {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
         </div>
 

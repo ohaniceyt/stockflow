@@ -1,9 +1,15 @@
 import { supabase } from '@/services/supabase'
 import { edgeFetch } from '@/services/edgeFunctions'
-import type { CashierSession, Movement } from '@/types'
+import { mapReceipt, mapReceiptItem } from '@/features/invoicing/services/receiptService'
+import type { CashierSession, Movement, ReceiptWithItems } from '@/types'
+
 import type { Database } from '@/types/database'
 
+type CashierSessionStatus = CashierSession['status']
+
 type CashierSessionRow = Database['public']['Tables']['cashier_sessions']['Row']
+type ReceiptRow = Database['public']['Tables']['receipts']['Row']
+type ReceiptItemRow = Database['public']['Tables']['receipt_items']['Row']
 
 function mapRowToCashierSession(row: CashierSessionRow): CashierSession {
   return {
@@ -15,8 +21,8 @@ function mapRowToCashierSession(row: CashierSessionRow): CashierSession {
     closedAt: row.closed_at,
     openingBalance: row.opening_balance,
     closingBalance: row.closing_balance,
-    dailyRevenue: row.daily_revenue,
-    status: row.status,
+    dailyRevenue: row.daily_revenue ?? 0,
+    status: row.status as CashierSessionStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -86,10 +92,79 @@ export async function closeSession(input: {
   return mapRowToCashierSession(data)
 }
 
-export async function cancelSale(movementId: string): Promise<void> {
+export interface CompleteSaleInput {
+  locationId: string
+  cashierSessionId: string
+  contactId?: string | null
+  paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
+  currency: string
+  prefix?: string | null
+  subtotal: number
+  taxAmount: number
+  total: number
+  amountPaid: number
+  changeDue: number
+  notes?: string | null
+  items: {
+    productId: string
+    productName: string
+    quantity: number
+    unitPrice: number
+    discountAmount?: number
+    taxAmount?: number
+    total: number
+  }[]
+}
+
+interface CompleteSaleResponse {
+  receipt: ReceiptRow
+  items: ReceiptItemRow[]
+}
+
+export async function completeSale(input: CompleteSaleInput): Promise<ReceiptWithItems> {
+  const response = await edgeFetch<CompleteSaleResponse>('complete-sale', {
+    method: 'POST',
+    body: JSON.stringify({
+      location_id: input.locationId,
+      cashier_session_id: input.cashierSessionId,
+      contact_id: input.contactId ?? null,
+      payment_method: input.paymentMethod,
+      currency: input.currency,
+      prefix: input.prefix ?? null,
+      subtotal: input.subtotal,
+      tax_amount: input.taxAmount,
+      total: input.total,
+      amount_paid: input.amountPaid,
+      change_due: input.changeDue,
+      notes: input.notes ?? null,
+      items: input.items.map((item) => ({
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        discount_amount: item.discountAmount ?? 0,
+        tax_amount: item.taxAmount ?? 0,
+        total: item.total,
+      })),
+    }),
+  })
+
+  return {
+    ...mapReceipt(response.receipt),
+    items: response.items.map(mapReceiptItem),
+  }
+}
+
+export async function cancelSale(input: {
+  receiptId?: string
+  movementId?: string
+}): Promise<void> {
   await edgeFetch('cancel-sale', {
     method: 'POST',
-    body: JSON.stringify({ movement_id: movementId }),
+    body: JSON.stringify({
+      receipt_id: input.receiptId ?? null,
+      movement_id: input.movementId ?? null,
+    }),
   })
 }
 

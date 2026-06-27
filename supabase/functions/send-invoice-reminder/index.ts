@@ -2,20 +2,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface SendInvoiceReminderPayload {
   invoice_id: string
   to?: string
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -30,7 +26,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -38,7 +34,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -46,7 +42,7 @@ Deno.serve(async (req: Request) => {
     if (!payload.invoice_id) {
       return new Response(JSON.stringify({ error: 'invoice_id is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -69,11 +65,11 @@ Deno.serve(async (req: Request) => {
     if (status === 'paid' || status === 'cancelled') {
       return new Response(
         JSON.stringify({ success: false, reason: `Invoice is already ${status}` }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
-    const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
+    const { pdfBase64, filename } = await buildDocumentPdfBase64(
       adminClient,
       payload.invoice_id,
       'invoice'
@@ -83,7 +79,7 @@ Deno.serve(async (req: Request) => {
     if (!recipient) {
       return new Response(JSON.stringify({ error: 'No recipient email provided or found' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -150,13 +146,13 @@ Cet email a été envoyé automatiquement par StockFlow.`
         invoice_id: invoice.id,
         sent_to: recipient,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

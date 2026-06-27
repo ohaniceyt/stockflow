@@ -176,8 +176,7 @@ function buildSession(
         orgId: asString(membershipRaw.orgId),
         userId: asString(membershipRaw.userId),
         role: asString(membershipRaw.role) as UserRole,
-        hasPin: Boolean(membershipRaw.hasPin ?? membershipRaw.pinHash),
-        pinHash: null,
+        hasPin: Boolean(membershipRaw.hasPin),
         isActive: Boolean(membershipRaw.isActive ?? true),
         forcePinChange: Boolean(membershipRaw.forcePinChange),
         lastLoginAt:
@@ -191,7 +190,6 @@ function buildSession(
         userId: asString(userRaw.id),
         role: 'super_admin',
         hasPin: false,
-        pinHash: null,
         isActive: true,
         forcePinChange: false,
         lastLoginAt: null,
@@ -558,7 +556,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         membership: {
           ...session.membership,
           hasPin: true,
-          pinHash: null,
           forcePinChange: false,
         },
       })
@@ -579,6 +576,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // The AppLock PIN is local to this device. The server only validates format + auth.
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
       const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
         method: 'POST',
@@ -587,7 +585,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Authorization: `Bearer ${session.accessToken}`,
           apikey: supabaseKey,
         },
-        body: JSON.stringify({ currentPin, newPin }),
+        body: JSON.stringify({ newPin }),
       })
 
       if (!response.ok) {
@@ -601,7 +599,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         membership: {
           ...session.membership,
           hasPin: true,
-          pinHash: null,
           forcePinChange: false,
         },
       })

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Minus,
   Plus,
@@ -21,8 +22,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
-import { useCreateMovement, useMovements } from '@/features/movements/hooks/useMovements'
-import { useCreateReceipt } from '@/features/invoicing/hooks/useReceipts'
+import { useMovements } from '@/features/movements/hooks/useMovements'
 import ReceiptActions from '@/features/invoicing/components/ReceiptActions'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
@@ -34,6 +34,7 @@ import {
 } from '@/features/cashier/hooks/useCashierSession'
 import {
   cancelSale,
+  completeSale,
   computeSessionRevenue,
   filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
@@ -76,9 +77,8 @@ export default function CashierPage() {
   const { data: locations, isLoading: locationsLoading } = useLocations()
   const { data: stock, isLoading: stockLoading } = useStock()
   const { data: customers } = useContacts('CUSTOMER')
+  const queryClient = useQueryClient()
   const { data: movements, isLoading: movementsLoading } = useMovements()
-  const create = useCreateMovement()
-  const createReceipt = useCreateReceipt()
   const openSessionMutation = useOpenCashierSession()
   const closeSessionMutation = useCloseCashierSession()
 
@@ -102,6 +102,7 @@ export default function CashierPage() {
   const [amountPaid, setAmountPaid] = useState('')
   const [receipt, setReceipt] = useState<ReceiptWithItems | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
   const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
   const scannerContainerRef = useRef<HTMLDivElement | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -222,28 +223,12 @@ export default function CashierPage() {
   const handleCheckout = async () => {
     if (cart.length === 0 || !openSession || !session) return
     setSuccess(false)
+    setIsCheckingOut(true)
 
     const customerContactId = customerId === 'walk-in' ? null : customerId
     const reason = note.trim() || null
 
     try {
-      await Promise.all(
-        cart.map((item) =>
-          create.mutateAsync({
-            productId: item.productId,
-            locationId: item.locationId,
-            targetLocationId: null,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason,
-            contactId: customerContactId,
-            unitPrice: item.sellingPrice,
-            cashierSessionId: openSession.id,
-            clientOperationId: crypto.randomUUID(),
-          })
-        )
-      )
-
       const org = session.organization
       const taxRate = org.hasTaxEnabled ? (org.taxRate ?? 0) : 0
       const subtotal = cart.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0)
@@ -266,14 +251,13 @@ export default function CashierPage() {
         }
       })
 
-      const createdReceipt = await createReceipt.mutateAsync({
-        orgId: org.id,
+      const createdReceipt = await completeSale({
         locationId: activeLocationId,
         cashierSessionId: openSession.id,
-        operatorId: session.user.id,
         contactId: customerContactId,
         paymentMethod,
         currency: org.currency,
+        prefix: org.receiptPrefix,
         subtotal,
         taxAmount,
         total,
@@ -282,6 +266,10 @@ export default function CashierPage() {
         notes: reason,
         items: receiptItems,
       })
+
+      void queryClient.invalidateQueries({ queryKey: ['movements', session.membership.orgId] })
+      void queryClient.invalidateQueries({ queryKey: ['stock', session.membership.orgId] })
+      void queryClient.invalidateQueries({ queryKey: ['receipts', openSession.id] })
 
       setReceipt(createdReceipt)
       setShowReceipt(true)
@@ -293,6 +281,8 @@ export default function CashierPage() {
       setSuccess(true)
     } catch {
       // errors are surfaced by toast/query; keep UI state intact
+    } finally {
+      setIsCheckingOut(false)
     }
   }
 
@@ -328,8 +318,12 @@ export default function CashierPage() {
 
   const handleCancelSale = (movementId: string) => {
     if (!canCancelSales) return
+    const sale = sessionSales.find((s) => s.id === movementId)
+    if (!sale) return
     if (!confirm('Annuler cette vente ?')) return
-    void cancelSale(movementId).then(() => {
+    void cancelSale(
+      sale.referenceId ? { receiptId: sale.referenceId } : { movementId: sale.id }
+    ).then(() => {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 2000)
     })
@@ -901,16 +895,13 @@ export default function CashierPage() {
                 className="w-full"
                 disabled={
                   cart.length === 0 ||
-                  create.isPending ||
-                  createReceipt.isPending ||
+                  isCheckingOut ||
                   !openSession ||
                   (paymentMethod === 'cash' && Number(amountPaid) < total)
                 }
                 onClick={handleCheckout}
               >
-                {create.isPending || createReceipt.isPending
-                  ? 'Enregistrement…'
-                  : 'Valider la vente'}
+                {isCheckingOut ? 'Enregistrement…' : 'Valider la vente'}
               </Button>
               {!openSession && (
                 <p className="text-center text-xs text-destructive">

@@ -19,6 +19,16 @@ import {
   cacheContacts,
 } from './cacheService'
 import { db } from '@/lib/db'
+import type {
+  Product,
+  Category,
+  Location,
+  StockLevel,
+  Movement,
+  InventorySession,
+  InventoryCount,
+  Contact,
+} from '@/types'
 
 export interface PullSyncResult {
   productCount: number
@@ -29,6 +39,60 @@ export interface PullSyncResult {
   sessionCount: number
   countCount: number
   contactCount: number
+}
+
+function parseTimestamp(value: string | undefined | null): number | undefined {
+  if (!value) return undefined
+  const ms = new Date(value).getTime()
+  return Number.isNaN(ms) ? undefined : ms
+}
+
+function buildServerSnapshots(
+  products: Product[],
+  categories: Category[],
+  locations: Location[],
+  stockLevels: StockLevel[],
+  movements: Movement[],
+  sessions: InventorySession[],
+  counts: InventoryCount[],
+  contacts: Contact[]
+): Record<string, number> {
+  const snapshots: Record<string, number> = {}
+
+  for (const p of products) {
+    const ts = parseTimestamp(p.updatedAt)
+    if (ts !== undefined) snapshots[`products:${p.id}`] = ts
+  }
+  for (const c of categories) {
+    const ts = parseTimestamp(c.updatedAt)
+    if (ts !== undefined) snapshots[`categories:${c.id}`] = ts
+  }
+  for (const l of locations) {
+    const ts = parseTimestamp(l.createdAt)
+    if (ts !== undefined) snapshots[`locations:${l.id}`] = ts
+  }
+  for (const sl of stockLevels) {
+    const ts = parseTimestamp(sl.updatedAt)
+    if (ts !== undefined) snapshots[`stockLevels:${sl.productId}:${sl.locationId}`] = ts
+  }
+  for (const m of movements) {
+    const ts = parseTimestamp(m.createdAt)
+    if (ts !== undefined) snapshots[`movements:${m.id}`] = ts
+  }
+  for (const s of sessions) {
+    const ts = parseTimestamp(s.startedAt)
+    if (ts !== undefined) snapshots[`inventorySessions:${s.id}`] = ts
+  }
+  for (const c of counts) {
+    const ts = parseTimestamp(c.createdAt)
+    if (ts !== undefined) snapshots[`inventoryCounts:${c.id}`] = ts
+  }
+  for (const c of contacts) {
+    const ts = parseTimestamp(c.updatedAt)
+    if (ts !== undefined) snapshots[`contacts:${c.id}`] = ts
+  }
+
+  return snapshots
 }
 
 export async function pullSync(orgId: string): Promise<PullSyncResult> {
@@ -82,10 +146,24 @@ export async function pullSync(orgId: string): Promise<PullSyncResult> {
     cacheContacts(contacts),
   ])
 
+  const serverSnapshots = buildServerSnapshots(
+    products,
+    categories,
+    locations,
+    stockLevels,
+    movements,
+    sessions,
+    counts,
+    contacts
+  )
+  const existingMeta = await db.syncMeta.get('global')
+
   await db.syncMeta.put({
+    ...existingMeta,
     id: 'global',
     lastSyncAt: Date.now(),
     status: 'idle',
+    serverSnapshots,
   })
 
   return {

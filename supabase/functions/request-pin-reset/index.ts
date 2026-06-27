@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface RequestPinResetPayload {
   email: string
@@ -9,12 +10,7 @@ const RATE_LIMIT_WINDOW_MINUTES = 15
 const MAX_REQUESTS_PER_EMAIL = 3
 const MAX_REQUESTS_PER_IP = 10
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function buildPinResetEmailHtml(link: string, appUrl: string): string {
+function buildPinResetEmailHtml(link: string, _appUrl: string): string {
   return `
     <!DOCTYPE html>
     <html lang="fr">
@@ -121,7 +117,7 @@ async function findActiveMembership(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -135,7 +131,7 @@ Deno.serve(async (req: Request) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -150,7 +146,7 @@ Deno.serve(async (req: Request) => {
     if (ipRequests >= MAX_REQUESTS_PER_IP) {
       return new Response(
         JSON.stringify({ error: 'Too many requests from this network. Try again later.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -159,7 +155,7 @@ Deno.serve(async (req: Request) => {
     if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
       return new Response(
         JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -172,7 +168,7 @@ Deno.serve(async (req: Request) => {
           success: true,
           message: 'If this email belongs to an active account, a reset link has been sent.',
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -199,7 +195,7 @@ Deno.serve(async (req: Request) => {
     if (linkError || !linkData.properties?.action_link) {
       return new Response(
         JSON.stringify({ error: linkError?.message ?? 'Could not generate reset link' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -216,13 +212,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

@@ -35,6 +35,22 @@ export interface MockSession {
     isSuspended: boolean
     suspensionReason: string | null
     onboardingCompleted: boolean
+    hasCashierEnabled: boolean
+    hasStorefrontEnabled: boolean
+    hasApiEnabled: boolean
+    storefrontLocationId: string | null
+    hasInvoicingEnabled: boolean
+    hasTaxEnabled: boolean
+    taxName: string | null
+    taxRate: number | null
+    taxId: string | null
+    invoicePrefix: string | null
+    quotePrefix: string | null
+    deliveryNotePrefix: string | null
+    receiptPrefix: string | null
+    legalMentions: string | null
+    autoReminderEnabled: boolean
+    autoReminderDays: number | null
     createdAt: string
     updatedAt: string
   }
@@ -72,6 +88,22 @@ export const DEFAULT_MOCK_SESSION: MockSession = {
     isSuspended: false,
     suspensionReason: null,
     onboardingCompleted: true,
+    hasCashierEnabled: true,
+    hasStorefrontEnabled: false,
+    hasApiEnabled: true,
+    storefrontLocationId: null,
+    hasInvoicingEnabled: true,
+    hasTaxEnabled: false,
+    taxName: null,
+    taxRate: null,
+    taxId: null,
+    invoicePrefix: 'FAC',
+    quotePrefix: 'DEV',
+    deliveryNotePrefix: 'BL',
+    receiptPrefix: 'REC',
+    legalMentions: null,
+    autoReminderEnabled: true,
+    autoReminderDays: 7,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },

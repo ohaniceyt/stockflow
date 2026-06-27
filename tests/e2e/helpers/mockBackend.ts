@@ -418,6 +418,27 @@ export async function setupMockBackend(page: Page) {
     const url = new URL(req.url())
     const method = req.method()
 
+    // organizations
+    if (matchTable(url, 'organizations')) {
+      if (method === 'GET') {
+        const select = url.searchParams.get('select') ?? '*'
+        const org = {
+          ...DEFAULT_MOCK_SESSION.organization,
+          slug: 'e2e-org',
+          country: 'CI',
+        }
+        if (select !== '*') {
+          const fields = select.split(',').map((f) => f.trim())
+          const projected: Record<string, unknown> = {}
+          for (const field of fields) {
+            if (field in org) projected[field] = org[field as keyof typeof org]
+          }
+          return fulfillCors(route, 200, jsonBody([projected]))
+        }
+        return fulfillCors(route, 200, jsonBody([org]))
+      }
+    }
+
     // products
     if (matchTable(url, 'products')) {
       const select = url.searchParams.get('select') ?? '*'

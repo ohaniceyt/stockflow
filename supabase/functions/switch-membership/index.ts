@@ -1,18 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface Payload {
   membershipId: string
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -27,7 +23,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -35,7 +31,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -47,7 +43,7 @@ Deno.serve(async (req: Request) => {
     if (!membershipId) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -64,7 +60,7 @@ Deno.serve(async (req: Request) => {
     if (membershipError || !membership) {
       return new Response(JSON.stringify({ error: 'Membership not found' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -78,7 +74,7 @@ Deno.serve(async (req: Request) => {
     if (org.is_suspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -92,8 +88,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const onboardingCompleted =
-      ['super_admin', 'admin'].includes(membership.role as string) &&
-      org.onboarding_completed === true
+      ['super_admin', 'admin'].includes(membership.role as string) && org.onboarding_completed
 
     return new Response(
       JSON.stringify({
@@ -111,13 +106,13 @@ Deno.serve(async (req: Request) => {
           onboardingCompleted,
         },
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

@@ -1,100 +1,148 @@
-import { Link } from 'react-router-dom'
 import {
-  ArrowRight,
   BarChart3,
+  BookOpen,
   Box,
-  Check,
+  Calculator,
   Clock,
+  FileText,
+  Globe,
+  HelpCircle,
   Lock,
   MapPin,
   Package,
+  Receipt,
   Shield,
   Smartphone,
+  Store,
   Users,
-  Zap,
+  Video,
+  WifiOff,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { FeatureCard } from '../components/FeatureCard'
-import { PricingCard } from '../components/PricingCard'
+import { TopBanner } from '../components/TopBanner'
+import { MarketingHeader } from '../components/MarketingHeader'
+import { HeroSection } from '../components/HeroSection'
+import { TrustBanner } from '../components/TrustBanner'
+import { SocialProof } from '../components/SocialProof'
+import { FeatureBlock } from '../components/FeatureBlock'
+import { FeatureGrid } from '../components/FeatureGrid'
+import { MidBanner } from '../components/MidBanner'
+import { PricingSection } from '../components/PricingSection'
+import { ResourceHub } from '../components/ResourceHub'
+import { FaqSection } from '../components/FaqSection'
+import { FinalCta } from '../components/FinalCta'
+import { MarketingFooter } from '../components/MarketingFooter'
 
 const features = [
   {
     icon: Package,
     title: 'Catalogue produits',
     description:
-      'Gérez vos produits, catégories, seuils de stock et codes-barres en un seul endroit.',
+      'Produits illimités, catégories, codes-barres, prix d’achat, prix de vente et seuils d’alerte.',
   },
   {
     icon: MapPin,
     title: 'Multi-emplacements',
-    description: 'Suivez le stock dans plusieurs entrepôts, boutiques ou zones de stockage.',
+    description:
+      'Gérez du stock dans plusieurs entrepôts, boutiques ou points de vente en temps réel.',
   },
   {
-    icon: ArrowRight,
-    title: 'Mouvements fluides',
-    description: 'Entrées, sorties, transferts, ajustements et inventaires — tout est tracé.',
+    icon: Box,
+    title: 'Mouvements traçables',
+    description:
+      'Entrées, sorties, transferts, ajustements et inventaires — chaque mouvement est horodaté et rattaché à un opérateur.',
   },
   {
-    icon: Smartphone,
+    icon: Receipt,
+    title: 'Caisse intégrée',
+    description:
+      'Ventes rapides, impression de reçus, paiements multiples (cash, carte, mobile money) et annulations contrôlées.',
+  },
+  {
+    icon: FileText,
+    title: 'Facturation professionnelle',
+    description:
+      'Devis, factures, bons de livraison, rappels auto et conversion devis → facture avec numérotation personnalisée.',
+  },
+  {
+    icon: WifiOff,
     title: 'Offline-first',
     description:
-      'Continuez à travailler hors ligne : les données se synchronisent automatiquement.',
+      'Continuez à vendre et à gérer le stock sans connexion. La synchronisation se fait automatiquement au retour en ligne.',
   },
   {
     icon: Users,
-    title: 'Équipe structurée',
+    title: 'Équipe et rôles',
     description:
-      'Rôles (super admin, admin, opérateur, lecteur) et invitations par email sécurisées.',
+      'Invitez votre équipe par email, définissez les rôles (admin, opérateur, caissier, lecteur) et gardez le contrôle.',
+  },
+  {
+    icon: Lock,
+    title: 'Sécurité moderne',
+    description:
+      'Authentification email/password Supabase, magic link, AppLock PIN local et isolation des données par organisation.',
   },
   {
     icon: BarChart3,
-    title: 'Tableau de bord',
-    description: 'Visualisez les stocks faibles, les mouvements du jour et les tendances clés.',
+    title: 'Tableau de bord & recap',
+    description:
+      'Stocks faibles, mouvements du jour, ventes, impayés et KPIs clairs pour piloter votre activité.',
   },
   {
-    icon: Shield,
-    title: 'Sécurité par PIN',
-    description: 'Authentification par PIN + magic link pour un accès rapide et sécurisé.',
+    icon: Store,
+    title: 'Storefront (optionnel)',
+    description:
+      'Activez une vitrine en ligne pour recevoir des commandes directement rattachées à votre stock.',
   },
   {
-    icon: Zap,
-    title: 'Rapide à déployer',
-    description: 'Créez votre organisation en quelques clics et commencez à gérer votre stock.',
+    icon: Globe,
+    title: 'API & intégrations',
+    description:
+      'Clés API sécurisées, webhooks et documentation pour connecter StockFlow à vos outils existants.',
+  },
+  {
+    icon: Smartphone,
+    title: 'Scan code-barres',
+    description:
+      'Ajoutez des produits au panier ou recherchez un stock en scannant directement depuis votre appareil.',
+  },
+]
+
+const workflow = [
+  {
+    step: '1',
+    title: 'Créez votre organisation',
+    description: 'Choisissez votre pays, devise et fuseau horaire. Onboarding guidé en 2 minutes.',
+  },
+  {
+    step: '2',
+    title: 'Importez votre catalogue',
+    description:
+      'Ajoutez vos produits manuellement ou par import Excel, définissez les seuils et les emplacements.',
+  },
+  {
+    step: '3',
+    title: 'Gérez et vendez',
+    description:
+      'Enregistrez les mouvements, vendez en caisse, éditez des factures et suivez votre activité.',
   },
 ]
 
 const pricingPlans = [
-  {
-    name: 'Gratuit',
-    description: 'Parfait pour tester StockFlow',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    features: [
-      '2 utilisateurs',
-      '50 produits',
-      '1 emplacement',
-      '100 mouvements/mois',
-      'Support email',
-    ],
-    cta: 'Commencer gratuitement',
-    href: '/signup?plan=free',
-  },
   {
     name: 'Starter',
     description: 'Petites équipes et boutiques',
     monthlyPrice: 4900,
     yearlyPrice: 49900,
     features: [
-      '5 utilisateurs',
-      '500 produits',
-      '3 emplacements',
+      '2 utilisateurs',
+      '100 produits',
+      '2 emplacements',
       '2 000 mouvements/mois',
+      'Facturation incluse',
       'Support prioritaire',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     href: '/signup?plan=starter',
-    highlighted: true,
-    popular: true,
   },
   {
     name: 'Pro',
@@ -106,11 +154,13 @@ const pricingPlans = [
       '5 000 produits',
       '10 emplacements',
       '20 000 mouvements/mois',
-      'Accès API',
+      'API + storefront',
       'Support dédié',
     ],
-    cta: 'Essai 14 jours',
+    cta: '1 mois gratuit',
     href: '/signup?plan=pro',
+    highlighted: true,
+    popular: true,
   },
   {
     name: 'Enterprise',
@@ -131,109 +181,188 @@ const pricingPlans = [
   },
 ]
 
+const faqs = [
+  {
+    question: 'StockFlow fonctionne-t-il hors connexion ?',
+    answer:
+      'Oui. L’application est conçue offline-first : vous pouvez vendre, ajuster le stock et enregistrer des mouvements même sans internet. Les données se synchronisent automatiquement dès le retour en ligne.',
+  },
+  {
+    question: 'Puis-je connecter StockFlow à mes autres outils ?',
+    answer:
+      'Oui. StockFlow expose une API sécurisée avec clés API et webhooks. Vous pouvez l’intégrer à votre comptabilité, votre site e-commerce ou tout autre service compatible REST.',
+  },
+  {
+    question: 'Quels modes de paiement sont acceptés en caisse ?',
+    answer:
+      'La caisse supporte le cash, la carte bancaire, le mobile money et les paiements mixtes. Chaque vente génère un reçu et met à jour le stock en temps réel.',
+  },
+  {
+    question: 'Comment sont protégées mes données ?',
+    answer:
+      'Vos données sont isolées par organisation grâce à Supabase RLS, l’authentification repose sur JWT, et l’application supporte un AppLock PIN local. Les échanges sont chiffrés en TLS.',
+  },
+  {
+    question: 'Puis-je essayer avant de payer ?',
+    answer:
+      'Oui, chaque plan payant inclut 1 mois d’essai gratuit. Aucune carte bancaire n’est requise, et vous pouvez résilier à tout moment.',
+  },
+]
+
+const resources = [
+  {
+    icon: BookOpen,
+    title: 'Guide de démarrage',
+    description: 'Configurez votre stock, vos emplacements et votre première vente en 15 minutes.',
+    href: '#',
+  },
+  {
+    icon: Video,
+    title: 'Tutoriels vidéo',
+    description:
+      'Courtes vidéos pratiques pour maîtriser la caisse, la facturation et les rapports.',
+    href: '#',
+  },
+  {
+    icon: Calculator,
+    title: 'Modèles Excel',
+    description: 'Importez rapidement votre catalogue avec nos modèles prêts à l’emploi.',
+    href: '#',
+  },
+  {
+    icon: HelpCircle,
+    title: 'Centre d’aide',
+    description: 'Réponses détaillées aux questions les plus fréquentes et bonnes pratiques.',
+    href: '#',
+  },
+]
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              S
-            </div>
-            StockFlow
-          </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-            <a href="#features" className="text-muted-foreground hover:text-foreground">
-              Fonctionnalités
-            </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground">
-              Tarifs
-            </a>
-            <a href="#security" className="text-muted-foreground hover:text-foreground">
-              Sécurité
-            </a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Se connecter</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/signup">S'inscrire</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <TopBanner />
+      <MarketingHeader />
 
       <main>
-        <section className="relative overflow-hidden px-4 pb-20 pt-16 sm:px-6 lg:px-8 lg:pb-28 lg:pt-24">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-              La gestion de stock <span className="text-primary">simple et moderne</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              StockFlow vNext aide les PME, boutiques et entrepôts à suivre leurs produits, leurs
-              emplacements et leurs mouvements en temps réel — même hors ligne.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link to="/signup">
-                  Créer un compte gratuit
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link to="/login">Se connecter</Link>
-              </Button>
-            </div>
+        <HeroSection />
+        <TrustBanner />
+        <SocialProof />
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Check className="h-4 w-4 text-primary" />
-                Essai gratuit 14 jours
-              </span>
-              <span className="flex items-center gap-1">
-                <Check className="h-4 w-4 text-primary" />
-                Pas de carte bancaire
-              </span>
-              <span className="flex items-center gap-1">
-                <Check className="h-4 w-4 text-primary" />
-                Annulation à tout moment
-              </span>
-            </div>
-          </div>
-        </section>
+        <FeatureBlock
+          icon={Package}
+          eyebrow="Gestion de stock"
+          title="Maîtrisez chaque produit, chaque emplacement"
+          description="Suivez votre inventaire en temps réel, recevez des alertes de stock faible et gérez plusieurs entrepôts ou boutiques depuis un seul tableau de bord."
+          bullets={[
+            'Réduisez les ruptures de stock grâce aux alertes automatiques',
+            'Gérez plusieurs entrepôts ou boutiques en temps réel',
+            'Retracez chaque mouvement jusqu’à l’opérateur',
+            'Gagnez du temps lors des inventaires périodiques',
+          ]}
+          image="/features/inventory-preview.png"
+          imageAlt="Aperçu de la gestion de stock"
+          link="/features/inventory"
+          linkLabel="Découvrir la gestion de stock"
+        />
 
-        <section id="features" className="bg-muted/30 px-4 py-20 sm:px-6 lg:px-8">
+        <FeatureBlock
+          icon={Receipt}
+          reversed
+          eyebrow="Caisse & POS"
+          title="Vendez plus vite et encaissez sans friction"
+          description="Transformez n’importe quel appareil en caisse. Scannez, encaissez, imprimez des reçus et synchronisez automatiquement le stock."
+          bullets={[
+            'Accélérez vos ventes avec le scan code-barres',
+            'Encaissez cash, carte ou mobile money sans friction',
+            'Imprimez ou partagez des reçus professionnels',
+            'Gardez le contrôle sur les annulations et les retours',
+          ]}
+          image="/features/pos-preview.png"
+          imageAlt="Aperçu de la caisse"
+          link="/features/pos-cashier"
+          linkLabel="Découvrir la caisse"
+        />
+
+        <FeatureBlock
+          icon={FileText}
+          eyebrow="Facturation"
+          title="Créez des factures professionnelles en quelques clics"
+          description="Passez du devis à la facture, suivez les paiements et envoyez des rappels automatiques à vos clients."
+          bullets={[
+            'Convertissez vos devis en factures en un clic',
+            'Personnalisez la numérotation et l’apparence des documents',
+            'Automatisez les relances pour les paiements en retard',
+            'Suivez vos impayés dans un tableau de bord dédié',
+          ]}
+          image="/features/invoicing-preview.png"
+          imageAlt="Aperçu de la facturation"
+          link="/features/invoicing"
+          linkLabel="Découvrir la facturation"
+        />
+
+        <FeatureGrid
+          title="Tout ce qu’il faut pour gérer votre activité"
+          subtitle="Des fonctionnalités pensées ensemble pour fluidifier votre quotidien de bout en bout."
+          items={features.slice(0, 6)}
+        />
+
+        <section id="workflow" className="bg-muted/30 px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold">Tout ce qu'il faut pour gérer votre stock</h2>
+              <h2 className="text-3xl font-bold">Démarrez en 3 étapes</h2>
               <p className="mt-4 text-muted-foreground">
-                Un outil pensé pour les équipes opérationnelles, pas pour les tableurs.
+                De l’inscription à la première vente, tout est conçu pour être rapide et intuitif.
               </p>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {features.map((feature) => (
-                <FeatureCard key={feature.title} {...feature} />
+            <div className="grid gap-8 sm:grid-cols-3">
+              {workflow.map((item) => (
+                <div key={item.step} className="relative rounded-2xl border bg-card p-6 shadow-sm">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
+                    {item.step}
+                  </div>
+                  <h3 className="mb-2 font-semibold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
+        <MidBanner />
+
+        <PricingSection
+          tiers={pricingPlans.map((p) => ({
+            name: p.name,
+            price:
+              p.priceMode === 'custom'
+                ? 'Sur mesure'
+                : `${(p.monthlyPrice / 100).toLocaleString('fr-FR')} €`,
+            period: p.priceMode === 'custom' ? '' : '/mois',
+            description: p.description,
+            features: p.features,
+            cta: p.cta,
+            ctaLink: p.href,
+            highlighted: p.highlighted,
+            yearlyPrice: p.yearlyPrice,
+          }))}
+        />
+
         <section id="security" className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div>
-                <h2 className="text-3xl font-bold">Sécurisé et fiable</h2>
+                <h2 className="text-3xl font-bold">Sécurisé, fiable et RGPD-ready</h2>
                 <p className="mt-4 text-muted-foreground">
-                  Vos données sont isolées par organisation, protégées par authentification robuste
-                  et stockées sur une infrastructure moderne.
+                  Vos données sont isolées par organisation, protégées par une authentification
+                  moderne et stockées sur une infrastructure cloud résiliente.
                 </p>
                 <ul className="mt-6 space-y-4">
                   {[
-                    { icon: Lock, text: 'Authentification par PIN + magic link' },
-                    { icon: Shield, text: 'Isolation des données par organisation' },
+                    { icon: Lock, text: 'Authentification email/password + magic link' },
+                    { icon: Smartphone, text: 'AppLock PIN local par appareil' },
+                    { icon: Shield, text: 'Isolation stricte des données par organisation' },
                     { icon: Clock, text: 'Journal des connexions et rate limiting' },
-                    { icon: Box, text: 'Sauvegardes et synchronisation automatique' },
+                    { icon: Box, text: 'Sauvegardes automatiques et synchronisation offline' },
                   ].map(({ icon: Icon, text }) => (
                     <li key={text} className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
@@ -250,6 +379,7 @@ export default function LandingPage() {
                     { label: 'Disponibilité', value: '99.9%' },
                     { label: 'Données chiffrées', value: 'TLS' },
                     { label: 'Backups', value: 'Automatiques' },
+                    { label: 'Authentification', value: 'JWT + RLS' },
                     { label: 'Conformité', value: 'RGPD-ready' },
                   ].map((stat) => (
                     <div
@@ -266,61 +396,14 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" className="bg-muted/30 px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold">Des tarifs clairs</h2>
-              <p className="mt-4 text-muted-foreground">
-                Commencez gratuitement, évoluez selon vos besoins.
-              </p>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {pricingPlans.map((plan) => (
-                <PricingCard key={plan.name} {...plan} />
-              ))}
-            </div>
-          </div>
-        </section>
+        <ResourceHub resources={resources} />
 
-        <section className="px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl rounded-2xl bg-primary p-8 text-center text-primary-foreground sm:p-12">
-            <h2 className="text-3xl font-bold">Prêt à simplifier votre stock ?</h2>
-            <p className="mx-auto mt-4 max-w-xl opacity-90">
-              Rejoignez les équipes qui gagnent du temps chaque jour avec StockFlow vNext.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" variant="secondary" asChild>
-                <Link to="/signup">Créer mon compte</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-                asChild
-              >
-                <Link to="/login">Se connecter</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+        <FaqSection faqs={faqs} />
+
+        <FinalCta />
       </main>
 
-      <footer className="border-t px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} StockFlow vNext. Tous droits réservés.</p>
-          <div className="flex gap-6">
-            <a href="mailto:team@stockflow.grandigix.com" className="hover:text-foreground">
-              Contact
-            </a>
-            <Link to="/login" className="hover:text-foreground">
-              Connexion
-            </Link>
-            <Link to="/signup" className="hover:text-foreground">
-              Inscription
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }

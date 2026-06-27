@@ -1,17 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface CreateApiKeyPayload {
   org_id: string
   name: string
   scopes: string[]
   allowed_location_ids?: string[] | null
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const VALID_SCOPES = ['read:products', 'read:stock', 'write:orders', 'read:orders']
@@ -32,7 +28,7 @@ async function hashKey(key: string): Promise<string> {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -51,7 +47,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -59,7 +55,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -67,7 +63,7 @@ Deno.serve(async (req: Request) => {
     if (!membership || !['super_admin', 'admin'].includes(membership.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -75,14 +71,14 @@ Deno.serve(async (req: Request) => {
     if (!payload.org_id || !payload.name?.trim() || !Array.isArray(payload.scopes)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (membership.org_id !== payload.org_id) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -95,7 +91,7 @@ Deno.serve(async (req: Request) => {
     if (orgError || !org?.has_api_enabled) {
       return new Response(JSON.stringify({ error: 'API not enabled for this organization' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -103,7 +99,7 @@ Deno.serve(async (req: Request) => {
     if (scopes.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid scopes provided' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -130,7 +126,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: insertError?.message ?? 'Failed to create API key' }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -151,14 +147,14 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

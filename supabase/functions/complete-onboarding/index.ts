@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface OnboardingPayload {
   orgName: string
@@ -9,11 +10,6 @@ interface OnboardingPayload {
   timezone: string
   defaultLocationName: string
   plan?: 'free' | 'starter' | 'pro'
-}
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 function normalizeSlug(value: string): string {
@@ -32,7 +28,7 @@ function isValidSlug(value: string): boolean {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -47,7 +43,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -55,7 +51,7 @@ Deno.serve(async (req: Request) => {
     if (!claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -80,7 +76,7 @@ Deno.serve(async (req: Request) => {
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -91,7 +87,7 @@ Deno.serve(async (req: Request) => {
           error:
             'L’identifiant doit contenir entre 2 et 50 caractères, uniquement des minuscules, chiffres et tirets.',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -113,13 +109,13 @@ Deno.serve(async (req: Request) => {
     if (authUserError || !authUser.user) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
     if (!authUser.user.email_confirmed_at) {
       return new Response(JSON.stringify({ error: 'Email not verified' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -138,7 +134,7 @@ Deno.serve(async (req: Request) => {
           error:
             'User already belongs to an organization. Onboarding is only available for new accounts without an organization.',
         }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -179,7 +175,7 @@ Deno.serve(async (req: Request) => {
             suggestion: candidate,
             code: rpcError.code,
           }),
-          { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
       if (rpcError.message?.includes('organizations_name_unique')) status = 409
@@ -189,19 +185,19 @@ Deno.serve(async (req: Request) => {
           error: rpcError.message,
           code: rpcError.code,
         }),
-        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
       JSON.stringify({ success: true, message: 'Onboarding terminé', orgId: rpcData }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

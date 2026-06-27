@@ -35,6 +35,13 @@ const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const InvoicingPage = lazy(() => import('@/features/invoicing/pages/InvoicingPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
 
+const InventoryFeaturePage = lazy(() => import('@/features/marketing/pages/InventoryFeaturePage'))
+const PosCashierFeaturePage = lazy(() => import('@/features/marketing/pages/PosCashierFeaturePage'))
+const InvoicingFeaturePage = lazy(() => import('@/features/marketing/pages/InvoicingFeaturePage'))
+const OfflineFeaturePage = lazy(() => import('@/features/marketing/pages/OfflineFeaturePage'))
+const AnalyticsFeaturePage = lazy(() => import('@/features/marketing/pages/AnalyticsFeaturePage'))
+const PricingPage = lazy(() => import('@/features/marketing/pages/PricingPage'))
+
 const BackOfficeLayout = lazy(() => import('@/features/back-office/components/BackOfficeLayout'))
 const BackOfficeOverviewPage = lazy(
   () => import('@/features/back-office/pages/BackOfficeOverviewPage')
@@ -67,6 +74,12 @@ function App() {
       <Suspense fallback={fallback}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/features/inventory" element={<InventoryFeaturePage />} />
+          <Route path="/features/pos-cashier" element={<PosCashierFeaturePage />} />
+          <Route path="/features/invoicing" element={<InvoicingFeaturePage />} />
+          <Route path="/features/offline" element={<OfflineFeaturePage />} />
+          <Route path="/features/analytics" element={<AnalyticsFeaturePage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/back-office" element={<BackOfficeLoginPage />} />

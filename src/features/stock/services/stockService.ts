@@ -16,6 +16,29 @@ export interface StockItem {
   updatedAt: string
 }
 
+export async function getStockQuantity(
+  orgId: string,
+  productId: string,
+  locationId: string
+): Promise<number> {
+  if (!orgId || !productId || !locationId) {
+    return 0
+  }
+
+  const { data, error } = await supabase
+    .from('stock_levels')
+    .select('quantity')
+    .eq('product_id', productId)
+    .eq('location_id', locationId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data?.quantity ?? 0
+}
+
 export async function fetchStock(orgId: string): Promise<StockItem[]> {
   if (!orgId) {
     throw new Error('Cannot fetch stock without an organization id')

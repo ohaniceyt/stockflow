@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
+import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 
 interface SignupPayload {
   name: string
@@ -9,12 +10,7 @@ interface SignupPayload {
   plan?: 'free' | 'starter' | 'pro'
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function buildVerificationEmailHtml(link: string, appUrl: string): string {
+function buildVerificationEmailHtml(link: string, _appUrl: string): string {
   return `
     <!DOCTYPE html>
     <html lang="fr">
@@ -57,7 +53,7 @@ function buildVerificationEmailHtml(link: string, appUrl: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return corsResponse(req)
   }
 
   try {
@@ -71,7 +67,7 @@ Deno.serve(async (req: Request) => {
     if (!bodyText || bodyText.trim().length === 0) {
       return new Response(JSON.stringify({ error: 'Request body is empty' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -81,7 +77,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -91,7 +87,7 @@ Deno.serve(async (req: Request) => {
     if (!name?.trim() || !email?.trim() || !password) {
       return new Response(JSON.stringify({ error: 'Name, email and password are required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -100,14 +96,14 @@ Deno.serve(async (req: Request) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
     if (password.length < 8) {
       return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -125,7 +121,7 @@ Deno.serve(async (req: Request) => {
     if (existingUser) {
       return new Response(JSON.stringify({ error: 'Email already registered' }), {
         status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
@@ -187,7 +183,7 @@ Deno.serve(async (req: Request) => {
           message: 'Compte créé. Vérifiez votre email pour continuer.',
           plan: selectedPlan,
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
     } catch (err) {
       // Best-effort rollback
@@ -198,14 +194,14 @@ Deno.serve(async (req: Request) => {
       const message = err instanceof Error ? err.message : 'Unknown error'
       return new Response(JSON.stringify({ error: message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

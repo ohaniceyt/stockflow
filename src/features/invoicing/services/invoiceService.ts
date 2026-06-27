@@ -2,7 +2,9 @@
 import { supabase } from '@/services/supabase'
 import type {
   Invoice,
+  InvoiceStatus,
   InvoiceWithItems,
+  PaymentMethod,
   Quote,
   QuoteWithItems,
   DeliveryNote,
@@ -31,6 +33,7 @@ export interface CreateQuoteInput {
   issueDate: string
   dueDate?: string | null
   currency: string
+  prefix?: string
   note?: string | null
   terms?: string | null
   items: DocumentLineInput[]
@@ -42,6 +45,7 @@ export interface CreateInvoiceInput {
   issueDate: string
   dueDate?: string | null
   currency: string
+  prefix?: string
   note?: string | null
   terms?: string | null
   quoteId?: string | null
@@ -53,6 +57,7 @@ export interface CreateDeliveryNoteInput {
   contactId?: string | null
   issueDate: string
   currency: string
+  prefix?: string
   deliveryAddress?: string | null
   note?: string | null
   terms?: string | null
@@ -84,6 +89,17 @@ function buildInvoiceItems(
   }))
 }
 
+function defaultPrefixForType(type: 'quote' | 'invoice' | 'delivery_note'): string {
+  return type === 'quote' ? 'DEV' : type === 'invoice' ? 'FA' : 'BL'
+}
+
+function resolvePrefix(
+  prefix: string | undefined | null,
+  type: 'quote' | 'invoice' | 'delivery_note'
+): string {
+  return prefix?.trim() ? prefix.trim() : defaultPrefixForType(type)
+}
+
 function computeTotals(items: DocumentLineInput[]) {
   const subtotal = items.reduce((sum, item) => {
     const qty = item.quantity ?? 1
@@ -112,7 +128,7 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteWithIte
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'quote',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'quote'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -171,7 +187,7 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceW
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'invoice',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'invoice'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -233,7 +249,7 @@ export async function createDeliveryNote(
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'delivery_note',
-    p_prefix: '',
+    p_prefix: resolvePrefix(input.prefix, 'delivery_note'),
   })
 
   if (numberResponse.error) throw numberResponse.error
@@ -438,11 +454,14 @@ export async function updateDocumentStatus(
   if (error) throw error
 }
 
-export async function convertQuoteToInvoice(quoteId: string): Promise<string> {
+export async function convertQuoteToInvoice(
+  quoteId: string,
+  options?: { issueDate?: string; dueDate?: string }
+): Promise<string> {
   const { data, error } = await supabase.rpc('convert_quote_to_invoice', {
     p_quote_id: quoteId,
-    p_issue_date: null,
-    p_due_date: null,
+    p_issue_date: options?.issueDate ?? undefined,
+    p_due_date: options?.dueDate ?? undefined,
   })
 
   if (error) throw error
@@ -460,8 +479,8 @@ export async function recordPayment(
     p_invoice_id: invoiceId,
     p_amount: amount,
     p_payment_method: paymentMethod,
-    p_reference: reference ?? null,
-    p_paid_at: null,
+    p_reference: reference ?? undefined,
+    p_paid_at: undefined,
   })
 
   if (error) throw error
@@ -484,7 +503,7 @@ function mapInvoice(row: InvoiceRow): Invoice {
     contactId: row.contact_id,
     type: 'invoice',
     documentNumber: row.document_number,
-    status: row.status,
+    status: row.status as InvoiceStatus,
     issueDate: row.issue_date,
     dueDate: row.due_date,
     currency: row.currency,
@@ -576,7 +595,7 @@ function mapPayment(row: PaymentRow): Payment {
     orgId: row.org_id,
     invoiceId: row.invoice_id,
     amount: row.amount,
-    paymentMethod: row.payment_method,
+    paymentMethod: row.payment_method as PaymentMethod,
     reference: row.reference,
     paidAt: row.paid_at,
     createdAt: row.created_at,

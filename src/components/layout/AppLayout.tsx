@@ -95,7 +95,7 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <h2 className="text-base font-semibold md:text-lg">StockFlow vNext</h2>
+          <h2 className="text-base font-semibold md:text-lg">StockFlow</h2>
 
           <div className="text-sm text-muted-foreground">
             {session?.membership.role === 'super_admin' ? 'Super Admin' : session?.user.name}

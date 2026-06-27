@@ -49,7 +49,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-3xl font-bold text-primary-foreground">
             S
           </div>
-          <h1 className="text-2xl font-bold">StockFlow vNext</h1>
+          <h1 className="text-2xl font-bold">StockFlow</h1>
           <p className="text-sm text-muted-foreground">Connectez-vous à votre compte</p>
         </div>
 

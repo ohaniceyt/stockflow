@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase'
 import { mapOrganizationRow } from '@/features/settings/services/organizationService'
-import type { Receipt, ReceiptItem, ReceiptWithItems, Organization } from '@/types'
+import type { PaymentMethod, Receipt, ReceiptItem, ReceiptWithItems, Organization } from '@/types'
 import type { Database } from '@/types/database'
 
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
@@ -14,6 +14,7 @@ export interface CreateReceiptInput {
   contactId?: string | null
   paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
   currency: string
+  prefix?: string
   subtotal: number
   taxAmount: number
   total: number
@@ -31,11 +32,15 @@ export interface CreateReceiptInput {
   }[]
 }
 
+function resolveReceiptPrefix(prefix: string | undefined | null): string {
+  return prefix?.trim() ? prefix.trim() : 'REC'
+}
+
 export async function createReceipt(input: CreateReceiptInput): Promise<ReceiptWithItems> {
   const numberResponse = await supabase.rpc('next_document_number', {
     p_org_id: input.orgId,
     p_document_type: 'receipt',
-    p_prefix: '',
+    p_prefix: resolveReceiptPrefix(input.prefix),
   })
 
   if (numberResponse.error) {
@@ -186,16 +191,16 @@ export async function getReceiptWithOrg(
   }
 }
 
-function mapReceipt(row: ReceiptRow): Receipt {
+export function mapReceipt(row: ReceiptRow): Receipt {
   return {
     id: row.id,
     orgId: row.org_id,
     locationId: row.location_id,
     cashierSessionId: row.cashier_session_id,
-    operatorId: row.operator_id,
+    operatorId: row.operator_id ?? '',
     contactId: row.contact_id,
     documentNumber: row.document_number,
-    paymentMethod: row.payment_method,
+    paymentMethod: row.payment_method ? (row.payment_method as PaymentMethod) : 'other',
     currency: row.currency,
     subtotal: row.subtotal,
     taxAmount: row.tax_amount,
@@ -210,7 +215,7 @@ function mapReceipt(row: ReceiptRow): Receipt {
   }
 }
 
-function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
+export function mapReceiptItem(row: ReceiptItemRow): ReceiptItem {
   return {
     id: row.id,
     receiptId: row.receipt_id,
