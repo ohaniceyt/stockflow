@@ -28,31 +28,46 @@ const demoScript = `<script type="module">
 </script>
 `
 
-function extractEagerImageSrces(markup: string): string[] {
-  const srces: string[] = []
-  const regex = /<img[^>]*\sloading="eager"[^>]*>/g
+interface ResponsiveImagePreload {
+  srcset: string
+  sizes: string
+}
+
+function extractEagerResponsivePreloads(markup: string): ResponsiveImagePreload[] {
+  const preloads: ResponsiveImagePreload[] = []
+  const pictureRegex = /<picture[^>]*>[\s\S]*?<\/picture>/g
   let match: RegExpExecArray | null
-  while ((match = regex.exec(markup)) !== null) {
-    const srcMatch = /src="([^"]+)"/.exec(match[0])
-    if (srcMatch && srcMatch[1]) srces.push(srcMatch[1])
+  while ((match = pictureRegex.exec(markup)) !== null) {
+    const picture = match[0]
+    if (!picture.includes('loading="eager"')) continue
+    const sourceMatch = /<source[^>]*type="image\/webp"[^>]*>/.exec(picture)
+    if (!sourceMatch) continue
+    const srcsetMatch = /src[Ss]et="([^"]+)"/.exec(sourceMatch[0])
+    const sizesMatch = /sizes="([^"]+)"/.exec(sourceMatch[0])
+    if (srcsetMatch) {
+      preloads.push({
+        srcset: srcsetMatch[1],
+        sizes: sizesMatch?.[1] ?? '100vw',
+      })
+    }
   }
-  return srces
+  return preloads
 }
 
 function buildPreloadLinks(markup: string): string {
-  const images = new Set<string>()
+  const lines: string[] = []
   // Logo is always above the fold in the marketing header.
-  images.add('/logo.svg')
-  // Preload any explicitly eager-above-the-fold images (e.g. hero screenshot).
-  for (const src of extractEagerImageSrces(markup)) {
-    images.add(src)
-  }
-  return Array.from(images)
-    .map(
-      (src) =>
-        `  <link rel="preload" as="image" href="${src}" fetchpriority="high">`,
+  lines.push('  <link rel="preload" as="image" href="/logo.svg">')
+
+  // Preload responsive WebP variants for any above-the-fold picture
+  // (e.g. the hero screenshot). Browsers pick the right srcset candidate.
+  for (const { srcset, sizes } of extractEagerResponsivePreloads(markup)) {
+    lines.push(
+      `  <link rel="preload" as="image" type="image/webp" imagesrcset="${srcset}" imagesizes="${sizes}">`,
     )
-    .join('\n')
+  }
+
+  return lines.join('\n')
 }
 
 for (const route of routes) {
