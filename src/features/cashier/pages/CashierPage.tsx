@@ -1,25 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  Minus,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  UserPlus,
-  Search,
-  ScanBarcode,
-  History,
-  X,
-  Unlock,
-  Lock,
-  AlertCircle,
-  Upload,
-} from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
 import { useMovements } from '@/features/movements/hooks/useMovements'
@@ -38,9 +22,14 @@ import {
   computeSessionRevenue,
   filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
+import { CashierHeader } from '../components/CashierHeader'
+import { ProductCatalog } from '../components/ProductCatalog'
+import { CartPanel } from '../components/CartPanel'
+import { SessionDrawer } from '../components/SessionDrawer'
+import { ScannerDialog } from '../components/ScannerDialog'
 import type { Product, ReceiptWithItems } from '@/types'
 
-interface CartItem {
+export interface CartItem {
   id: string
   productId: string
   productName: string
@@ -55,6 +44,12 @@ interface CartItem {
 interface CustomerOption {
   id: string
   label: string
+}
+
+interface CatalogProduct extends Product {
+  locationId: string
+  locationName: string
+  available: number
 }
 
 function formatCurrency(value: number): string {
@@ -84,12 +79,10 @@ export default function CashierPage() {
 
   const [selectedLocationId, setSelectedLocationId] = useState('')
   const [customerId, setCustomerId] = useState('walk-in')
-  const [newCustomerName, setNewCustomerName] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [note, setNote] = useState('')
   const [success, setSuccess] = useState(false)
   const [search, setSearch] = useState('')
-  const [showHistory, setShowHistory] = useState(false)
   const [openingBalanceInput, setOpeningBalanceInput] = useState('')
   const [closingBalanceInput, setClosingBalanceInput] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -103,6 +96,8 @@ export default function CashierPage() {
   const [receipt, setReceipt] = useState<ReceiptWithItems | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
+  const [mobileTab, setMobileTab] = useState('products')
   const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
   const scannerContainerRef = useRef<HTMLDivElement | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -111,6 +106,7 @@ export default function CashierPage() {
   const defaultLocation = locations?.find((l) => l.isDefault)
   const activeLocationId =
     selectedLocationId.length > 0 ? selectedLocationId : (defaultLocation?.id ?? '')
+  const activeLocationName = locations?.find((l) => l.id === activeLocationId)?.name ?? ''
 
   const { data: openSession, isLoading: sessionLoading } = useCashierSession(activeLocationId)
 
@@ -122,7 +118,7 @@ export default function CashierPage() {
     return [{ id: 'walk-in', label: 'Client de passage' }, ...base]
   }, [customers])
 
-  const availableProducts = useMemo(() => {
+  const availableProducts: CatalogProduct[] = useMemo(() => {
     if (!products || !stock || !activeLocationId) return []
     const activeProducts = products.filter((p) => p.isActive)
     const activeLocation = locations?.find((l) => l.id === activeLocationId)
@@ -160,7 +156,7 @@ export default function CashierPage() {
   }
 
   const addToCart = useCallback(
-    (product: Product & { locationId: string; locationName: string; available: number }) => {
+    (product: CatalogProduct) => {
       const existing = cart.find(
         (item) => item.productId === product.id && item.locationId === product.locationId
       )
@@ -276,7 +272,6 @@ export default function CashierPage() {
       setCart([])
       setNote('')
       setCustomerId('walk-in')
-      setNewCustomerName('')
       setAmountPaid('')
       setSuccess(true)
     } catch {
@@ -310,7 +305,6 @@ export default function CashierPage() {
       {
         onSuccess: () => {
           setClosingBalanceInput('')
-          setShowHistory(false)
         },
       }
     )
@@ -340,7 +334,7 @@ export default function CashierPage() {
       }
       setScannerCameras(cameras)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Impossible d accéder à la caméra'
+      const message = err instanceof Error ? err.message : "Impossible d'accéder à la caméra"
       setScannerError(message)
       setScannerStarting(false)
     }
@@ -416,6 +410,7 @@ export default function CashierPage() {
       const matched = availableProducts.find((p) => p.barcode === decodedText)
       if (matched) {
         addToCart(matched)
+        void stopScanner()
       } else {
         setScannerError(`Code-barre non reconnu : ${decodedText}`)
       }
@@ -435,7 +430,7 @@ export default function CashierPage() {
       <div className="mx-auto max-w-5xl space-y-4">
         <h1 className="text-2xl font-bold">Caisse</h1>
         <p className="text-muted-foreground">
-          La caisse n est pas activée pour cette organisation. Contactez un administrateur.
+          La caisse n'est pas activée pour cette organisation. Contactez un administrateur.
         </p>
       </div>
     )
@@ -451,24 +446,20 @@ export default function CashierPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Caisse</h1>
-          <p className="text-muted-foreground">Ventes rapides pour {session.organization.name}.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-          <span className="font-medium">
-            {cart.reduce((sum, item) => sum + item.quantity, 0)} article(s)
-          </span>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-4 pb-6">
+      <CashierHeader
+        orgName={session.organization.name}
+        locationName={activeLocationName}
+        cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+        onOpenSession={() => setSessionDrawerOpen(true)}
+      />
 
-      <div className="rounded-xl border bg-card p-4 shadow-sm">
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <div className="space-y-1">
-            <Label htmlFor="location">Emplacement</Label>
+            <Label htmlFor="location" className="text-xs">
+              Emplacement
+            </Label>
             <Select
               id="location"
               value={activeLocationId}
@@ -486,7 +477,9 @@ export default function CashierPage() {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="customer">Client</Label>
+            <Label htmlFor="customer" className="text-xs">
+              Client
+            </Label>
             <Select
               id="customer"
               value={customerId}
@@ -499,465 +492,160 @@ export default function CashierPage() {
               ))}
             </Select>
           </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="search">Recherche produit</Label>
-            <div className="relative flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Nom ou code-barre…"
-                  className="pl-9"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                title="Scanner un code-barre"
-                aria-label="Scanner un code-barre"
-                onClick={() => (scannerOpen ? stopScanner() : startScanner())}
-              >
-                <ScanBarcode className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
 
-        {customerId === 'walk-in' && (
-          <div className="mb-4 flex gap-2">
-            <Input
-              value={newCustomerName}
-              onChange={(e) => setNewCustomerName(e.target.value)}
-              placeholder="Nom du client de passage"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!newCustomerName.trim()}
-              onClick={() => {
-                setNote((prev) =>
-                  prev ? `${prev} — ${newCustomerName.trim()}` : newCustomerName.trim()
-                )
-                setNewCustomerName('')
-              }}
-            >
-              <UserPlus className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {scannerOpen && (
-          <div className="mt-4 rounded-lg border p-2">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium">Scanner</span>
-              <button type="button" onClick={() => void stopScanner()}>
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </div>
-            {scannerError ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <p className="text-sm">{scannerError}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void startScanner()}
-                    disabled={scannerStarting}
-                  >
-                    <ScanBarcode className="mr-2 h-4 w-4" />
-                    Réessayer la caméra
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Utiliser une image
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div id={scannerContainerId} ref={scannerContainerRef} className="w-full rounded" />
-            )}
-            {scannerStarting && !scannerError && (
-              <p className="text-sm text-muted-foreground">Démarrage de la caméra…</p>
-            )}
-          </div>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              void handleFileScan(file)
-            }
-            e.currentTarget.value = ''
-          }}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-4 md:col-span-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {openSession ? (
-            <>
-              <div className="rounded-xl border bg-card p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Caisse ouverte</p>
-                    <p className="font-medium">
-                      Solde d'ouverture : {formatCurrency(openSession.openingBalance)}
-                    </p>
-                    <p className="font-medium">
-                      Recette en cours : {formatCurrency(sessionRevenue)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">
-                      {formatDateTime(openSession.openedAt)}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => setShowHistory((prev) => !prev)}
-                    >
-                      <History className="mr-2 h-4 w-4" />
-                      {showHistory ? 'Masquer' : 'Historique'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-card p-4 shadow-sm">
-                <span className="mb-2 block text-sm font-medium">Produits disponibles</span>
-                {filteredProducts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Aucun produit ne correspond à cette recherche.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {filteredProducts.map((product) => (
-                      <button
-                        key={product.id}
-                        type="button"
-                        disabled={product.available <= 0}
-                        onClick={() => addToCart(product)}
-                        className="flex items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
-                      >
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatCurrency(product.sellingPrice)} / {product.unit} — stock:{' '}
-                            {product.available}
-                          </p>
-                        </div>
-                        <Plus className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <span>
+              Caisse ouverte — recette : <strong>{formatCurrency(sessionRevenue)}</strong>
+            </span>
           ) : (
-            <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="flex items-start gap-3">
-                <Unlock className="h-5 w-5 text-muted-foreground" />
-                <div className="space-y-2">
-                  <h2 className="font-semibold">Ouvrir la caisse</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Aucune caisse n'est ouverte pour cet emplacement. Saisissez le solde d'ouverture
-                    pour commencer.
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
-                      placeholder="Solde d'ouverture"
-                      value={openingBalanceInput}
-                      onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleOpenSession}
-                      disabled={
-                        !activeLocationId ||
-                        openingBalanceInput === '' ||
-                        openSessionMutation.isPending
-                      }
-                    >
-                      {openSessionMutation.isPending ? 'Ouverture…' : 'Ouvrir'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showHistory && (
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold">Historique des ventes</h2>
-                <button type="button" onClick={() => setShowHistory(false)}>
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-              {sessionSales.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune vente sur cette session.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {sessionSales.map((sale) => (
-                    <li
-                      key={sale.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div>
-                        <p className="font-medium">{getSaleProductName(sale)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateTime(sale.createdAt)} — {sale.quantity} x{' '}
-                          {formatCurrency(sale.unitPrice ?? 0)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium">
-                          {formatCurrency((sale.unitPrice ?? 0) * sale.quantity)}
-                        </span>
-                        {canCancelSales && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleCancelSale(sale.id)}
-                          >
-                            Annuler
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <h2 className="mb-3 font-semibold">Panier</h2>
-            {cart.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Le panier est vide.</p>
-            ) : (
-              <ul className="space-y-3">
-                {cart.map((item) => (
-                  <li key={item.id} className="rounded-lg border p-3">
-                    <div className="mb-2 flex items-start justify-between">
-                      <div>
-                        <p className="font-medium">{item.productName}</p>
-                        <p className="text-xs text-muted-foreground">{item.locationName}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity(item.id, -1)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity(item.id, 1)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Label htmlFor={`price-${item.id}`} className="text-xs text-muted-foreground">
-                        Prix unit.
-                      </Label>
-                      <Input
-                        id={`price-${item.id}`}
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.01"
-                        value={item.sellingPrice}
-                        onChange={(e) => updatePrice(item.id, Number(e.target.value))}
-                        className="h-8"
-                      />
-                    </div>
-                    <p className="mt-2 text-right text-sm font-medium">
-                      {formatCurrency(item.sellingPrice * item.quantity)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="mt-4 space-y-3 border-t pt-4">
-              <div className="space-y-1">
-                <Label htmlFor="payment-method">Mode de paiement</Label>
-                <Select
-                  id="payment-method"
-                  value={paymentMethod}
-                  onChange={(e) =>
-                    setPaymentMethod(
-                      e.target.value as 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
-                    )
-                  }
-                >
-                  <option value="cash">Espèces</option>
-                  <option value="card">Carte bancaire</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="transfer">Virement</option>
-                  <option value="other">Autre</option>
-                </Select>
-              </div>
-
-              {paymentMethod === 'cash' && (
-                <div className="space-y-1">
-                  <Label htmlFor="amount-paid">Montant reçu</Label>
-                  <Input
-                    id="amount-paid"
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step="0.01"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    placeholder={`Minimum ${formatCurrency(total)}`}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <Label htmlFor="note">Note</Label>
-                <Input
-                  id="note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Référence, remise…"
-                />
-              </div>
-
-              <div className="space-y-1 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Sous-total</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                {taxAmount > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      {session.organization.taxName ?? 'Taxe'} ({taxRate}%)
-                    </span>
-                    <span>{formatCurrency(taxAmount)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
-                {paymentMethod === 'cash' && Number(amountPaid) >= total && (
-                  <div className="flex items-center justify-between text-green-600">
-                    <span>Monnaie</span>
-                    <span>{formatCurrency(Number(amountPaid) - total)}</span>
-                  </div>
-                )}
-              </div>
-
-              <Button
-                type="button"
-                className="w-full"
-                disabled={
-                  cart.length === 0 ||
-                  isCheckingOut ||
-                  !openSession ||
-                  (paymentMethod === 'cash' && Number(amountPaid) < total)
-                }
-                onClick={handleCheckout}
-              >
-                {isCheckingOut ? 'Enregistrement…' : 'Valider la vente'}
-              </Button>
-              {!openSession && (
-                <p className="text-center text-xs text-destructive">
-                  Ouvrez une caisse pour valider une vente.
-                </p>
-              )}
-              {success && !showReceipt && (
-                <p className="text-center text-sm text-green-600">Vente enregistrée.</p>
-              )}
-            </div>
-          </div>
-
-          {openSession && (
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <Lock className="h-5 w-5 text-muted-foreground" />
-                <div className="w-full space-y-2">
-                  <h2 className="font-semibold">Clôturer la caisse</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Solde théorique : {formatCurrency(openSession.openingBalance + sessionRevenue)}
-                  </p>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step="0.01"
-                    placeholder="Solde de clôture"
-                    value={closingBalanceInput}
-                    onChange={(e) => setClosingBalanceInput(e.target.value)}
-                  />
-                  {closingBalanceInput !== '' && (
-                    <p className="text-sm">
-                      Écart :{' '}
-                      {formatCurrency(
-                        Number(closingBalanceInput) - (openSession.openingBalance + sessionRevenue)
-                      )}
-                    </p>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={closingBalanceInput === '' || closeSessionMutation.isPending}
-                    onClick={handleCloseSession}
-                  >
-                    {closeSessionMutation.isPending ? 'Clôture…' : 'Clôturer'}
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <span className="text-destructive">Caisse fermée</span>
           )}
         </div>
       </div>
+
+      {/* Desktop split view */}
+      <div className="hidden gap-4 md:grid md:grid-cols-5">
+        <div className="md:col-span-3">
+          <ProductCatalog
+            search={search}
+            onSearchChange={setSearch}
+            products={filteredProducts}
+            onAdd={addToCart}
+            onStartScanner={startScanner}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <CartPanel
+              cart={cart}
+              paymentMethod={paymentMethod}
+              amountPaid={amountPaid}
+              note={note}
+              subtotal={subtotal}
+              taxAmount={taxAmount}
+              total={total}
+              taxRate={taxRate}
+              taxName={session.organization.taxName}
+              isCheckingOut={isCheckingOut}
+              openSession={!!openSession}
+              success={success}
+              onPaymentMethodChange={setPaymentMethod}
+              onAmountPaidChange={setAmountPaid}
+              onNoteChange={setNote}
+              onUpdateQuantity={updateQuantity}
+              onUpdatePrice={updatePrice}
+              onRemove={removeItem}
+              onCheckout={handleCheckout}
+              formatCurrency={formatCurrency}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile tabs */}
+      <div className="md:hidden">
+        <Tabs value={mobileTab} onValueChange={setMobileTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="products">Produits</TabsTrigger>
+            <TabsTrigger value="cart">
+              Panier ({cart.reduce((sum, item) => sum + item.quantity, 0)})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="products" className="mt-4">
+            <ProductCatalog
+              search={search}
+              onSearchChange={setSearch}
+              products={filteredProducts}
+              onAdd={(product) => {
+                addToCart(product)
+                setMobileTab('cart')
+              }}
+              onStartScanner={startScanner}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+          <TabsContent value="cart" className="mt-4">
+            <CartPanel
+              cart={cart}
+              paymentMethod={paymentMethod}
+              amountPaid={amountPaid}
+              note={note}
+              subtotal={subtotal}
+              taxAmount={taxAmount}
+              total={total}
+              taxRate={taxRate}
+              taxName={session.organization.taxName}
+              isCheckingOut={isCheckingOut}
+              openSession={!!openSession}
+              success={success}
+              onPaymentMethodChange={setPaymentMethod}
+              onAmountPaidChange={setAmountPaid}
+              onNoteChange={setNote}
+              onUpdateQuantity={updateQuantity}
+              onUpdatePrice={updatePrice}
+              onRemove={removeItem}
+              onCheckout={handleCheckout}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <SessionDrawer
+        open={sessionDrawerOpen}
+        onClose={() => setSessionDrawerOpen(false)}
+        openSession={openSession ?? null}
+        sessionRevenue={sessionRevenue}
+        sessionSales={sessionSales.map((sale) => ({
+          id: sale.id,
+          createdAt: sale.createdAt,
+          quantity: sale.quantity,
+          unitPrice: sale.unitPrice ?? 0,
+          productName: getSaleProductName(sale),
+        }))}
+        openingBalanceInput={openingBalanceInput}
+        closingBalanceInput={closingBalanceInput}
+        openingPending={openSessionMutation.isPending}
+        closingPending={closeSessionMutation.isPending}
+        canCancelSales={canCancelSales}
+        formatCurrency={formatCurrency}
+        formatDateTime={formatDateTime}
+        onOpeningBalanceChange={setOpeningBalanceInput}
+        onClosingBalanceChange={setClosingBalanceInput}
+        onOpenSession={handleOpenSession}
+        onCloseSession={handleCloseSession}
+        onCancelSale={handleCancelSale}
+      />
+
+      <ScannerDialog
+        open={scannerOpen}
+        onClose={stopScanner}
+        starting={scannerStarting}
+        error={scannerError}
+        containerId={scannerContainerId}
+        containerRef={scannerContainerRef}
+        onRetryCamera={() => {
+          void stopScanner().then(() => void startScanner())
+        }}
+        onFileSelect={() => fileInputRef.current?.click()}
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            void handleFileScan(file)
+          }
+          e.currentTarget.value = ''
+        }}
+      />
 
       {showReceipt && receipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
