@@ -114,16 +114,19 @@ html {
 }
 
 @utility btn-o {
-  @apply inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] text-sm font-medium transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] text-sm font-medium transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50 touch-manipulation;
 }
 @utility btn-p {
-  @apply inline-flex items-center justify-center rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-medium transition-colors hover:bg-[var(--primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] text-sm font-medium transition-colors hover:bg-[var(--primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50 touch-manipulation;
 }
 @utility btn-sm {
-  @apply h-8 px-3 gap-1.5;
+  @apply h-10 min-h-[40px] px-3 gap-1.5 sm:h-8;
 }
 @utility btn-ic {
-  @apply h-8 w-8 p-0;
+  @apply h-10 min-h-[40px] w-10 min-w-[40px] p-0 sm:h-8 sm:w-8;
+}
+@utility touch-manipulation {
+  touch-action: manipulation;
 }
 
 @utility card {
