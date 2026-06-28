@@ -13,7 +13,7 @@ export function MidBanner() {
             </h2>
             <p className="mt-4 text-lg opacity-90">
               Rejoignez des centaines de PME qui gèrent leur stock, leurs ventes et leurs factures
-              avec Flowbill.
+              avec StockFlow.
             </p>
           </div>
           <Button asChild size="lg" variant="secondary" className="gap-2">

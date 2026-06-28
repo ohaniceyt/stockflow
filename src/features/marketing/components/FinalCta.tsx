@@ -10,7 +10,7 @@ export function FinalCta() {
           Prêt à transformer votre gestion de stock ?
         </h2>
         <p className="mt-6 text-lg text-muted-foreground">
-          Testez Flowbill 1 mois gratuitement et découvrez ce qu’il peut faire pour votre
+          Testez StockFlow 1 mois gratuitement et découvrez ce qu’il peut faire pour votre
           entreprise.
         </p>
         <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">

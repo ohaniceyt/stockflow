@@ -17,7 +17,7 @@ export default function StockPage() {
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
 
-  const orgName = session?.organization.name ?? 'Flowbill'
+  const orgName = session?.organization.name ?? 'StockFlow'
   const orgId = session?.membership.orgId
   const canExport = hasRole(['super_admin', 'admin'])
 

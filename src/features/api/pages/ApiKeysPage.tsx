@@ -87,7 +87,7 @@ export default function ApiKeysPage() {
           <div>
             <h2 className="font-semibold">Clés API</h2>
             <p className="text-sm text-muted-foreground">
-              Connectez votre boutique externe à Flowbill.
+              Connectez votre boutique externe à StockFlow.
             </p>
           </div>
         </div>

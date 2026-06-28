@@ -4,7 +4,7 @@ interface LogoProps {
   alt?: string
 }
 
-export function Logo({ className = 'h-7', variant = 'horizontal', alt = 'Flowbill' }: LogoProps) {
+export function Logo({ className = 'h-7', variant = 'horizontal', alt = 'StockFlow' }: LogoProps) {
   const src =
     variant === 'wordmark' ? '/wordmark.svg' : variant === 'icon' ? '/app-icon.svg' : '/logo.svg'
 

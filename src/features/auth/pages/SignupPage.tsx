@@ -77,7 +77,7 @@ export default function SignupPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
             <Logo variant="icon" className="h-16 w-16" />
           </div>
-          <h1 className="text-2xl font-bold">Créer votre compte Flowbill</h1>
+          <h1 className="text-2xl font-bold">Créer votre compte StockFlow</h1>
           <p className="text-sm text-muted-foreground">
             Commencez gratuitement, sans carte bancaire.
             {planParam && (

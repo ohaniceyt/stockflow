@@ -50,7 +50,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
             <Logo variant="icon" className="h-16 w-16" />
           </div>
-          <h1 className="text-2xl font-bold">Flowbill</h1>
+          <h1 className="text-2xl font-bold">StockFlow</h1>
           <p className="text-sm text-muted-foreground">Connectez-vous à votre compte</p>
         </div>
 
