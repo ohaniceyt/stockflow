@@ -1,3 +1,5 @@
+import { useDarkMode } from '@/lib/useDarkMode'
+
 interface LogoProps {
   className?: string
   variant?: 'horizontal' | 'wordmark' | 'icon'
@@ -5,8 +7,8 @@ interface LogoProps {
 }
 
 export function Logo({ className = 'h-7', variant = 'horizontal', alt = 'StockFlow' }: LogoProps) {
-  const src =
-    variant === 'wordmark' ? '/wordmark.svg' : variant === 'icon' ? '/app-icon.svg' : '/logo.svg'
+  const isDark = useDarkMode()
+  const base = variant === 'wordmark' ? '/wordmark' : variant === 'icon' ? '/app-icon' : '/logo'
 
-  return <img src={src} alt={alt} className={className} />
+  return <img src={`${base}${isDark ? '-dark' : ''}.svg`} alt={alt} className={className} />
 }
