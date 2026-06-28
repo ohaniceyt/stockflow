@@ -298,7 +298,14 @@ function buildSession(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(loadSession())
   const [isLoading, setIsLoading] = useState(false)
-  const [isLocked, setIsLocked] = useState(false)
+  const [isLocked, setIsLocked] = useState(() => {
+    // Restore locked state from sessionStorage so a refresh does not reset it.
+    try {
+      return sessionStorage.getItem('stockflow-app-locked') === '1'
+    } catch {
+      return false
+    }
+  })
   const lastInitializedToken = useRef<string | null>(null)
 
   const persistSession = useCallback((next: AuthSession | null) => {
@@ -315,6 +322,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAppLockPin()
     clearStoredLockEmail()
     setIsLocked(false)
+    try {
+      sessionStorage.removeItem('stockflow-app-locked')
+    } catch {
+      // ignore
+    }
   }, [persistSession])
 
   const initializeSession = useCallback(
@@ -370,9 +382,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Admin forced a reset: clear local PIN and do not lock until the user sets a new one.
         clearAppLockPin()
         setIsLocked(false)
+        try {
+          sessionStorage.removeItem('stockflow-app-locked')
+        } catch {
+          // ignore
+        }
       } else {
-        // Lock only if this device has previously stored a PIN.
-        setIsLocked(hasAppLockPin())
+        // Lock only if this device has previously stored a PIN. Preserve the locked state
+        // across refreshes via sessionStorage, defaulting to locked when a PIN exists.
+        const wasLocked = sessionStorage.getItem('stockflow-app-locked') === '1'
+        setIsLocked(wasLocked || hasAppLockPin())
       }
 
       if (next.organization.id && !next.needsOrganization) {
@@ -610,6 +629,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ok = await verifyAppLockPin(pin)
     if (ok) {
       setIsLocked(false)
+      try {
+        sessionStorage.removeItem('stockflow-app-locked')
+      } catch {
+        // ignore
+      }
     }
     return ok
   }, [])
@@ -617,6 +641,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lockApp = useCallback(() => {
     if (hasAppLockPin()) {
       setIsLocked(true)
+      try {
+        sessionStorage.setItem('stockflow-app-locked', '1')
+      } catch {
+        // ignore
+      }
     }
   }, [])
 
