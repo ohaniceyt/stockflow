@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from './Link'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { Logo } from './Logo'
 
@@ -103,12 +103,8 @@ export function MarketingHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/login">Se connecter</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/signup">Essayer gratuit</Link>
-          </Button>
+          <MarketingButton variant="ghost" size="sm" to="/login">Se connecter</MarketingButton>
+          <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
         </div>
 
         <button
@@ -152,12 +148,8 @@ export function MarketingHeader() {
               )
             )}
             <div className="mt-2 flex flex-col gap-2 border-t pt-3">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/login">Se connecter</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link to="/signup">Essayer gratuit</Link>
-              </Button>
+              <MarketingButton variant="outline" size="sm" to="/login">Se connecter</MarketingButton>
+              <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
             </div>
           </nav>
         </div>

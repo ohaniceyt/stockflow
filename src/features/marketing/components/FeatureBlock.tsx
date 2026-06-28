@@ -1,8 +1,7 @@
-import { Link } from './Link'
 import { ArrowRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 
 interface FeatureBlockProps {
   eyebrow: string
@@ -54,15 +53,13 @@ export function FeatureBlock({
                 </li>
               ))}
             </ul>
-            <Button
-              asChild
+            <MarketingButton
+              to={link}
               variant="ghost"
               className="mt-6 gap-1 px-0 text-primary hover:bg-transparent"
             >
-              <Link to={link}>
-                {linkLabel} <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+              {linkLabel} <ArrowRight className="h-4 w-4" />
+            </MarketingButton>
           </div>
 
           <div className={reversed ? 'lg:order-1' : ''}>

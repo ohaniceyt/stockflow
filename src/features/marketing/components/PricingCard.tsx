@@ -1,6 +1,5 @@
 import { Check } from 'lucide-react'
-import { Link } from './Link'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 import { cn } from '@/lib/utils'
 
 interface PricingCardProps {
@@ -30,7 +29,6 @@ export function PricingCard({
 }: PricingCardProps) {
   const monthly = (monthlyPrice / 100).toLocaleString('fr-FR')
   const yearly = (yearlyPrice / 100).toLocaleString('fr-FR')
-  const isExternal = href.startsWith('mailto:') || href.startsWith('http')
 
   return (
     <div
@@ -74,9 +72,13 @@ export function PricingCard({
         ))}
       </ul>
 
-      <Button asChild variant={highlighted ? 'default' : 'outline'} className="w-full">
-        {isExternal ? <a href={href}>{cta}</a> : <Link to={href}>{cta}</Link>}
-      </Button>
+      <MarketingButton
+        to={href}
+        variant={highlighted ? 'default' : 'outline'}
+        className="w-full"
+      >
+        {cta}
+      </MarketingButton>
     </div>
   )
 }

@@ -1,6 +1,5 @@
-import { Link } from './Link'
 import { ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 
 export function FinalCta() {
   return (
@@ -14,14 +13,12 @@ export function FinalCta() {
           entreprise.
         </p>
         <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="gap-2">
-            <Link to="/signup">
-              Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link to="/pricing">Voir les tarifs</Link>
-          </Button>
+          <MarketingButton to="/signup" size="lg" className="gap-2">
+            Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
+          </MarketingButton>
+          <MarketingButton to="/pricing" variant="outline" size="lg">
+            Voir les tarifs
+          </MarketingButton>
         </div>
       </div>
     </section>

@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Link } from './Link'
 import { Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 
 interface PricingTier {
   name: string
@@ -101,13 +100,13 @@ export function PricingSection({ tiers }: PricingSectionProps) {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  asChild
+                <MarketingButton
+                  to={tier.ctaLink}
                   className="mt-8 w-full"
                   variant={tier.highlighted ? 'default' : 'outline'}
                 >
-                  <Link to={tier.ctaLink}>{tier.cta}</Link>
-                </Button>
+                  {tier.cta}
+                </MarketingButton>
               </div>
             )
           })}

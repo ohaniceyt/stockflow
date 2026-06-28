@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Link } from './Link'
-import { ArrowRight, Play, CheckCircle2, X } from 'lucide-react'
+import { ArrowRight, Play, CheckCircle2 } from 'lucide-react'
 import { OptimizedImage } from '@/components/OptimizedImage'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { MarketingButton } from './MarketingButton'
+import HeroDemoDialog from './HeroDemoDialog'
 
 const valueProps = [
   'Gérez le stock multi-emplacements',
@@ -46,12 +45,10 @@ export function HeroSection() {
               ))}
             </ul>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/signup">
-                  Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
+              <MarketingButton to="/signup" size="lg" className="gap-2">
+                Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
+              </MarketingButton>
+              <MarketingButton
                 variant="outline"
                 size="lg"
                 className="gap-2"
@@ -59,7 +56,7 @@ export function HeroSection() {
               >
                 <Play className="h-4 w-4" />
                 Voir la démo
-              </Button>
+              </MarketingButton>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               1 mois d’essai gratuit. Sans carte bancaire.
@@ -87,30 +84,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
-        <DialogContent className="max-w-3xl p-0">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle className="flex items-center justify-between">
-              Découvrez StockFlow en 2 minutes
-              <button
-                type="button"
-                onClick={() => setDemoOpen(false)}
-                className="rounded-full p-1 hover:bg-accent"
-                aria-label="Fermer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="aspect-video bg-muted">
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
-              <Play className="h-12 w-12" />
-              <p className="text-sm">Vidéo de démo à intégrer (YouTube, Loom ou Vimeo)</p>
-              <p className="text-xs">Remplacez ce bloc par une balise &lt;iframe&gt;.</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {demoOpen && <HeroDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />}
     </section>
   )
 }

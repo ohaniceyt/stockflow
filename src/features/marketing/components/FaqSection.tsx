@@ -1,10 +1,3 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-
 interface Faq {
   question: string
   answer: string
@@ -24,16 +17,22 @@ export function FaqSection({ faqs }: FaqSectionProps) {
             Tout ce que vous devez savoir avant de démarrer.
           </p>
         </div>
-        <Accordion defaultValue={[]} className="w-full">
+        <div className="w-full">
           {faqs.map((faq, index) => (
-            <AccordionItem key={index} value={`item-${index.toString()}`}>
-              <AccordionTrigger className="text-left text-base font-medium">
+            <details
+              key={index}
+              className="group border-b border-border"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-left text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">{faq.answer}</AccordionContent>
-            </AccordionItem>
+                <span className="ml-2 text-muted-foreground transition-transform group-open:rotate-180">
+                  ▼
+                </span>
+              </summary>
+              <p className="pb-4 text-muted-foreground">{faq.answer}</p>
+            </details>
           ))}
-        </Accordion>
+        </div>
       </div>
     </section>
   )

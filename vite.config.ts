@@ -19,9 +19,9 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
-    // Inline all CSS into a single file so lazy route CSS does not force the
-    // landing page to load the Vite preload helper (and its containing chunk).
-    cssCodeSplit: false,
+    // Keep CSS split by entry so the marketing landing page only loads the
+    // small set of styles it actually needs, rather than the entire app CSS.
+    cssCodeSplit: true,
     // Disable automatic modulepreload on the landing page: only fetch chunks
     // when a route actually needs them, reducing first-load JS.
     modulePreload: false,

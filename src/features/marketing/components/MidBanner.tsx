@@ -1,6 +1,5 @@
-import { Link } from './Link'
 import { ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 
 export function MidBanner() {
   return (
@@ -16,11 +15,9 @@ export function MidBanner() {
               avec StockFlow.
             </p>
           </div>
-          <Button asChild size="lg" variant="secondary" className="gap-2">
-            <Link to="/signup">
-              Créer mon compte <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <MarketingButton to="/signup" size="lg" variant="secondary" className="gap-2">
+            Créer mon compte <ArrowRight className="h-4 w-4" />
+          </MarketingButton>
         </div>
       </div>
     </section>

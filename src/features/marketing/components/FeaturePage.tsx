@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Link } from './Link'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from './MarketingButton'
 import { MarketingHeader } from './MarketingHeader'
 import { MarketingFooter } from './MarketingFooter'
 
@@ -48,12 +47,12 @@ export function FeaturePage({
                 <h1 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl">{title}</h1>
                 <p className="mt-6 text-lg text-muted-foreground">{description}</p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Button asChild size="lg">
-                    <Link to={primaryCtaLink}>{primaryCta}</Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg">
-                    <Link to={secondaryCtaLink}>{secondaryCta}</Link>
-                  </Button>
+                  <MarketingButton to={primaryCtaLink} size="lg">
+                    {primaryCta}
+                  </MarketingButton>
+                  <MarketingButton to={secondaryCtaLink} variant="outline" size="lg">
+                    {secondaryCta}
+                  </MarketingButton>
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-2xl border bg-card p-2 shadow-lg">
@@ -145,9 +144,9 @@ export function FeaturePage({
               Rejoignez les PME qui gagnent du temps chaque jour avec StockFlow. 1 mois gratuit,
               sans engagement.
             </p>
-            <Button asChild size="lg" variant="secondary" className="mt-8">
-              <Link to="/signup">Essayer 1 mois gratuit</Link>
-            </Button>
+            <MarketingButton to="/signup" size="lg" variant="secondary" className="mt-8">
+              Essayer 1 mois gratuit
+            </MarketingButton>
           </div>
         </section>
       </main>

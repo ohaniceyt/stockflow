@@ -1,6 +1,5 @@
 import { Check, ArrowRight, HelpCircle } from 'lucide-react'
-import { Link } from '../components/Link'
-import { Button } from '@/components/ui/button'
+import { MarketingButton } from '../components/MarketingButton'
 import { MarketingHeader } from '../components/MarketingHeader'
 import { MarketingFooter } from '../components/MarketingFooter'
 
@@ -126,13 +125,13 @@ export default function PricingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    asChild
+                  <MarketingButton
+                    to={plan.ctaLink}
                     className="mt-8 w-full"
                     variant={plan.highlighted ? 'default' : 'outline'}
                   >
-                    <Link to={plan.ctaLink}>{plan.cta}</Link>
-                  </Button>
+                    {plan.cta}
+                  </MarketingButton>
                 </div>
               ))}
             </div>
@@ -165,11 +164,14 @@ export default function PricingPage() {
               Contactez notre équipe pour un accompagnement sur mesure, un SLA ou un déploiement
               dédié.
             </p>
-            <Button asChild size="lg" variant="secondary" className="mt-8 gap-2">
-              <Link to="mailto:team@stockflow.grandigix.com">
-                Nous contacter <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <MarketingButton
+              to="mailto:team@stockflow.grandigix.com"
+              size="lg"
+              variant="secondary"
+              className="mt-8 gap-2"
+            >
+              Nous contacter <ArrowRight className="h-4 w-4" />
+            </MarketingButton>
           </div>
         </section>
       </main>
