@@ -51,22 +51,31 @@ function FeatureToggle({
 
   return (
     <div className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Icon className="h-4 w-4" />
+      <div className="flex h-10 min-h-[44px] w-10 min-w-[44px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
       </div>
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
           <Label htmlFor={inputId} className="font-medium cursor-pointer">
             {label}
           </Label>
-          <input
-            id={inputId}
-            type="checkbox"
-            checked={checked}
-            disabled={disabled}
-            onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4"
-          />
+          <label
+            htmlFor={inputId}
+            className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            data-state={checked ? 'checked' : 'unchecked'}
+          >
+            <span className="sr-only">{checked ? `Désactiver ${label}` : `Activer ${label}`}</span>
+            <input
+              id={inputId}
+              type="checkbox"
+              checked={checked}
+              disabled={disabled}
+              onChange={(e) => onChange(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span className="absolute inset-0 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-primary peer-disabled:opacity-50" />
+            <span className="absolute left-0.5 h-6 w-6 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-5" />
+          </label>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       </div>
@@ -435,6 +444,7 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
                 <Input
                   id="tax-rate"
                   type="number"
+                  inputMode="decimal"
                   min={0}
                   step="0.01"
                   value={taxRate}
@@ -529,6 +539,7 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
                 <Input
                   id="reminder-days"
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   max={90}
                   value={autoReminderDays}

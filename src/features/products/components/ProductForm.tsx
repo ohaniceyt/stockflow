@@ -142,6 +142,7 @@ export function ProductForm({
           <Input
             id="threshold"
             type="number"
+            inputMode="numeric"
             min={0}
             value={form.threshold}
             onChange={(e) => updateField('threshold', sanitizeNumber(e.target.value))}
@@ -153,6 +154,7 @@ export function ProductForm({
           <Input
             id="costPrice"
             type="number"
+            inputMode="decimal"
             min={0}
             step="0.01"
             value={form.costPrice}
@@ -165,6 +167,7 @@ export function ProductForm({
           <Input
             id="sellingPrice"
             type="number"
+            inputMode="decimal"
             min={0}
             step="0.01"
             value={form.sellingPrice}

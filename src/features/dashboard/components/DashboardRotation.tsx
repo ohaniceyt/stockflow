@@ -53,7 +53,8 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
   return (
     <div className="card p-4">
       <h3 className="card-t">Taux de rotation</h3>
-      <div className="overflow-x-auto">
+
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)] text-left text-[var(--text-faint)]">
@@ -82,6 +83,35 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {rows.map((row) => (
+          <div
+            key={row.productId}
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3"
+          >
+            <p className="truncate text-sm font-medium text-[var(--text-h)]">{row.name}</p>
+            <div className="mt-1 grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-faint)]">
+              <div>
+                <p className="font-semibold text-[var(--text)]">
+                  {row.outQty.toLocaleString('fr-FR')}
+                </p>
+                <p>Sorties</p>
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--text)]">
+                  {row.stockQty.toLocaleString('fr-FR')}
+                </p>
+                <p>Stock</p>
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--indigo)]">{row.rotation.toFixed(2)}</p>
+                <p>Rotation</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

@@ -686,6 +686,7 @@ export default function CashierPage() {
                   <div className="flex gap-2">
                     <Input
                       type="number"
+                      inputMode="decimal"
                       min={0}
                       step="0.01"
                       placeholder="Solde d'ouverture"
@@ -805,6 +806,7 @@ export default function CashierPage() {
                       <Input
                         id={`price-${item.id}`}
                         type="number"
+                        inputMode="decimal"
                         min={0}
                         step="0.01"
                         value={item.sellingPrice}
@@ -846,6 +848,7 @@ export default function CashierPage() {
                   <Input
                     id="amount-paid"
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="0.01"
                     value={amountPaid}
@@ -925,6 +928,7 @@ export default function CashierPage() {
                   </p>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="0.01"
                     placeholder="Solde de clôture"
