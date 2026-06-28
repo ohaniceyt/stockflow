@@ -5,9 +5,9 @@ test.afterEach(async () => {
   await cleanupE2EData('e2e-org-id')
 })
 
-test('recap page loads with default period and stat cards', async ({ page }) => {
-  await page.goto('/recap')
-  await expect(page.getByRole('heading', { name: 'Récapitulatif' })).toBeVisible()
+test('analytics page loads with default period and stat cards', async ({ page }) => {
+  await page.goto('/analytics')
+  await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
 
   await expect(page.getByRole('button', { name: /Aujourd'hui/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Semaine/ })).toBeVisible()
@@ -15,15 +15,15 @@ test('recap page loads with default period and stat cards', async ({ page }) => 
   await expect(page.getByRole('button', { name: /Dates/ })).toBeVisible()
 
   await expect(page.getByTestId('recap-movements-card')).toBeVisible()
-  await expect(page.getByText('Marge prévue').first()).toBeVisible()
-  await expect(page.getByText('CA réel').first()).toBeVisible()
-  await expect(page.getByText('Bénéfice réalisé').first()).toBeVisible()
+  await expect(page.getByText('MARGE PRÉVUE').first()).toBeVisible()
+  await expect(page.getByText('CA RÉEL').first()).toBeVisible()
+  await expect(page.getByText('BÉNÉFICE RÉALISÉ').first()).toBeVisible()
 
   await expect(page.getByText('Flux entrées / sorties')).toBeVisible()
 })
 
-test('recap can switch to custom dates with validation', async ({ page }) => {
-  await page.goto('/recap')
+test('analytics can switch to custom dates with validation', async ({ page }) => {
+  await page.goto('/analytics')
   await page.getByRole('button', { name: /Dates/ }).click()
 
   await expect(page.getByLabel('Du')).toBeVisible()
@@ -36,4 +36,10 @@ test('recap can switch to custom dates with validation', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Excel/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /PDF/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /WhatsApp/ })).toBeVisible()
+})
+
+test('/recap redirects to /analytics', async ({ page }) => {
+  await page.goto('/recap')
+  await expect(page).toHaveURL(/\/analytics$/)
+  await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
 })

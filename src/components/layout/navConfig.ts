@@ -7,13 +7,13 @@ import {
   Warehouse,
   MapPin,
   Users,
-  FileText,
   Shield,
   Truck,
   UserCheck,
   Settings,
   Store,
   Receipt,
+  LineChart,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -42,9 +42,9 @@ export const navItems: NavItem[] = [
     primary: true,
   },
   {
-    to: '/recap',
-    label: 'Récap',
-    icon: FileText,
+    to: '/analytics',
+    label: 'Analytics',
+    icon: LineChart,
     roles: ['super_admin', 'admin', 'operator', 'cashier', 'reader'],
     primary: true,
   },

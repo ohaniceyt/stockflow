@@ -83,7 +83,7 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: 'Tableau de bord & recap',
+    title: 'Tableau de bord & analytics',
     description:
       'Stocks faibles, mouvements du jour, ventes, impayés et KPIs clairs pour piloter votre activité.',
   },

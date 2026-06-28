@@ -1,21 +1,33 @@
 import { useMemo, useState } from 'react'
 import { format, startOfDay, subDays, isAfter, isBefore, isValid } from 'date-fns'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
 import { useMovements } from '@/features/movements/hooks/useMovements'
-import { useAuth } from '@/features/auth/context/AuthContext'
-import { RecapStats } from '../components/RecapStats'
-import { RecapChart } from '../components/RecapChart'
-import { ProductBalanceTable } from '../components/ProductBalanceTable'
-import { RecapMovementsTable } from '../components/RecapMovementsTable'
-import { ExportActions } from '../components/ExportActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RecapStats } from './RecapStats'
+import { RecapChart } from './RecapChart'
+import { ProductBalanceTable } from './ProductBalanceTable'
+import { RecapMovementsTable } from './RecapMovementsTable'
+import { ExportActions } from './ExportActions'
+import { AnalyticsTopProducts } from './AnalyticsTopProducts'
 
 type PeriodMode = 'today' | 'week' | 'month' | 'custom'
 
-export default function RecapPage() {
+const PERIOD_OPTIONS: { key: PeriodMode; label: string }[] = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'week', label: 'Semaine' },
+  { key: 'month', label: 'Mois' },
+  { key: 'custom', label: 'Dates' },
+]
+
+export interface RecapSectionProps {
+  embedded?: boolean
+}
+
+export function RecapSection({ embedded = false }: RecapSectionProps) {
   const { session, hasRole } = useAuth()
   const currency = session?.organization.currency ?? 'XOF'
   const orgName = session?.organization.name ?? 'StockFlow'
@@ -38,6 +50,7 @@ export default function RecapPage() {
   const activeProducts = useMemo(() => products?.filter((p) => p.isActive) ?? [], [products])
   const stockItems = useMemo(() => stock ?? [], [stock])
   const allMovements = useMemo(() => movements, [movements])
+  const productMap = useMemo(() => new Map(products?.map((p) => [p.id, p]) ?? []), [products])
 
   const periodRange = useMemo(() => {
     const today = startOfDay(new Date())
@@ -80,8 +93,6 @@ export default function RecapPage() {
     () => stockItems.reduce((sum, item) => sum + item.quantity, 0),
     [stockItems]
   )
-
-  const productMap = useMemo(() => new Map(products?.map((p) => [p.id, p]) ?? []), [products])
 
   const stockValue = useMemo(() => {
     return stockItems.reduce((sum, item) => {
@@ -136,34 +147,50 @@ export default function RecapPage() {
       }, 0)
   }, [filteredMovements, productMap])
 
-  const handleStartChange = (value: string) => {
-    setStartDate(value)
-    const start = new Date(value)
-    const end = new Date(endDate)
-    if (isValid(start) && isValid(end) && isAfter(startOfDay(start), startOfDay(end))) {
+  const realMarginRate = useMemo(() => {
+    if (realRevenue <= 0) return 0
+    return Math.round((realProfit / realRevenue) * 10000) / 100
+  }, [realRevenue, realProfit])
+
+  const validateRange = (start: string, end: string) => {
+    const s = new Date(start)
+    const e = new Date(end)
+    if (isValid(s) && isValid(e) && isAfter(startOfDay(s), startOfDay(e))) {
       setDateError('La date de début doit être antérieure à la date de fin.')
     } else {
       setDateError(null)
     }
   }
 
+  const handleStartChange = (value: string) => {
+    setStartDate(value)
+    validateRange(value, endDate)
+  }
+
   const handleEndChange = (value: string) => {
     setEndDate(value)
-    const start = new Date(startDate)
-    const end = new Date(value)
-    if (isValid(start) && isValid(end) && isAfter(startOfDay(start), startOfDay(end))) {
-      setDateError('La date de début doit être antérieure à la date de fin.')
-    } else {
-      setDateError(null)
-    }
+    validateRange(startDate, value)
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Récapitulatif</h1>
-          <p className="text-muted-foreground">Synthèse périodique des mouvements et du stock.</p>
+          {embedded ? (
+            <>
+              <h2 className="text-lg font-semibold">Analytics</h2>
+              <p className="text-sm text-muted-foreground">
+                Synthèse périodique des mouvements et du stock.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold">Analytics</h1>
+              <p className="text-muted-foreground">
+                Synthèse périodique des mouvements et du stock.
+              </p>
+            </>
+          )}
         </div>
         <ExportActions
           periodLabel={periodRange.label}
@@ -179,14 +206,7 @@ export default function RecapPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { key: 'today', label: "Aujourd'hui" },
-              { key: 'week', label: 'Semaine' },
-              { key: 'month', label: 'Mois' },
-              { key: 'custom', label: 'Dates' },
-            ] as { key: PeriodMode; label: string }[]
-          ).map((p) => (
+          {PERIOD_OPTIONS.map((p) => (
             <Button
               key={p.key}
               variant={periodMode === p.key ? 'default' : 'outline'}
@@ -202,18 +222,18 @@ export default function RecapPage() {
         {periodMode === 'custom' && (
           <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-end">
             <div className="space-y-2 sm:flex-1">
-              <Label htmlFor="recap-start">Du</Label>
+              <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-start`}>Du</Label>
               <Input
-                id="recap-start"
+                id={`${embedded ? 'dashboard-' : ''}analytics-start`}
                 type="date"
                 value={startDate}
                 onChange={(e) => handleStartChange(e.target.value)}
               />
             </div>
             <div className="space-y-2 sm:flex-1">
-              <Label htmlFor="recap-end">Au</Label>
+              <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-end`}>Au</Label>
               <Input
-                id="recap-end"
+                id={`${embedded ? 'dashboard-' : ''}analytics-end`}
                 type="date"
                 value={endDate}
                 onChange={(e) => handleEndChange(e.target.value)}
@@ -227,7 +247,7 @@ export default function RecapPage() {
       {queryError && <p className="text-destructive">{queryError.message}</p>}
 
       {isLoading ? (
-        <p className="text-muted-foreground">Chargement du récapitulatif…</p>
+        <p className="text-muted-foreground">Chargement d’Analytics…</p>
       ) : (
         <>
           <RecapStats
@@ -238,6 +258,7 @@ export default function RecapPage() {
             estimatedMargin={estimatedMargin}
             realRevenue={realRevenue}
             realProfit={realProfit}
+            realMarginRate={realMarginRate}
             inCount={filteredMovements.filter((m) => m.type === 'IN').length}
             outCount={filteredMovements.filter((m) => m.type === 'OUT').length}
             currency={currency}
@@ -251,6 +272,12 @@ export default function RecapPage() {
               endDate={periodRange.end}
             />
           )}
+
+          <AnalyticsTopProducts
+            movements={filteredMovements}
+            productMap={productMap}
+            currency={currency}
+          />
 
           <div className="grid gap-6 lg:grid-cols-2">
             <ProductBalanceTable movements={filteredMovements} products={activeProducts} />

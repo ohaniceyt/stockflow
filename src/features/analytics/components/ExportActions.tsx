@@ -142,7 +142,7 @@ export function ExportActions({
       const buffer = await wb.xlsx.writeBuffer()
       downloadBlob(
         buffer,
-        `recap-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.xlsx`,
+        `analytics-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.xlsx`,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       )
     })
@@ -156,7 +156,7 @@ export function ExportActions({
       let y = 14
 
       doc.setFontSize(16)
-      doc.text(`Récapitulatif - ${orgName}`, 14, y)
+      doc.text(`Analytics - ${orgName}`, 14, y)
       y += 8
       doc.setFontSize(10)
       doc.setTextColor(100)
@@ -206,7 +206,7 @@ export function ExportActions({
         })
       }
 
-      doc.save(`recap-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.pdf`)
+      doc.save(`analytics-${orgName}-${periodLabel.replace(/\s+/g, '_')}-${today()}.pdf`)
     })
   }
 
@@ -236,7 +236,7 @@ export function ExportActions({
         footer = `\n\nCA période: ${revenue.toLocaleString()} ${currency}`
       }
 
-      const header = `*Récap ${orgName} — ${periodLabel}*\n\n`
+      const header = `*Analytics ${orgName} — ${periodLabel}*\n\n`
       const body = lines.length > 0 ? lines.join('\n') : 'Aucun mouvement dans la période.'
       const message = header + body + footer
 

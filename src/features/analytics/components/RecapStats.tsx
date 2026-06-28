@@ -16,6 +16,7 @@ interface RecapStatsProps {
   estimatedMargin: number
   realRevenue: number
   realProfit: number
+  realMarginRate: number
   inCount: number
   outCount: number
   currency: string
@@ -30,6 +31,7 @@ export function RecapStats({
   estimatedMargin,
   realRevenue,
   realProfit,
+  realMarginRate,
   inCount,
   outCount,
   currency,
@@ -118,6 +120,16 @@ export function RecapStats({
       iconColor: 'text-fuchsia-700',
       iconBg: 'bg-fuchsia-100',
       barColor: 'bg-fuchsia-500',
+    },
+    {
+      label: 'TAUX DE MARGE RÉEL',
+      value: `${realMarginRate.toLocaleString('fr-FR')}%`,
+      raw: realMarginRate,
+      icon: TrendingUp,
+      isMoney: false,
+      iconColor: 'text-emerald-700',
+      iconBg: 'bg-emerald-100',
+      barColor: 'bg-emerald-500',
     },
   ]
 

@@ -25,7 +25,7 @@ const TeamPage = lazy(() => import('@/features/team/pages/TeamPage'))
 const LocationsPage = lazy(() => import('@/features/locations/pages/LocationsPage'))
 const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage'))
 const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
-const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
+const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage'))
 const CashierPage = lazy(() => import('@/features/cashier/pages/CashierPage'))
 const CashierPosPage = lazy(() => import('@/features/cashier/pages/CashierPosPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
@@ -174,7 +174,8 @@ function App() {
                 </RequireAuth>
               }
             />
-            <Route path="/recap" element={<RecapPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/recap" element={<Navigate to="/analytics" replace />} />
             <Route
               path="/cashier"
               element={
