@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ArrowRight, Play, CheckCircle2 } from 'lucide-react'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { MarketingButton } from './MarketingButton'
@@ -11,8 +10,6 @@ const valueProps = [
 ]
 
 export function HeroSection() {
-  const [demoOpen, setDemoOpen] = useState(false)
-
   return (
     <section className="relative overflow-hidden bg-background px-4 pt-16 pb-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -49,10 +46,11 @@ export function HeroSection() {
                 Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
               </MarketingButton>
               <MarketingButton
+                id="demo-open"
                 variant="outline"
                 size="lg"
                 className="gap-2"
-                onClick={() => setDemoOpen(true)}
+                aria-label="Voir la démo"
               >
                 <Play className="h-4 w-4" />
                 Voir la démo
@@ -84,7 +82,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      {demoOpen && <HeroDemoDialog open={demoOpen} onOpenChange={setDemoOpen} />}
+      <HeroDemoDialog />
     </section>
   )
 }

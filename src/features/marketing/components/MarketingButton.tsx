@@ -9,6 +9,8 @@ interface MarketingButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon'
   className?: string
   children: React.ReactNode
+  id?: string
+  'aria-label'?: string
   onClick?: MouseEventHandler<HTMLButtonElement | HTMLAnchorElement>
 }
 
@@ -19,6 +21,8 @@ export function MarketingButton({
   size = 'default',
   className,
   children,
+  id,
+  'aria-label': ariaLabel,
   onClick,
 }: MarketingButtonProps) {
   const classes = cn(
@@ -45,14 +49,14 @@ export function MarketingButton({
   const destination = to ?? href
   if (destination) {
     return (
-      <MarketingLink to={destination} className={classes} onClick={onClick}>
+      <MarketingLink to={destination} className={classes} onClick={onClick} id={id} aria-label={ariaLabel}>
         {children}
       </MarketingLink>
     )
   }
 
   return (
-    <button type="button" className={classes} onClick={onClick}>
+    <button type="button" className={classes} onClick={onClick} id={id} aria-label={ariaLabel}>
       {children}
     </button>
   )

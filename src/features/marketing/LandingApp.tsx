@@ -18,10 +18,17 @@ const routes: Record<string, ComponentType> = {
   '/pricing': PricingPage,
 }
 
-export default function LandingApp() {
-  const [path, setPath] = useState(() => window.location.pathname)
+interface LandingAppProps {
+  initialPath?: string
+}
+
+export default function LandingApp({ initialPath }: LandingAppProps) {
+  const [path, setPath] = useState(() =>
+    initialPath ?? (typeof window !== 'undefined' ? window.location.pathname : '/')
+  )
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     const updatePath = () => setPath(window.location.pathname)
     window.addEventListener('popstate', updatePath)
     window.addEventListener('navigate-landing', updatePath)

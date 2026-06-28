@@ -1,39 +1,16 @@
-import { useEffect, useRef } from 'react'
 import { Play, X } from 'lucide-react'
 
-interface HeroDemoDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export default function HeroDemoDialog({ open, onOpenChange }: HeroDemoDialogProps) {
-  const ref = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-
-    if (open && !dialog.open) {
-      dialog.showModal()
-    } else if (!open && dialog.open) {
-      dialog.close()
-    }
-
-    const handleClose = () => onOpenChange(false)
-    dialog.addEventListener('close', handleClose)
-    return () => dialog.removeEventListener('close', handleClose)
-  }, [open, onOpenChange])
-
+export default function HeroDemoDialog() {
   return (
     <dialog
-      ref={ref}
+      id="demo-dialog"
       className="m-auto max-w-3xl rounded-2xl border bg-card p-0 shadow-2xl backdrop:bg-black/50"
     >
       <div className="flex items-center justify-between px-6 pt-6">
         <h3 className="text-lg font-semibold">Découvrez StockFlow en 2 minutes</h3>
         <button
+          id="demo-close"
           type="button"
-          onClick={() => onOpenChange(false)}
           className="rounded-full p-1 hover:bg-accent"
           aria-label="Fermer"
         >

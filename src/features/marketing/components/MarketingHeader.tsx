@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from './Link'
 import { MarketingButton } from './MarketingButton'
 import { Menu, X, ChevronDown } from 'lucide-react'
@@ -43,9 +42,6 @@ const navItems: NavItem[] = [
 ]
 
 export function MarketingHeader() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -56,40 +52,26 @@ export function MarketingHeader() {
         <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
           {navItems.map((item) =>
             item.children ? (
-              <div
-                key={item.label}
-                className="relative"
-                onMouseEnter={() => setOpenDropdown(item.label)}
-                onMouseLeave={() => setOpenDropdown(null)}
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenDropdown((open) => (open === item.label ? null : item.label))
-                  }
-                  className="flex min-h-[44px] items-center gap-1 text-muted-foreground hover:text-foreground"
-                  aria-expanded={openDropdown === item.label}
-                >
+              <details key={item.label} className="group relative">
+                <summary className="flex cursor-pointer list-none items-center gap-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                   {item.label}
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-                {openDropdown === item.label && (
-                  <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border bg-card p-2 shadow-lg">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.label}
-                        to={child.href}
-                        className="block rounded-lg px-3 py-2 hover:bg-accent"
-                      >
-                        <p className="text-sm font-medium">{child.label}</p>
-                        {child.description && (
-                          <p className="text-xs text-muted-foreground">{child.description}</p>
-                        )}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border bg-card p-2 shadow-lg">
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.label}
+                      to={child.href}
+                      className="block rounded-lg px-3 py-2 hover:bg-accent"
+                    >
+                      <p className="text-sm font-medium">{child.label}</p>
+                      {child.description && (
+                        <p className="text-xs text-muted-foreground">{child.description}</p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </details>
             ) : (
               <Link
                 key={item.label}
@@ -107,53 +89,53 @@ export function MarketingHeader() {
           <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
         </div>
 
-        <button
-          type="button"
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 md:hidden"
-          onClick={() => setMobileOpen((s) => !s)}
-          aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
+        <details className="group md:hidden">
+          <summary
+            className="flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center rounded-md p-2 [&::-webkit-details-marker]:hidden"
+            aria-label="Ouvrir le menu"
+          >
+            <span className="group-open:hidden">
+              <Menu className="h-6 w-6" />
+            </span>
+            <span className="hidden group-open:block">
+              <X className="h-6 w-6" />
+            </span>
+          </summary>
 
-      {mobileOpen && (
-        <div className="border-t bg-background px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-2">
-            {navItems.map((item) =>
-              item.children ? (
-                <div key={item.label} className="space-y-1">
-                  <p className="text-sm font-semibold text-muted-foreground">{item.label}</p>
-                  {item.children.map((child) => (
-                    <Link
-                      key={child.label}
-                      to={child.href}
-                      className="block rounded-lg px-3 py-2 text-sm hover:bg-accent"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              )
-            )}
-            <div className="mt-2 flex flex-col gap-2 border-t pt-3">
-              <MarketingButton variant="outline" size="sm" to="/login">Se connecter</MarketingButton>
-              <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
-            </div>
-          </nav>
-        </div>
-      )}
+          <div className="border-t bg-background px-4 py-4 md:hidden">
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item) =>
+                item.children ? (
+                  <div key={item.label} className="space-y-1">
+                    <p className="text-sm font-semibold text-muted-foreground">{item.label}</p>
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.label}
+                        to={child.href}
+                        className="block rounded-lg px-3 py-2 text-sm hover:bg-accent"
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
+                  >
+                    {item.label}
+                  </Link>
+                )
+              )}
+              <div className="mt-2 flex flex-col gap-2 border-t pt-3">
+                <MarketingButton variant="outline" size="sm" to="/login">Se connecter</MarketingButton>
+                <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
+              </div>
+            </nav>
+          </div>
+        </details>
+      </div>
     </header>
   )
 }

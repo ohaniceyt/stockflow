@@ -25,6 +25,8 @@
     { "source": "/back-office/:path*", "destination": "/app.html" },
     { "source": "/store/:path*", "destination": "/app.html" },
     { "source": "/unauthorized", "destination": "/app.html" },
+    { "source": "/pricing", "destination": "/pricing.html" },
+    { "source": "/features/:path*", "destination": "/features/:path.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
