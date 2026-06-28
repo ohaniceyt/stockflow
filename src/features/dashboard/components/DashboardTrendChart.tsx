@@ -38,8 +38,10 @@ function drawTrend(
   ctx.scale(dpr, dpr)
   ctx.clearRect(0, 0, cssWidth, cssHeight)
 
+  const fontSize = cssWidth < 400 ? 12 : 13
+  const fontSpec = `${String(fontSize)}px Geist Variable, sans-serif`
   const maxValue = Math.max(...aggregated.map((d) => d.value), 1)
-  const padding = { top: 24, right: 16, bottom: 48, left: 40 }
+  const padding = { top: 24, right: 16, bottom: 48, left: 44 }
   const chartW = cssWidth - padding.left - padding.right
   const chartH = cssHeight - padding.top - padding.bottom
 
@@ -55,9 +57,9 @@ function drawTrend(
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
     ctx.fillStyle = 'var(--text-faint)'
-    ctx.font = '11px Geist Variable, sans-serif'
+    ctx.font = fontSpec
     ctx.textAlign = 'right'
-    ctx.fillText(String(value), padding.left - 8, y + 3)
+    ctx.fillText(String(value), padding.left - 8, y + 4)
   }
 
   const stepX = chartW / (aggregated.length - 1 || 1)
@@ -119,7 +121,7 @@ function drawTrend(
   }
 
   ctx.fillStyle = 'var(--text)'
-  ctx.font = '11px Geist Variable, sans-serif'
+  ctx.font = fontSpec
   ctx.textAlign = 'center'
   aggregated.forEach((d, i) => {
     const show = aggregated.length <= 14 || i % 7 === 0 || i === aggregated.length - 1 || i === 0
