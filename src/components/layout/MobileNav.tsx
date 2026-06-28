@@ -48,14 +48,14 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-[10px] font-medium transition-colors',
+              'flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
               isActive ? 'text-primary' : 'text-muted-foreground'
             )
           }
         >
           {({ isActive }) => (
             <>
-              <item.icon className={cn('h-5 w-5', isActive && 'fill-current')} />
+              <item.icon className={cn('h-6 w-6', isActive && 'fill-current')} />
               <span>{item.label}</span>
             </>
           )}
@@ -65,10 +65,10 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
       <button
         type="button"
         onClick={onMenuOpen}
-        className="flex min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors active:text-foreground"
+        className="flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors active:text-foreground"
         aria-label="Ouvrir le menu"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-6 w-6" />
         <span>Plus</span>
       </button>
     </nav>

@@ -406,7 +406,7 @@ function CreateForm({
                   required
                 />
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="space-y-1">
                   <label htmlFor={`qty-${line.id}`} className="text-xs font-medium">
                     Qté
@@ -414,6 +414,7 @@ function CreateForm({
                   <input
                     id={`qty-${line.id}`}
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.01"
                     className="w-full rounded-md border px-2 py-1.5 text-sm"
@@ -429,6 +430,7 @@ function CreateForm({
                   <input
                     id={`price-${line.id}`}
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.01"
                     className="w-full rounded-md border px-2 py-1.5 text-sm"
@@ -444,6 +446,7 @@ function CreateForm({
                   <input
                     id={`tax-${line.id}`}
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.01"
                     className="w-full rounded-md border px-2 py-1.5 text-sm"
@@ -458,6 +461,7 @@ function CreateForm({
                   <input
                     id={`discount-${line.id}`}
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="0.01"
                     className="w-full rounded-md border px-2 py-1.5 text-sm"
@@ -575,13 +579,15 @@ export default function InvoicingPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as TabType)}>
-        <TabsList className="grid w-full grid-cols-4">
-          {tabs.map((t) => (
-            <TabsTrigger key={t.value} value={t.value}>
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="flex w-full min-w-[22rem] gap-1">
+            {tabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value} className="flex-1 px-2 sm:px-3">
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <div className="space-y-4">
