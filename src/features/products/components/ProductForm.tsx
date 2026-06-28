@@ -1,4 +1,5 @@
-import { useMemo, useState, type SyntheticEvent } from 'react'
+import { useMemo, useRef, useState, type SyntheticEvent } from 'react'
+import { ScanBarcode } from 'lucide-react'
 import { productSchema, type ProductFormData } from '../schemas/productSchema'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,6 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ProductCategorySelect } from './ProductCategorySelect'
+import { ScannerDialog } from '@/features/cashier/components/ScannerDialog'
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import type { Product, Category } from '@/types'
 
 interface ProductFormProps {
@@ -71,7 +74,50 @@ export function ProductForm({
     isActive: product?.isActive ?? true,
   })
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormData, string>>>({})
+  const [scannerErrorOverride, setScannerErrorOverride] = useState<string | null>(null)
   const disabled = Boolean(isLoading) || Boolean(isCreatingCategory)
+  const scannerContainerId = useMemo(() => `product-scanner-${crypto.randomUUID()}`, [])
+  const scannerContainerRef = useRef<HTMLDivElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleScannerMatch = (barcode: string) => {
+    updateField('barcode', barcode)
+  }
+
+  const handleScannerNoMatch = () => {
+    // In product creation any barcode is valid, even if not in catalog.
+  }
+
+  const {
+    open: scannerOpen,
+    starting: scannerStarting,
+    error: scannerError,
+    cameras: scannerCameras,
+    selectedCameraId,
+    start: startScanner,
+    close: stopScanner,
+    retry: retryScanner,
+    scanFile,
+    setSelectedCameraId,
+  } = useBarcodeScanner({
+    containerId: scannerContainerId,
+    containerRef: scannerContainerRef,
+    availableProducts: [],
+    onMatch: handleScannerMatch,
+    onNoMatch: handleScannerNoMatch,
+  })
+
+  const displayedScannerError = scannerErrorOverride ?? scannerError
+
+  const handleScannerClose = async () => {
+    setScannerErrorOverride(null)
+    await stopScanner()
+  }
+
+  const handleFileScan = async (file: File) => {
+    setScannerErrorOverride(null)
+    await scanFile(file)
+  }
 
   const updateField = <K extends keyof ProductFormData>(key: K, value: ProductFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -190,13 +236,27 @@ export function ProductForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="barcode">Code-barres</Label>
-          <Input
-            id="barcode"
-            value={form.barcode ?? ''}
-            onChange={(e) => updateField('barcode', e.target.value || null)}
-            placeholder="Ex: 123456789"
-            disabled={disabled}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="barcode"
+              value={form.barcode ?? ''}
+              onChange={(e) => updateField('barcode', e.target.value || null)}
+              placeholder="Ex: 123456789"
+              disabled={disabled}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Scanner un code-barre"
+              aria-label="Scanner un code-barre"
+              onClick={startScanner}
+              disabled={disabled}
+            >
+              <ScanBarcode className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -225,6 +285,34 @@ export function ProductForm({
       </div>
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
+
+      <ScannerDialog
+        open={scannerOpen}
+        onClose={handleScannerClose}
+        starting={scannerStarting}
+        error={displayedScannerError}
+        cameras={scannerCameras}
+        selectedCameraId={selectedCameraId}
+        containerId={scannerContainerId}
+        containerRef={scannerContainerRef}
+        onRetryCamera={retryScanner}
+        onFileSelect={() => fileInputRef.current?.click()}
+        onCameraChange={setSelectedCameraId}
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            void handleFileScan(file)
+          }
+          e.currentTarget.value = ''
+        }}
+      />
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>

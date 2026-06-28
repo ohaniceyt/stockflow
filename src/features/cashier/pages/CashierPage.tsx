@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Html5Qrcode } from 'html5-qrcode'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,6 +21,7 @@ import {
   computeSessionRevenue,
   filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { CashierHeader } from '../components/CashierHeader'
 import { ProductCatalog } from '../components/ProductCatalog'
 import { CartPanel } from '../components/CartPanel'
@@ -85,10 +85,6 @@ export default function CashierPage() {
   const [search, setSearch] = useState('')
   const [openingBalanceInput, setOpeningBalanceInput] = useState('')
   const [closingBalanceInput, setClosingBalanceInput] = useState('')
-  const [scannerOpen, setScannerOpen] = useState(false)
-  const [scannerError, setScannerError] = useState<string | null>(null)
-  const [scannerStarting, setScannerStarting] = useState(false)
-  const [scannerCameras, setScannerCameras] = useState<{ id: string; label: string }[]>([])
   const [paymentMethod, setPaymentMethod] = useState<
     'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
   >('cash')
@@ -98,9 +94,9 @@ export default function CashierPage() {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState('products')
+  const [scannerErrorOverride, setScannerErrorOverride] = useState<string | null>(null)
   const scannerContainerId = useMemo(() => `cashier-scanner-${crypto.randomUUID()}`, [])
   const scannerContainerRef = useRef<HTMLDivElement | null>(null)
-  const scannerRef = useRef<Html5Qrcode | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const defaultLocation = locations?.find((l) => l.isDefault)
@@ -188,6 +184,46 @@ export default function CashierPage() {
     },
     [cart]
   )
+
+  const handleScannerMatch = useCallback(
+    (barcode: string) => {
+      const matched = availableProducts.find((p) => p.barcode === barcode)
+      if (matched) {
+        addToCart(matched)
+      }
+    },
+    [availableProducts, addToCart]
+  )
+
+  const handleScannerNoMatch = useCallback((barcode: string) => {
+    setScannerErrorOverride(`Code-barre non reconnu : ${barcode}`)
+  }, [])
+
+  const {
+    open: scannerOpen,
+    starting: scannerStarting,
+    error: scannerError,
+    cameras: scannerCameras,
+    selectedCameraId,
+    start: startScanner,
+    close: stopScanner,
+    retry: retryScanner,
+    scanFile,
+    setSelectedCameraId,
+  } = useBarcodeScanner({
+    containerId: scannerContainerId,
+    containerRef: scannerContainerRef,
+    availableProducts,
+    onMatch: handleScannerMatch,
+    onNoMatch: handleScannerNoMatch,
+  })
+
+  const displayedScannerError = scannerErrorOverride ?? scannerError
+
+  const handleScannerClose = useCallback(async () => {
+    setScannerErrorOverride(null)
+    await stopScanner()
+  }, [stopScanner])
 
   const updateQuantity = (itemId: string, delta: number) => {
     setCart((prev) =>
@@ -323,106 +359,9 @@ export default function CashierPage() {
     })
   }
 
-  const startScanner = async () => {
-    setScannerOpen(true)
-    setScannerError(null)
-    setScannerStarting(true)
-    try {
-      const cameras = await Html5Qrcode.getCameras()
-      if (cameras.length === 0) {
-        throw new Error('Aucune caméra détectée sur cet appareil.')
-      }
-      setScannerCameras(cameras)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Impossible d'accéder à la caméra"
-      setScannerError(message)
-      setScannerStarting(false)
-    }
-  }
-
-  const stopScanner = async () => {
-    try {
-      if (scannerRef.current?.isScanning) {
-        await scannerRef.current.stop()
-      }
-    } catch {
-      // ignore cleanup errors
-    }
-    scannerRef.current = null
-    setScannerOpen(false)
-    setScannerError(null)
-    setScannerStarting(false)
-    setScannerCameras([])
-  }
-
-  useEffect(() => {
-    if (!scannerOpen || !scannerContainerRef.current || scannerCameras.length === 0) return
-    if (scannerRef.current) return
-
-    let cancelled = false
-    const cameraId = scannerCameras[0]?.id
-    if (!cameraId) return
-
-    scannerRef.current = new Html5Qrcode(scannerContainerId)
-    scannerRef.current
-      .start(
-        cameraId,
-        { fps: 10, qrbox: { width: 250, height: 150 } },
-        (decodedText) => {
-          const matched = availableProducts.find((p) => p.barcode === decodedText)
-          if (matched) {
-            addToCart(matched)
-            void stopScanner()
-          } else {
-            setScannerError(`Code-barre non reconnu : ${decodedText}`)
-          }
-        },
-        () => {
-          // ignore per-frame scan errors / no code found
-        }
-      )
-      .then(() => {
-        if (!cancelled) setScannerStarting(false)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setScannerError(err instanceof Error ? err.message : 'Impossible de démarrer la caméra.')
-          setScannerStarting(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [scannerOpen, scannerCameras, scannerContainerId, availableProducts, addToCart])
-
-  useEffect(() => {
-    return () => {
-      void stopScanner()
-    }
-  }, [])
-
   const handleFileScan = async (file: File) => {
-    setScannerError(null)
-    const reader = new Html5Qrcode('file-scanner-temp')
-    try {
-      const decodedText = await reader.scanFile(file, true)
-      const matched = availableProducts.find((p) => p.barcode === decodedText)
-      if (matched) {
-        addToCart(matched)
-        void stopScanner()
-      } else {
-        setScannerError(`Code-barre non reconnu : ${decodedText}`)
-      }
-    } catch {
-      setScannerError('Aucun code-barre détecté sur cette image.')
-    } finally {
-      try {
-        await reader.stop()
-      } catch {
-        // cleanup
-      }
-    }
+    setScannerErrorOverride(null)
+    await scanFile(file)
   }
 
   if (!session?.organization.hasCashierEnabled) {
@@ -430,7 +369,7 @@ export default function CashierPage() {
       <div className="mx-auto max-w-5xl space-y-4">
         <h1 className="text-2xl font-bold">Caisse</h1>
         <p className="text-muted-foreground">
-          La caisse n'est pas activée pour cette organisation. Contactez un administrateur.
+          La caisse n&apos;est pas activée pour cette organisation. Contactez un administrateur.
         </p>
       </div>
     )
@@ -622,15 +561,16 @@ export default function CashierPage() {
 
       <ScannerDialog
         open={scannerOpen}
-        onClose={stopScanner}
+        onClose={handleScannerClose}
         starting={scannerStarting}
-        error={scannerError}
+        error={displayedScannerError}
+        cameras={scannerCameras}
+        selectedCameraId={selectedCameraId}
         containerId={scannerContainerId}
         containerRef={scannerContainerRef}
-        onRetryCamera={() => {
-          void stopScanner().then(() => void startScanner())
-        }}
+        onRetryCamera={retryScanner}
         onFileSelect={() => fileInputRef.current?.click()}
+        onCameraChange={setSelectedCameraId}
       />
 
       <input
