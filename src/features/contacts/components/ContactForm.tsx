@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { contactSchema, type ContactFormData } from '../schemas/contactSchema'
 import type { Contact, ContactType } from '@/types'
 
@@ -116,7 +117,7 @@ export function ContactForm({
 
       <div className="space-y-2">
         <Label htmlFor="contact-address">Adresse</Label>
-        <Input
+        <Textarea
           id="contact-address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -140,7 +141,7 @@ export function ContactForm({
 
       <div className="space-y-2">
         <Label htmlFor="contact-notes">Notes</Label>
-        <Input
+        <Textarea
           id="contact-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ProductCategorySelect } from './ProductCategorySelect'
 import type { Product, Category } from '@/types'
 
@@ -198,7 +199,7 @@ export function ProductForm({
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Input
+        <Textarea
           id="description"
           value={form.description ?? ''}
           onChange={(e) => updateField('description', e.target.value || null)}
