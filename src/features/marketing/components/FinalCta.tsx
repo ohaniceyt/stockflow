@@ -9,7 +9,7 @@ export function FinalCta() {
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
           Prêt à transformer votre gestion de stock ?
         </h2>
-        <p className="mt-6 text-lg text-muted-foreground">
+        <p className="mt-6 text-lg text-foreground/90">
           Testez StockFlow 1 mois gratuitement et découvrez ce qu’il peut faire pour votre
           entreprise.
         </p>

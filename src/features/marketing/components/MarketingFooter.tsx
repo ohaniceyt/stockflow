@@ -33,7 +33,7 @@ export function MarketingFooter() {
           </div>
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="mb-3 text-sm font-semibold">{category}</h4>
+              <h3 className="mb-3 text-sm font-semibold">{category}</h3>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>

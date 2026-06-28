@@ -11,7 +11,7 @@ export function MidBanner() {
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Passez à la vitesse supérieure dès aujourd’hui
             </h2>
-            <p className="mt-4 text-lg opacity-90">
+            <p className="mt-4 text-lg text-primary-foreground">
               Rejoignez des centaines de PME qui gèrent leur stock, leurs ventes et leurs factures
               avec StockFlow.
             </p>

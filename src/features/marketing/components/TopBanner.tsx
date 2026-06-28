@@ -20,10 +20,10 @@ export function TopBanner() {
         <button
           type="button"
           onClick={() => setVisible(false)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-primary-foreground/10 sm:right-4"
+          className="absolute right-2 top-1/2 flex h-10 min-h-[44px] w-10 min-w-[44px] -translate-y-1/2 items-center justify-center rounded-full hover:bg-primary-foreground/10 sm:right-4"
           aria-label="Fermer la bannière"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
     </div>

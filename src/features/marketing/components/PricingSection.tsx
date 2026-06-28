@@ -75,10 +75,18 @@ export function PricingSection({ tiers }: PricingSectionProps) {
                   </span>
                 )}
                 <h3 className="text-lg font-semibold">{tier.name}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{tier.description}</p>
+                <p
+                  className={`mt-2 text-sm ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
+                >
+                  {tier.description}
+                </p>
                 <div className="mt-6 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold">{price}</span>
-                  <span className="text-sm text-muted-foreground">{period}</span>
+                  <span
+                    className={`text-sm ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
+                  >
+                    {period}
+                  </span>
                 </div>
                 {yearly && tier.yearlyPrice && (
                   <p className="mt-1 text-xs text-primary">
