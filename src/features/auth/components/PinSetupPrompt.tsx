@@ -55,7 +55,7 @@ export function PinSetupPrompt() {
           </div>
           <DialogTitle className="text-center">Sécurisez votre accès</DialogTitle>
           <DialogDescription className="text-center">
-            Choisissez un code PIN pour déverrouiller rapidement Flowbill sur cet appareil.
+            Choisissez un code PIN pour déverrouiller rapidement StockFlow sur cet appareil.
           </DialogDescription>
         </DialogHeader>
 

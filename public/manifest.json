@@ -1,6 +1,6 @@
 {
-  "name": "Flowbill",
-  "short_name": "Flowbill",
+  "name": "StockFlow",
+  "short_name": "StockFlow",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -136,7 +136,7 @@ export default function InvitePage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">Invitation à rejoindre Flowbill</h1>
+          <h1 className="text-2xl font-bold">Invitation à rejoindre StockFlow</h1>
           <p className="text-sm text-muted-foreground">
             Vous avez été invité(e) à rejoindre{' '}
             <span className="font-medium text-foreground">{invitation.orgName}</span> en tant que{' '}
