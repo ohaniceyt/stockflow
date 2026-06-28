@@ -86,4 +86,17 @@ export default defineConfig([
       '@typescript-eslint/no-redundant-type-constituents': 'off',
     },
   },
+  {
+    files: [
+      'src/features/auth/utils/appLock.ts',
+      'src/features/auth/context/AuthContext.tsx',
+      'src/features/auth/components/AppLock.tsx',
+      'src/features/auth/components/PinSetupPrompt.tsx',
+      'src/features/auth/pages/SetPinPage.tsx',
+    ],
+    rules: {
+      // Allow the explicit APP_LOCK_ENABLED toggles while the feature is disabled.
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+    },
+  },
 ])

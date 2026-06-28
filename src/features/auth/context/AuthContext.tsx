@@ -20,6 +20,7 @@ import type {
   UserRole,
 } from '@/types'
 import {
+  APP_LOCK_ENABLED,
   clearAppLockPin,
   clearStoredLockEmail,
   hasAppLockPin,
@@ -298,14 +299,7 @@ function buildSession(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(loadSession())
   const [isLoading, setIsLoading] = useState(false)
-  const [isLocked, setIsLocked] = useState(() => {
-    // Restore locked state from sessionStorage so a refresh does not reset it.
-    try {
-      return sessionStorage.getItem('stockflow-app-locked') === '1'
-    } catch {
-      return false
-    }
-  })
+  const [isLocked, setIsLocked] = useState(false)
   const lastInitializedToken = useRef<string | null>(null)
 
   const persistSession = useCallback((next: AuthSession | null) => {
@@ -391,7 +385,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Lock only if this device has previously stored a PIN. Preserve the locked state
         // across refreshes via sessionStorage, defaulting to locked when a PIN exists.
         const wasLocked = sessionStorage.getItem('stockflow-app-locked') === '1'
-        setIsLocked(wasLocked || hasAppLockPin())
+        setIsLocked(APP_LOCK_ENABLED && (wasLocked || hasAppLockPin()))
       }
 
       if (next.organization.id && !next.needsOrganization) {
@@ -410,7 +404,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const { data, error } = await supabase.auth.getSession()
       // mounted can be set to false by the cleanup if the component unmounts before this runs
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
       if (!mounted) return
 
       if (error) {
@@ -459,7 +453,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           expiresAt:
             authSession.expires_at ??
             // expires_in can be omitted by Supabase types at build time but still be missing at runtime
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
             Math.floor(Date.now() / 1000) + (authSession.expires_in ?? 3600),
         })
       } else if (event === 'SIGNED_OUT') {
@@ -494,7 +488,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         // Supabase types mark data.session as non-nullish, but it can be missing on error
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
         if (error || !data.session) {
           throw new Error(error?.message ?? 'Sign in failed')
         }
@@ -639,13 +633,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const lockApp = useCallback(() => {
-    if (hasAppLockPin()) {
-      setIsLocked(true)
-      try {
-        sessionStorage.setItem('stockflow-app-locked', '1')
-      } catch {
-        // ignore
-      }
+    if (!APP_LOCK_ENABLED || !hasAppLockPin()) return
+    setIsLocked(true)
+    try {
+      sessionStorage.setItem('stockflow-app-locked', '1')
+    } catch {
+      // ignore
     }
   }, [])
 

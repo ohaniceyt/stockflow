@@ -1,3 +1,6 @@
+// AppLock is temporarily disabled. Toggle this flag to re-enable the PIN lock flow.
+export const APP_LOCK_ENABLED = false
+
 const APP_LOCK_HASH_KEY = 'stockflow-app-lock-hash-v2'
 const APP_LOCK_EMAIL_KEY = 'stockflow-app-lock-email'
 const PBKDF2_ITERATIONS = 100_000
@@ -26,7 +29,7 @@ function hexToUint8Array(hex: string): Uint8Array {
 
 function getCryptoSubtle(): SubtleCrypto {
   // Browsers always expose crypto.subtle. The check is defensive for non-browser environments.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
   if (typeof crypto === 'undefined' || !crypto.subtle) {
     throw new Error('Web Crypto API is not available')
   }
@@ -98,6 +101,7 @@ export function clearStoredLockEmail(): void {
 }
 
 export async function setAppLockPin(pin: string): Promise<void> {
+  if (!APP_LOCK_ENABLED) return
   getCryptoSubtle()
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
   const hash = await derivePinHash(pin, salt)
@@ -113,6 +117,7 @@ export async function setAppLockPin(pin: string): Promise<void> {
 }
 
 export async function verifyAppLockPin(pin: string): Promise<boolean> {
+  if (!APP_LOCK_ENABLED) return true
   const storedRaw = getAppLockPinHash()
   if (!storedRaw) return true
 
@@ -146,5 +151,5 @@ export function clearAppLockPin(): void {
 }
 
 export function hasAppLockPin(): boolean {
-  return !!getAppLockPinHash()
+  return APP_LOCK_ENABLED && !!getAppLockPinHash()
 }

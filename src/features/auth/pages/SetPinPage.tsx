@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { APP_LOCK_ENABLED } from '../utils/appLock'
 
 export default function SetPinPage() {
   const { setPin, session } = useAuth()
@@ -13,6 +14,11 @@ export default function SetPinPage() {
   const [confirmPin, setConfirmPin] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  if (!APP_LOCK_ENABLED) {
+    void navigate('/dashboard', { replace: true })
+    return null
+  }
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()

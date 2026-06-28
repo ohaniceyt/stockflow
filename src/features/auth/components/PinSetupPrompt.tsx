@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { APP_LOCK_ENABLED } from '../utils/appLock'
 
 export function PinSetupPrompt() {
   const { session, setPin } = useAuth()
@@ -19,6 +20,7 @@ export function PinSetupPrompt() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  if (!APP_LOCK_ENABLED) return null
   if (session?.membership.hasPin) return null
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {

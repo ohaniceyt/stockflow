@@ -4,7 +4,7 @@ import { Lock, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import { getStoredLockEmail } from '../utils/appLock'
+import { APP_LOCK_ENABLED, getStoredLockEmail } from '../utils/appLock'
 
 export function AppLock() {
   const { isLocked, isAuthenticated, unlockApp, requestPinReset, signOut, session } = useAuth()
@@ -13,6 +13,9 @@ export function AppLock() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+
+  // AppLock is disabled globally.
+  if (!APP_LOCK_ENABLED) return null
 
   // During a PIN reset the user must be able to reach the reset page without knowing the old PIN.
   // Back Office is a platform-admin context and should not be gated by the local AppLock.
