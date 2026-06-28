@@ -63,7 +63,7 @@ function buildPreloadLinks(markup: string): string {
   // (e.g. the hero screenshot). Browsers pick the right srcset candidate.
   for (const { srcset, sizes } of extractEagerResponsivePreloads(markup)) {
     lines.push(
-      `  <link rel="preload" as="image" type="image/webp" imagesrcset="${srcset}" imagesizes="${sizes}">`,
+      `  <link rel="preload" as="image" type="image/webp" imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`,
     )
   }
 
