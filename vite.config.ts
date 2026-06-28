@@ -19,17 +19,21 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
+    // Inline all CSS into a single file so lazy route CSS does not force the
+    // landing page to load the Vite preload helper (and its containing chunk).
+    cssCodeSplit: false,
     // Disable automatic modulepreload on the landing page: only fetch chunks
     // when a route actually needs them, reducing first-load JS.
     modulePreload: false,
     rollupOptions: {
+      input: {
+        index: path.resolve(__dirname, 'index.html'),
+        landing: path.resolve(__dirname, 'landing.html'),
+      },
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
             // Split vendor code so no single chunk exceeds ~500 kB gzipped.
-            if (id.includes('recharts') || id.includes('d3') || id.includes('victory')) {
-              return 'charts'
-            }
             if (id.includes('pdf-lib') || id.includes('pdfmake') || id.includes('jspdf')) {
               return 'pdf'
             }
@@ -73,7 +77,9 @@ export default defineConfig({
             if (id.includes('zod') || id.includes('zustand') || id.includes('@tanstack')) {
               return 'utils'
             }
-            return 'vendor'
+            // Let remaining node_modules be split naturally by their importing
+            // route chunks instead of being pulled into a shared vendor chunk.
+            return undefined
           }
         },
       },

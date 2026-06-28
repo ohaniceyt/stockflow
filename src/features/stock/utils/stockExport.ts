@@ -1,3 +1,4 @@
+import { jsPDF } from 'jspdf'
 import type { StockItem } from '../services/stockService'
 
 interface ExportOptions {
@@ -78,14 +79,13 @@ export function exportStockToExcel(
   })
 }
 
-export function exportStockToPdf(
+export async function exportStockToPdf(
   stock: StockItem[],
   orgName = 'StockFlow',
   options: ExportOptions = {}
 ) {
   const { redactFinancials = false } = options
-  return import('jspdf').then(({ jsPDF }) => {
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.getWidth()
     let y = 14
 
@@ -134,7 +134,7 @@ export function exportStockToPdf(
     })
 
     doc.save(`stock-${orgName}-${today()}.pdf`)
-  })
+    await Promise.resolve()
 }
 
 export function shareStockOnWhatsApp(

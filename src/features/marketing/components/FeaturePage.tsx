@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from './Link'
 import { Button } from '@/components/ui/button'
 import { MarketingHeader } from './MarketingHeader'
 import { MarketingFooter } from './MarketingFooter'

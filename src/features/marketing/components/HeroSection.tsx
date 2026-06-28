@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from './Link'
 import { ArrowRight, Play, CheckCircle2, X } from 'lucide-react'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { Button } from '@/components/ui/button'

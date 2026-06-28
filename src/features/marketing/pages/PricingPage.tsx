@@ -1,5 +1,5 @@
 import { Check, ArrowRight, HelpCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '../components/Link'
 import { Button } from '@/components/ui/button'
 import { MarketingHeader } from '../components/MarketingHeader'
 import { MarketingFooter } from '../components/MarketingFooter'

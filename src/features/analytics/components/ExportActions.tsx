@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { jsPDF } from 'jspdf'
 import { Button } from '@/components/ui/button'
 import { Download, FileText, Share2, AlertCircle } from 'lucide-react'
 import type { Product } from '@/types'
@@ -149,8 +150,7 @@ export function ExportActions({
   }
 
   const exportToPdf = () => {
-    return wrapAsync('pdf', async () => {
-      const { jsPDF } = await import('jspdf')
+    return wrapAsync('pdf', () => {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' })
       const pageWidth = doc.internal.pageSize.getWidth()
       let y = 14

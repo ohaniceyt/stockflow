@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, X, Zap } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from './Link'
 
 export function TopBanner() {
   const [visible, setVisible] = useState(true)

@@ -10,7 +10,6 @@ import {
 } from 'react'
 import { supabase, supabaseKey } from '@/services/supabase'
 import { edgeFetch } from '@/services/edgeFunctions'
-import { pullSync } from '@/features/offline/services/syncService'
 import type {
   Organization,
   OrganizationMembership,
@@ -117,6 +116,7 @@ function loadSudoTarget(): SudoTarget | null {
 
 async function runPullSync(orgId: string) {
   try {
+    const { pullSync } = await import('@/features/offline/services/syncService')
     await pullSync(orgId)
   } catch (err) {
     console.error('Initial pull sync failed', err)

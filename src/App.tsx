@@ -2,10 +2,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
-import { AppLayout } from '@/components/layout/AppLayout'
+const AppLayout = lazy(() =>
+  import('@/components/layout/AppLayout').then((mod) => ({ default: mod.AppLayout }))
+)
 import { AppLock } from '@/features/auth/components/AppLock'
 
-const LandingPage = lazy(() => import('@/features/marketing/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const BackOfficeLoginPage = lazy(() => import('@/features/auth/pages/BackOfficeLoginPage'))
 const SignupPage = lazy(() => import('@/features/auth/pages/SignupPage'))
@@ -35,13 +36,6 @@ const ApiKeysPage = lazy(() => import('@/features/api/pages/ApiKeysPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const InvoicingPage = lazy(() => import('@/features/invoicing/pages/InvoicingPage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
-
-const InventoryFeaturePage = lazy(() => import('@/features/marketing/pages/InventoryFeaturePage'))
-const PosCashierFeaturePage = lazy(() => import('@/features/marketing/pages/PosCashierFeaturePage'))
-const InvoicingFeaturePage = lazy(() => import('@/features/marketing/pages/InvoicingFeaturePage'))
-const OfflineFeaturePage = lazy(() => import('@/features/marketing/pages/OfflineFeaturePage'))
-const AnalyticsFeaturePage = lazy(() => import('@/features/marketing/pages/AnalyticsFeaturePage'))
-const PricingPage = lazy(() => import('@/features/marketing/pages/PricingPage'))
 
 const BackOfficeLayout = lazy(() => import('@/features/back-office/components/BackOfficeLayout'))
 const BackOfficeOverviewPage = lazy(
@@ -74,13 +68,6 @@ function App() {
     <AuthProvider>
       <Suspense fallback={fallback}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/features/inventory" element={<InventoryFeaturePage />} />
-          <Route path="/features/pos-cashier" element={<PosCashierFeaturePage />} />
-          <Route path="/features/invoicing" element={<InvoicingFeaturePage />} />
-          <Route path="/features/offline" element={<OfflineFeaturePage />} />
-          <Route path="/features/analytics" element={<AnalyticsFeaturePage />} />
-          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/back-office" element={<BackOfficeLoginPage />} />
@@ -243,7 +230,7 @@ function App() {
           <Route path="/store/:orgSlug" element={<StorefrontPage />} />
 
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
       <AppLock />
