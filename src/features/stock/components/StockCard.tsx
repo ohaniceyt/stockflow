@@ -89,19 +89,19 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
         {isAdmin && (item.costPrice > 0 || item.sellingPrice > 0) && (
           <div className="mb-3 grid grid-cols-3 gap-1 text-xs">
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-[10px] text-[var(--text-faint)]">PA</span>
+              <span className="block text-xs text-[var(--text-faint)]">PA</span>
               <span className="font-semibold text-[var(--text)]">
                 {item.costPrice.toLocaleString()}
               </span>
             </div>
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-[10px] text-[var(--text-faint)]">PV</span>
+              <span className="block text-xs text-[var(--text-faint)]">PV</span>
               <span className="font-semibold text-[var(--text)]">
                 {item.sellingPrice.toLocaleString()}
               </span>
             </div>
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-[10px] text-[var(--text-faint)]">Marge</span>
+              <span className="block text-xs text-[var(--text-faint)]">Marge</span>
               <span className="font-semibold text-[var(--emerald)]">
                 {(item.sellingPrice - item.costPrice).toLocaleString()}
               </span>
@@ -116,7 +116,7 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
               style={{ width: `${String(Math.min(progress, 100))}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-[var(--text-faint)]">
+          <p className="mt-1 text-xs text-[var(--text-faint)]">
             mini: {item.threshold.toLocaleString()} {item.productUnit}
           </p>
         </div>

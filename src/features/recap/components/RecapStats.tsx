@@ -139,7 +139,7 @@ export function RecapStats({
                 {card.isMoney ? card.value : card.value.toLocaleString()}
               </p>
               {'sub' in card && card.sub && (
-                <p className="mt-1 text-[10px] text-[var(--text-faint)] truncate">{card.sub}</p>
+                <p className="mt-1 text-xs text-[var(--text-faint)] truncate">{card.sub}</p>
               )}
             </div>
             <div className={`rounded-lg ${card.iconBg} p-2 shrink-0`}>

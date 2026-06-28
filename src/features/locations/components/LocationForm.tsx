@@ -2,6 +2,7 @@ import { useState, type SyntheticEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { locationSchema, type LocationFormData } from '../schemas/locationSchema'
 
 interface LocationFormProps {
@@ -62,7 +63,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
 
       <div className="space-y-2">
         <Label htmlFor="location-description">Description</Label>
-        <Input
+        <Textarea
           id="location-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -74,7 +75,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
 
       <div className="space-y-2">
         <Label htmlFor="location-address">Adresse</Label>
-        <Input
+        <Textarea
           id="location-address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
