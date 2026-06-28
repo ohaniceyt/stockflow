@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Play, CheckCircle2, X } from 'lucide-react'
+import { OptimizedImage } from '@/components/OptimizedImage'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -68,13 +69,15 @@ export function HeroSection() {
           <div className="relative">
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-primary/20 to-primary/5 blur-2xl" />
             <div className="relative overflow-hidden rounded-2xl border bg-card shadow-2xl">
-              <img
-                src="/dashboard-preview.png"
+              <OptimizedImage
+                src="/dashboard-preview"
                 alt="Tableau de bord StockFlow"
+                width={1600}
+                height={1000}
                 className="w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
+                loading="eager"
+                fetchpriority="high"
+                sizes="(min-width: 1024px) 50vw, 100vw"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-muted/80 text-sm text-muted-foreground">
                 Aperçu du tableau de bord

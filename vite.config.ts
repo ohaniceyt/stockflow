@@ -19,6 +19,9 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
+    // Disable automatic modulepreload on the landing page: only fetch chunks
+    // when a route actually needs them, reducing first-load JS.
+    modulePreload: false,
     rollupOptions: {
       output: {
         manualChunks(id) {

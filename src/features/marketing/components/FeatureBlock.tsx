@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { OptimizedImage } from '@/components/OptimizedImage'
 import { Button } from '@/components/ui/button'
 
 interface FeatureBlockProps {
@@ -66,16 +67,14 @@ export function FeatureBlock({
 
           <div className={reversed ? 'lg:order-1' : ''}>
             <div className="relative overflow-hidden rounded-2xl border bg-card shadow-lg">
-              <img
-                src={image}
+              <OptimizedImage
+                src={image.replace(/\.png$/, '')}
                 alt={imageAlt}
+                width={1600}
+                height={1000}
                 className="w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  e.currentTarget.parentElement
-                    ?.querySelector('.fallback')
-                    ?.classList.remove('hidden')
-                }}
+                loading="lazy"
+                sizes="(min-width: 1024px) 50vw, 100vw"
               />
               <div className="fallback absolute inset-0 flex flex-col items-center justify-center bg-muted/80 p-6 text-center text-sm text-muted-foreground">
                 <Icon className="mb-2 h-8 w-8 text-primary" />
