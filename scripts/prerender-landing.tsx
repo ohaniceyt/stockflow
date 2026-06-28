@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import * as React from 'react'
 import { renderToString } from 'react-dom/server'
 import { LandingApp } from '../src/features/marketing/PrerenderApp'
 
