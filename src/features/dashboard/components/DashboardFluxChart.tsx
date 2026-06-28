@@ -60,7 +60,9 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
 
   const maxValue = Math.max(...days.flatMap((d) => [d.in, d.out]), 1)
 
-  const padding = { top: 24, right: 16, bottom: 56, left: 40 }
+  const fontSize = cssWidth < 400 ? 12 : 13
+  const fontSpec = `${String(fontSize)}px Geist Variable, sans-serif`
+  const padding = { top: 24, right: 16, bottom: 56, left: 44 }
   const chartW = cssWidth - padding.left - padding.right
   const chartH = cssHeight - padding.top - padding.bottom
 
@@ -76,9 +78,9 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
     ctx.fillStyle = 'var(--text-faint)'
-    ctx.font = '11px Geist Variable, sans-serif'
+    ctx.font = fontSpec
     ctx.textAlign = 'right'
-    ctx.fillText(String(value), padding.left - 8, y + 3)
+    ctx.fillText(String(value), padding.left - 8, y + 4)
   }
 
   const barGroupWidth = chartW / days.length
@@ -128,7 +130,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
     ctx.shadowOffsetY = 0
 
     ctx.fillStyle = 'var(--text)'
-    ctx.font = '11px Geist Variable, sans-serif'
+    ctx.font = fontSpec
     ctx.textAlign = 'center'
     ctx.fillText(day.label, groupX, cssHeight - 24)
   })

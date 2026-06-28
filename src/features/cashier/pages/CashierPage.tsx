@@ -784,19 +784,19 @@ export default function CashierPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => updateQuantity(item.id, -1)}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-4 w-4" />
                       </Button>
-                      <span className="w-6 text-center">{item.quantity}</span>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => updateQuantity(item.id, 1)}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                     <div className="mt-2 flex items-center gap-2">

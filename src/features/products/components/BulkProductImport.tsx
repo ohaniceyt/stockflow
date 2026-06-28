@@ -376,8 +376,8 @@ export function BulkProductImport({ orgId, onSuccess, disabled }: BulkProductImp
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto rounded-md border">
-                <table className="w-full text-sm">
+              <div className="max-h-80 overflow-y-auto rounded-md border md:overflow-x-visible overflow-x-auto">
+                <table className="w-full min-w-[36rem] text-sm">
                   <thead className="bg-muted sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left">Ligne</th>

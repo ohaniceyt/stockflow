@@ -50,17 +50,17 @@ export function ContactList({
             )}
             {contact.email && (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Mail className="h-3.5 w-3.5" /> {contact.email}
+                <Mail className="h-4 w-4" /> {contact.email}
               </p>
             )}
             {contact.phone && (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Phone className="h-3.5 w-3.5" /> {contact.phone}
+                <Phone className="h-4 w-4" /> {contact.phone}
               </p>
             )}
             {contact.address && (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" /> {contact.address}
+                <MapPin className="h-4 w-4" /> {contact.address}
               </p>
             )}
             {contact.notes && <p className="text-sm text-muted-foreground">{contact.notes}</p>}
