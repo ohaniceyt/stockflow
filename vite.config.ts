@@ -19,9 +19,9 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
-    // Keep CSS split by entry so the marketing landing page only loads the
-    // small set of styles it actually needs, rather than the entire app CSS.
-    cssCodeSplit: true,
+    // Inline all CSS into a single file so lazy route CSS does not force the
+    // landing page to load the Vite preload helper (and its containing chunk).
+    cssCodeSplit: false,
     // Disable automatic modulepreload on the landing page: only fetch chunks
     // when a route actually needs them, reducing first-load JS.
     modulePreload: false,
@@ -43,8 +43,8 @@ export default defineConfig({
             if (id.includes('exceljs') || id.includes('sheetjs') || id.includes('xlsx')) {
               return 'excel'
             }
-            if (id.includes('@base-ui') || id.includes('tw-animate-css')) {
-              return 'base-ui'
+            if (id.includes('tw-animate-css')) {
+              return 'tw-animate'
             }
             if (id.includes('date-fns')) {
               return 'date-fns'
