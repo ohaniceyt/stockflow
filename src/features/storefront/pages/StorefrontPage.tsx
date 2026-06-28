@@ -5,6 +5,7 @@ import { Minus, Plus, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   createStorefrontOrder,
   getStorefrontBySlug,
@@ -270,19 +271,19 @@ export default function StorefrontPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
+                          size="icon"
                           onClick={() => updateQuantity(item.productId, -1)}
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-6 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
+                          size="icon"
                           onClick={() => updateQuantity(item.productId, 1)}
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </li>
@@ -324,6 +325,8 @@ export default function StorefrontPage() {
                   <Label htmlFor="phone">Téléphone</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    inputMode="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="+225 01 23 45 67"
@@ -331,7 +334,7 @@ export default function StorefrontPage() {
                 </div>
                 <div>
                   <Label htmlFor="address">Adresse de livraison</Label>
-                  <Input
+                  <Textarea
                     id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}

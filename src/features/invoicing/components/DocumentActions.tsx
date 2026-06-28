@@ -343,6 +343,7 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
           <div className="flex gap-2">
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.01"
               value={paymentAmount}

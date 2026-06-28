@@ -84,11 +84,11 @@ export function AppLayout() {
       </aside>
 
       <main className="flex-1 overflow-auto md:pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-6">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b bg-background/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:px-6">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+            className="flex h-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
             aria-label="Ouvrir le menu"
           >
             <Menu className="h-5 w-5" />
@@ -96,7 +96,7 @@ export function AppLayout() {
 
           <h2 className="text-base font-semibold md:text-lg">StockFlow</h2>
 
-          <div className="text-sm text-muted-foreground">
+          <div className="hidden max-w-[40%] truncate text-sm text-muted-foreground sm:block md:max-w-none">
             {session?.membership.role === 'super_admin' ? 'Super Admin' : session?.user.name}
           </div>
         </header>

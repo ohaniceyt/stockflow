@@ -117,6 +117,7 @@ export function SessionDetailDialog({
         editingCountId === count.id ? (
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             className="w-24"
             value={draftQuantity}

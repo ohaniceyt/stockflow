@@ -239,6 +239,7 @@ export function MovementForm({
           <Input
             id="quantity"
             type="number"
+            inputMode="numeric"
             min={type === 'ADJUSTMENT' ? 0 : 1}
             value={quantity}
             onChange={(e) => {
@@ -267,6 +268,7 @@ export function MovementForm({
             <Input
               id="unitPrice"
               type="number"
+              inputMode="decimal"
               min={0}
               step="0.01"
               value={unitPrice}
