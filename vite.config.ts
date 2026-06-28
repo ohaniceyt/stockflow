@@ -43,8 +43,8 @@ export default defineConfig({
             if (id.includes('exceljs') || id.includes('sheetjs') || id.includes('xlsx')) {
               return 'excel'
             }
-            if (id.includes('tw-animate-css')) {
-              return 'tw-animate'
+            if (id.includes('@base-ui') || id.includes('tw-animate-css')) {
+              return 'base-ui'
             }
             if (id.includes('date-fns')) {
               return 'date-fns'
