@@ -27,6 +27,7 @@ const SuppliersPage = lazy(() => import('@/features/contacts/pages/SuppliersPage
 const CustomersPage = lazy(() => import('@/features/contacts/pages/CustomersPage'))
 const RecapPage = lazy(() => import('@/features/recap/pages/RecapPage'))
 const CashierPage = lazy(() => import('@/features/cashier/pages/CashierPage'))
+const CashierPosPage = lazy(() => import('@/features/cashier/pages/CashierPosPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
 const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
 const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
@@ -210,6 +211,15 @@ function App() {
             <Route path="/settings/subscription" element={<SubscriptionPage />} />
             <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
           </Route>
+
+          <Route
+            path="/caisse-pos"
+            element={
+              <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
+                <CashierPosPage />
+              </RequireAuth>
+            }
+          />
 
           <Route
             element={
