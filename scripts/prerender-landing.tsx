@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import Critters from 'critters'
 import { renderToString } from 'react-dom/server'
 import { LandingApp } from '../src/features/marketing/PrerenderApp'
 
@@ -8,6 +9,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.resolve(__dirname, '../dist')
 const indexPath = path.join(distDir, 'index.html')
 const template = fs.readFileSync(indexPath, 'utf8')
+
+const critters = new Critters({
+  path: distDir,
+  publicPath: '/',
+  preload: 'body',
+  inlineFonts: false,
+  pruneSource: false,
+  minimumExternalSize: 0,
+})
 
 const routes = [
   '/',
@@ -36,13 +46,15 @@ for (const route of routes) {
     .replace(new RegExp('<div id="root"><\\/div>'), `<div id="root">${markup}</div>`)
     .replace(new RegExp('<\\/body>'), `${demoScript}</body>`)
 
+  const optimized = await critters.process(page)
+
   const outPath =
     route === '/'
       ? indexPath
       : path.join(distDir, `${route}.html`)
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true })
-  fs.writeFileSync(outPath, page)
+  fs.writeFileSync(outPath, optimized)
 }
 
 console.log(`Prerendered ${routes.length.toString()} marketing pages into ${distDir}`)
