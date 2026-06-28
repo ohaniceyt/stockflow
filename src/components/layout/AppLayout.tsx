@@ -38,7 +38,7 @@ export function AppLayout() {
         <div className="flex h-16 items-center gap-3 border-b px-4">
           <Logo variant="icon" className="h-9 w-9" />
           <div>
-            <p className="font-bold leading-tight">Flowbill</p>
+            <p className="font-bold leading-tight">StockFlow</p>
             <p className="text-xs text-muted-foreground">{session?.user.name}</p>
           </div>
         </div>
@@ -94,7 +94,7 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <h2 className="text-base font-semibold md:text-lg">Flowbill</h2>
+          <h2 className="text-base font-semibold md:text-lg">StockFlow</h2>
 
           <div className="text-sm text-muted-foreground">
             {session?.membership.role === 'super_admin' ? 'Super Admin' : session?.user.name}

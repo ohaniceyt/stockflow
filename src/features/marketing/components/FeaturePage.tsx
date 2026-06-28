@@ -142,8 +142,8 @@ export function FeaturePage({
           <div className="mx-auto max-w-4xl rounded-2xl bg-primary p-8 text-center text-primary-foreground sm:p-12">
             <h2 className="text-3xl font-bold">Prêt à essayer ?</h2>
             <p className="mt-4 opacity-90">
-              Rejoignez les PME qui gagnent du temps chaque jour avec Flowbill. 1 mois gratuit, sans
-              engagement.
+              Rejoignez les PME qui gagnent du temps chaque jour avec StockFlow. 1 mois gratuit,
+              sans engagement.
             </p>
             <Button asChild size="lg" variant="secondary" className="mt-8">
               <Link to="/signup">Essayer 1 mois gratuit</Link>

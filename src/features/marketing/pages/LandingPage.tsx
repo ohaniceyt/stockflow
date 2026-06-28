@@ -97,7 +97,7 @@ const features = [
     icon: Globe,
     title: 'API & intégrations',
     description:
-      'Clés API sécurisées, webhooks et documentation pour connecter Flowbill à vos outils existants.',
+      'Clés API sécurisées, webhooks et documentation pour connecter StockFlow à vos outils existants.',
   },
   {
     icon: Smartphone,
@@ -183,14 +183,14 @@ const pricingPlans = [
 
 const faqs = [
   {
-    question: 'Flowbill fonctionne-t-il hors connexion ?',
+    question: 'StockFlow fonctionne-t-il hors connexion ?',
     answer:
       'Oui. L’application est conçue offline-first : vous pouvez vendre, ajuster le stock et enregistrer des mouvements même sans internet. Les données se synchronisent automatiquement dès le retour en ligne.',
   },
   {
-    question: 'Puis-je connecter Flowbill à mes autres outils ?',
+    question: 'Puis-je connecter StockFlow à mes autres outils ?',
     answer:
-      'Oui. Flowbill expose une API sécurisée avec clés API et webhooks. Vous pouvez l’intégrer à votre comptabilité, votre site e-commerce ou tout autre service compatible REST.',
+      'Oui. StockFlow expose une API sécurisée avec clés API et webhooks. Vous pouvez l’intégrer à votre comptabilité, votre site e-commerce ou tout autre service compatible REST.',
   },
   {
     question: 'Quels modes de paiement sont acceptés en caisse ?',

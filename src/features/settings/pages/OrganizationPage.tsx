@@ -141,7 +141,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         />
         <p className="text-xs text-muted-foreground">
           Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.{' '}
-          <span className="font-medium text-foreground">Géré par Flowbill :</span> contactez le
+          <span className="font-medium text-foreground">Géré par StockFlow :</span> contactez le
           support pour le modifier.
         </p>
       </div>
