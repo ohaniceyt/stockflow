@@ -1,9 +1,8 @@
--- Fix complete_onboarding so it resolves public tables when search_path is hardened.
--- The previous migration restricted search_path to pg_temp, pg_catalog for
--- security, but the function body referenced unqualified table names like
--- "organizations" and "organization_memberships". With a search_path that does
--- not include "public", PostgreSQL could not resolve those tables, causing the
--- onboarding flow to fail with "relation 'organizations' does not exist".
+-- Ensure complete_onboarding provides explicit defaults for NOT NULL columns.
+-- Some columns became NOT NULL after the table was created (auto_reminder_days),
+-- and relying on table defaults can be unreliable when SECURITY DEFINER sets a
+-- restricted search_path. This recreates the function with explicit DEFAULT
+-- values for all non-nullable boolean/integer organization columns.
 CREATE OR REPLACE FUNCTION complete_onboarding(
   p_user_id UUID,
   p_org_name TEXT,
@@ -50,8 +49,7 @@ BEGIN
   v_currency := COALESCE(NULLIF(trim(p_currency), ''), v_currency, 'XOF');
   v_timezone := COALESCE(NULLIF(trim(p_timezone), ''), v_timezone, 'Africa/Abidjan');
 
-  -- Create organization. Provide explicit defaults for NOT NULL columns added after
-  -- the initial schema so that hardened search_path does not bypass table defaults.
+  -- Create organization with explicit defaults for all NOT NULL columns.
   INSERT INTO public.organizations (
     name, slug, country, currency, timezone, onboarding_completed,
     has_cashier_enabled, has_storefront_enabled, has_api_enabled, has_invoicing_enabled, has_tax_enabled,
@@ -98,5 +96,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Re-apply the hardened search path while keeping public table references explicit.
+-- Keep the hardened search path; table names are explicitly public-qualified.
 ALTER FUNCTION public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) SET search_path = pg_temp, pg_catalog;

@@ -164,7 +164,7 @@ export async function updateOrganization(
     updateData.auto_reminder_enabled = input.autoReminderEnabled
   }
   if (input.autoReminderDays !== undefined) {
-    updateData.auto_reminder_days = input.autoReminderDays ?? null
+    updateData.auto_reminder_days = input.autoReminderDays ?? 3
   }
 
   const { data, error } = await supabase

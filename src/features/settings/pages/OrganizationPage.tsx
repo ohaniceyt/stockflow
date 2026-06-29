@@ -395,7 +395,7 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
         receiptPrefix: receiptPrefix.trim() || null,
         legalMentions: legalMentions.trim() || null,
         autoReminderEnabled,
-        autoReminderDays: autoReminderEnabled ? autoReminderDays : null,
+        autoReminderDays: autoReminderEnabled ? autoReminderDays : 3,
       },
       {
         onError: (err) => setFormError(err.message),
