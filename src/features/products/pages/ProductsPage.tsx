@@ -25,6 +25,7 @@ import {
 } from '../hooks/useCategories'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
+import { PageHeader, PageSection } from '@/components/design-system'
 import type { Product } from '@/types'
 import type { ProductFormData } from '../schemas/productSchema'
 import type { Category } from '@/types'
@@ -148,9 +149,6 @@ export default function ProductsPage() {
 
   const handleCreateCategory = async (name: string) => {
     const created = await createCategory.mutateAsync(name)
-    // Refetch in the background so the product form can update its selected
-    // category immediately and the submit button is not re-enabled before
-    // onChange(created.id) has propagated.
     if (orgId) {
       void queryClient.refetchQueries({ queryKey: [CATEGORIES_QUERY_KEY, orgId], exact: true })
     }
@@ -200,17 +198,13 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Produits</h1>
-          <p className="text-muted-foreground">
-            Gérez le catalogue de produits et les catégories de votre organisation.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Produits"
+        description="Gérez le catalogue de produits et les catégories de votre organisation."
+      />
 
       {productFormError && (
-        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+        <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
           {productFormError}
         </p>
       )}
@@ -226,137 +220,147 @@ export default function ProductsPage() {
           <TabsTrigger value="categories">Catégories</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="products">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {orgId && canBulkImport && (
-              <BulkProductImport
-                orgId={orgId}
-                onSuccess={() => {
-                  void queryClient.invalidateQueries({ queryKey: ['products', orgId] })
-                  void queryClient.invalidateQueries({ queryKey: ['categories', orgId] })
-                }}
-                disabled={!online}
+        <TabsContent value="products" className="space-y-4">
+          <PageSection
+            title="Liste des produits"
+            description={`${(products?.length ?? 0).toString()} produit(s) dans le catalogue.`}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {orgId && canBulkImport && (
+                <BulkProductImport
+                  orgId={orgId}
+                  onSuccess={() => {
+                    void queryClient.invalidateQueries({ queryKey: ['products', orgId] })
+                    void queryClient.invalidateQueries({ queryKey: ['categories', orgId] })
+                  }}
+                  disabled={!online}
+                />
+              )}
+              {canManage && (
+                <Dialog open={isProductDialogOpen} onOpenChange={handleProductDialogOpenChange}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      setEditingProduct(null)
+                      setIsProductDialogOpen(true)
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouveau produit
+                  </Button>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {editingProduct
+                          ? 'Modifiez les informations du produit ci-dessous.'
+                          : 'Remplissez les informations pour créer un nouveau produit.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <ProductForm
+                      key={editingProduct?.id ?? 'new'}
+                      product={editingProduct}
+                      categories={categories ?? []}
+                      onSubmit={editingProduct ? handleUpdate : handleCreate}
+                      onCancel={() => handleProductDialogOpenChange(false)}
+                      onCreateCategory={handleCreateCategory}
+                      isLoading={create.isPending || update.isPending}
+                      isCreatingCategory={createCategory.isPending}
+                      error={
+                        productFormError
+                          ? new Error(productFormError)
+                          : (create.error ?? update.error)
+                      }
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+
+            {isLoading && <p className="text-muted-foreground">Chargement des produits…</p>}
+            {error && <p className="text-destructive">{error.message}</p>}
+            {!isLoading && !error && products && (
+              <ProductList
+                products={products}
+                onEdit={handleEdit}
+                onToggleActive={handleToggleActive}
+                isUpdating={update.isPending}
+                canManage={canManage}
               />
             )}
-            {canManage && (
-              <Dialog open={isProductDialogOpen} onOpenChange={handleProductDialogOpenChange}>
-                <Button
-                  className="w-full sm:w-auto"
-                  onClick={() => {
-                    setEditingProduct(null)
-                    setIsProductDialogOpen(true)
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouveau produit
-                </Button>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {editingProduct
-                        ? 'Modifiez les informations du produit ci-dessous.'
-                        : 'Remplissez les informations pour créer un nouveau produit.'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <ProductForm
-                    key={editingProduct?.id ?? 'new'}
-                    product={editingProduct}
-                    categories={categories ?? []}
-                    onSubmit={editingProduct ? handleUpdate : handleCreate}
-                    onCancel={() => handleProductDialogOpenChange(false)}
-                    onCreateCategory={handleCreateCategory}
-                    isLoading={create.isPending || update.isPending}
-                    isCreatingCategory={createCategory.isPending}
-                    error={
-                      productFormError
-                        ? new Error(productFormError)
-                        : (create.error ?? update.error)
-                    }
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-
-          {isLoading && <p className="text-muted-foreground">Chargement des produits…</p>}
-          {error && <p className="text-destructive">{error.message}</p>}
-          {!isLoading && !error && products && (
-            <ProductList
-              products={products}
-              onEdit={handleEdit}
-              onToggleActive={handleToggleActive}
-              isUpdating={update.isPending}
-              canManage={canManage}
-            />
-          )}
+          </PageSection>
         </TabsContent>
 
-        <TabsContent value="categories">
-          <div className="flex justify-end">
-            {canManage && (
-              <Dialog open={isCategoryDialogOpen} onOpenChange={handleCategoryDialogOpenChange}>
-                <Button
-                  className="w-full sm:w-auto"
-                  onClick={() => {
-                    setEditingCategory(null)
-                    setIsCategoryDialogOpen(true)
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouvelle catégorie
-                </Button>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {editingCategory
-                        ? 'Modifiez le nom de la catégorie ci-dessous.'
-                        : 'Créez une catégorie pour classer vos produits.'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CategoryForm
-                    category={editingCategory}
-                    onSubmit={editingCategory ? handleUpdateCategory : handleCreateCategory}
-                    onCancel={() => handleCategoryDialogOpenChange(false)}
-                    isLoading={
-                      createCategory.isPending ||
-                      updateCategory.isPending ||
-                      deleteCategory.isPending
-                    }
-                  />
-                  {(categoryError ??
-                    createCategory.error ??
-                    updateCategory.error ??
-                    deleteCategory.error) && (
-                    <p className="text-sm text-destructive">
-                      {categoryError ??
-                        (createCategory.error ?? updateCategory.error ?? deleteCategory.error)
-                          ?.message}
-                    </p>
-                  )}
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
+        <TabsContent value="categories" className="space-y-4">
+          <PageSection
+            title="Liste des catégories"
+            description={`${(categories?.length ?? 0).toString()} catégorie(s) définie(s).`}
+          >
+            <div className="flex justify-end">
+              {canManage && (
+                <Dialog open={isCategoryDialogOpen} onOpenChange={handleCategoryDialogOpenChange}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      setEditingCategory(null)
+                      setIsCategoryDialogOpen(true)
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouvelle catégorie
+                  </Button>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {editingCategory
+                          ? 'Modifiez le nom de la catégorie ci-dessous.'
+                          : 'Créez une catégorie pour classer vos produits.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <CategoryForm
+                      category={editingCategory}
+                      onSubmit={editingCategory ? handleUpdateCategory : handleCreateCategory}
+                      onCancel={() => handleCategoryDialogOpenChange(false)}
+                      isLoading={
+                        createCategory.isPending ||
+                        updateCategory.isPending ||
+                        deleteCategory.isPending
+                      }
+                    />
+                    {(categoryError ??
+                      createCategory.error ??
+                      updateCategory.error ??
+                      deleteCategory.error) && (
+                      <p className="text-sm text-destructive">
+                        {categoryError ??
+                          (createCategory.error ?? updateCategory.error ?? deleteCategory.error)
+                            ?.message}
+                      </p>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
 
-          {isCategoriesLoading && (
-            <p className="text-muted-foreground">Chargement des catégories…</p>
-          )}
-          {categoriesError && <p className="text-destructive">{categoriesError.message}</p>}
-          {!isCategoriesLoading && !categoriesError && categories && (
-            <CategoryList
-              categories={categories}
-              onEdit={handleEditCategory}
-              onDelete={handleDeleteCategory}
-              isUpdating={updateCategory.isPending || deleteCategory.isPending}
-              canManage={canManage}
-            />
-          )}
+            {isCategoriesLoading && (
+              <p className="text-muted-foreground">Chargement des catégories…</p>
+            )}
+            {categoriesError && <p className="text-destructive">{categoriesError.message}</p>}
+            {!isCategoriesLoading && !categoriesError && categories && (
+              <CategoryList
+                categories={categories}
+                onEdit={handleEditCategory}
+                onDelete={handleDeleteCategory}
+                isUpdating={updateCategory.isPending || deleteCategory.isPending}
+                canManage={canManage}
+              />
+            )}
+          </PageSection>
         </TabsContent>
       </Tabs>
     </div>

@@ -38,11 +38,7 @@ interface CompleteSalePayload {
   payment_method: string
   currency: string
   prefix?: string | null
-  subtotal: number
-  tax_amount: number
-  total: number
   amount_paid: number
-  change_due: number
   notes?: string | null
   items: CompleteSaleItem[]
 }
@@ -103,11 +99,7 @@ Deno.serve(async (req: Request) => {
       !payload.location_id ||
       !payload.cashier_session_id ||
       !payload.payment_method ||
-      typeof payload.subtotal !== 'number' ||
-      typeof payload.tax_amount !== 'number' ||
-      typeof payload.total !== 'number' ||
       typeof payload.amount_paid !== 'number' ||
-      typeof payload.change_due !== 'number' ||
       !Array.isArray(payload.items) ||
       payload.items.length === 0
     ) {
@@ -159,17 +151,13 @@ Deno.serve(async (req: Request) => {
       p_org_id: operator.org_id,
       p_location_id: payload.location_id,
       p_cashier_session_id: payload.cashier_session_id,
-      p_items: payload.items,
+      p_amount_paid: payload.amount_paid,
       p_contact_id: payload.contact_id ?? null,
       p_payment_method: payload.payment_method,
       p_currency: payload.currency,
       p_prefix: payload.prefix ?? null,
-      p_subtotal: payload.subtotal,
-      p_tax_amount: payload.tax_amount,
-      p_total: payload.total,
-      p_amount_paid: payload.amount_paid,
-      p_change_due: payload.change_due,
       p_notes: payload.notes ?? null,
+      p_items: payload.items,
     })
 
     if (saleError || !saleData || typeof saleData !== 'object' || !('receipt_id' in saleData)) {

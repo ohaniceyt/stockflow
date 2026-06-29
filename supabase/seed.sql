@@ -1,4 +1,6 @@
--- Seed data for local development and initial Supabase setup
+-- Seed data for local development and E2E tests only.
+-- This file is intentionally free of any production credentials or demo accounts
+-- with known passwords. Do NOT run this seed against a production database.
 
 INSERT INTO organizations (id, name, slug, currency, timezone, onboarding_completed)
 VALUES (
@@ -11,7 +13,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Default location
+-- Default location for the demo organization.
 INSERT INTO locations (id, org_id, name, description, is_default)
 VALUES (
   '10000000-0000-0000-0000-000000000000',
@@ -22,29 +24,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Demo users with PIN '1234' hashed as pbkdf2$salt$hash
--- salt (base64): c29tZXNhbHQ= (literal 'somesalt' for demo only)
--- hash of '1234' with PBKDF2 100k iterations, SHA-256, salt='somesalt'
-INSERT INTO users (id, org_id, name, email, role, pin_hash, is_active, force_pin_change)
-VALUES
-  (
-    '584a7634-fbed-41ad-a947-b104d013ee96',
-    '00000000-0000-0000-0000-000000000000',
-    'Alice Admin',
-    'earful-wannabe-wok@duck.com',
-    'admin',
-    'pbkdf2$c29tZXNhbHQ=$S9dTViH7f5Wj53vUEHt0pPSCjxzCXtgV/crDQdKbhMo=',
-    TRUE,
-    FALSE
-  ),
-  (
-    '0c14cf03-5341-4b95-bb9e-eb0fbcd16836',
-    '00000000-0000-0000-0000-000000000000',
-    'Bob Opérateur',
-    'lagged-poach-decoy@duck.com',
-    'operator',
-    'pbkdf2$c29tZXNhbHQ=$S9dTViH7f5Wj53vUEHt0pPSCjxzCXtgV/crDQdKbhMo=',
-    TRUE,
-    FALSE
-  )
-ON CONFLICT (id) DO NOTHING;
+-- Demo user accounts with a known PIN have been removed for security.
+-- To create a local admin account, run the script located at:
+--   scripts/seed-local-admin.ts
+-- It will generate a random strong PIN and print it once.

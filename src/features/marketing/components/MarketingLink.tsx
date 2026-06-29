@@ -9,7 +9,6 @@ const LANDING_ROUTES = new Set([
   '/pricing',
   '/features/inventory',
   '/features/pos-cashier',
-  '/features/invoicing',
   '/features/offline',
   '/features/analytics',
 ])

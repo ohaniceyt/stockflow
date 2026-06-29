@@ -4,7 +4,7 @@ import {
   getReceiptsBySession,
   getReceiptWithOrg,
   type CreateReceiptInput,
-} from '@/features/invoicing/services/receiptService'
+} from '@/features/cashier/services/receiptService'
 
 const receiptsKey = (sessionId: string) => ['receipts', 'session', sessionId]
 const receiptKey = (receiptId: string) => ['receipt', receiptId]

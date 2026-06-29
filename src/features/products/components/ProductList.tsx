@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Pencil, Power, PowerOff } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { Product } from '@/types'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
+import { StatusBadge, EmptyState } from '@/components/design-system'
+import { Package } from 'lucide-react'
 
 interface ProductListProps {
   products: Product[]
@@ -61,9 +62,9 @@ export function ProductList({
       header: 'Statut',
       cell: (product) =>
         product.isActive ? (
-          <Badge variant="default">Actif</Badge>
+          <StatusBadge variant="success">Actif</StatusBadge>
         ) : (
-          <Badge variant="secondary">Inactif</Badge>
+          <StatusBadge variant="neutral">Inactif</StatusBadge>
         ),
     },
     {
@@ -94,7 +95,7 @@ export function ProductList({
               {product.isActive ? (
                 <PowerOff className="h-4 w-4 text-destructive" />
               ) : (
-                <Power className="h-4 w-4 text-green-600" />
+                <Power className="h-4 w-4 text-emerald-600" />
               )}
             </Button>
           </div>
@@ -102,18 +103,18 @@ export function ProductList({
     },
   ]
 
-  const empty = (
-    <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-      Aucun produit. Créez votre premier produit pour commencer.
-    </div>
-  )
-
   return (
     <ResponsiveTable
       data={products}
       columns={columns}
       keyExtractor={(product) => product.id}
-      empty={empty}
+      empty={
+        <EmptyState
+          icon={Package}
+          title="Aucun produit"
+          description="Créez votre premier produit pour commencer."
+        />
+      }
       mobileCardTitle={(product) => (
         <span>
           {product.name}{' '}

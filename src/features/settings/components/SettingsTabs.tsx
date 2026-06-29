@@ -12,9 +12,9 @@ const tabs = [
 
 export function SettingsTabs() {
   return (
-    <div className="border-b">
+    <div className="rounded-xl border bg-card p-1 shadow-sm">
       <nav
-        className="flex gap-2 overflow-x-auto whitespace-nowrap px-1 pb-1 sm:gap-4"
+        className="flex gap-1 overflow-x-auto whitespace-nowrap"
         aria-label="Paramètres"
       >
         {tabs.map((tab) => (
@@ -23,10 +23,10 @@ export function SettingsTabs() {
             to={tab.to}
             className={({ isActive }) =>
               cn(
-                'border-b-2 px-2 py-2 text-sm font-medium transition-colors sm:px-1',
+                'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )
             }
           >

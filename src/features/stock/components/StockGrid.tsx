@@ -1,6 +1,7 @@
 import { Package } from 'lucide-react'
 import type { StockItem } from '../services/stockService'
 import { StockCard } from './StockCard'
+import { EmptyState } from '@/components/design-system'
 
 interface StockGridProps {
   stock: StockItem[]
@@ -11,22 +12,20 @@ interface StockGridProps {
 export function StockGrid({ stock, searchQuery = '', onItemClick }: StockGridProps) {
   if (stock.length === 0) {
     return (
-      <div className="stock-grid items-center justify-center py-12 text-center text-[var(--text-faint)]">
-        <div className="col-span-full flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-2)]">
-            <Package className="h-7 w-7 text-[var(--text-faint)]" />
-          </div>
-          <div>
-            <p className="font-medium text-[var(--text-h)]">Aucun produit</p>
-            <p className="text-sm">Créez-en dans l&apos;onglet Produits</p>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        icon={Package}
+        title={searchQuery ? 'Aucun résultat' : 'Aucun produit en stock'}
+        description={
+          searchQuery
+            ? 'Aucun produit ne correspond à votre recherche.'
+            : "Créez-en dans l'onglet Produits pour commencer à suivre le stock."
+        }
+      />
     )
   }
 
   return (
-    <div className="stock-grid">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {stock.map((item) => (
         <StockCard
           key={item.id}

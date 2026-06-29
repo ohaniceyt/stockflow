@@ -5,13 +5,14 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { EmptyState, StatusBadge } from '@/components/design-system'
 import { useCashier } from '../hooks/useCashier'
 import { CashierHeader } from './CashierHeader'
 import { ProductCatalog } from './ProductCatalog'
 import { CartPanel } from './CartPanel'
 import { SessionDrawer } from './SessionDrawer'
 import { ScannerDialog } from './ScannerDialog'
-import ReceiptActions from '@/features/invoicing/components/ReceiptActions'
+import ReceiptActions from '@/features/cashier/components/ReceiptActions'
 
 interface CashierWorkspaceProps {
   embedded?: boolean
@@ -140,16 +141,18 @@ export function CashierWorkspace({
 
   if (!hasCashierEnabled || !session) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="text-2xl font-bold">Caisse</h1>
-        <p className="text-muted-foreground">
-          La caisse n&apos;est pas activée pour cette organisation. Contactez un administrateur.
-        </p>
-        {onCloseTab && (
-          <Button type="button" variant="outline" onClick={onCloseTab}>
-            Fermer
-          </Button>
-        )}
+      <div className="flex h-screen flex-col items-center justify-center p-6">
+        <EmptyState
+          title="Caisse non activée"
+          description="La caisse n’est pas activée pour cette organisation. Contactez un administrateur."
+          action={
+            onCloseTab ? (
+              <Button type="button" variant="outline" onClick={onCloseTab}>
+                Fermer
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
     )
   }
@@ -240,13 +243,13 @@ export function CashierWorkspace({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
           {openSession ? (
-            <span>
+            <StatusBadge variant="success">
               Caisse ouverte — recette : <strong>{formatCurrency(sessionRevenue)}</strong>
-            </span>
+            </StatusBadge>
           ) : (
-            <span className="text-destructive">Caisse fermée</span>
+            <StatusBadge variant="danger">Caisse fermée</StatusBadge>
           )}
         </div>
       </div>

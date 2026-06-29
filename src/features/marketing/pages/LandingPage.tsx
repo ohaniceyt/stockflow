@@ -4,7 +4,6 @@ import {
   Box,
   Calculator,
   Clock,
-  FileText,
   Globe,
   HelpCircle,
   Lock,
@@ -56,12 +55,6 @@ const features = [
     title: 'Caisse intégrée',
     description:
       'Ventes rapides, impression de reçus, paiements multiples (cash, carte, mobile money) et annulations contrôlées.',
-  },
-  {
-    icon: FileText,
-    title: 'Facturation professionnelle',
-    description:
-      'Devis, factures, bons de livraison, rappels auto et conversion devis → facture avec numérotation personnalisée.',
   },
   {
     icon: WifiOff,
@@ -123,7 +116,7 @@ const workflow = [
     step: '3',
     title: 'Gérez et vendez',
     description:
-      'Enregistrez les mouvements, vendez en caisse, éditez des factures et suivez votre activité.',
+      'Enregistrez les mouvements, vendez en caisse et suivez votre activité.'
   },
 ]
 
@@ -220,7 +213,7 @@ const resources = [
     icon: Video,
     title: 'Tutoriels vidéo',
     description:
-      'Courtes vidéos pratiques pour maîtriser la caisse, la facturation et les rapports.',
+      'Courtes vidéos pratiques pour maîtriser la caisse et les rapports.',
     href: '#',
   },
   {
@@ -281,23 +274,6 @@ export default function LandingPage() {
           imageAlt="Aperçu de la caisse"
           link="/features/pos-cashier"
           linkLabel="Découvrir la caisse"
-        />
-
-        <FeatureBlock
-          icon={FileText}
-          eyebrow="Facturation"
-          title="Créez des factures professionnelles en quelques clics"
-          description="Passez du devis à la facture, suivez les paiements et envoyez des rappels automatiques à vos clients."
-          bullets={[
-            'Convertissez vos devis en factures en un clic',
-            'Personnalisez la numérotation et l’apparence des documents',
-            'Automatisez les relances pour les paiements en retard',
-            'Suivez vos impayés dans un tableau de bord dédié',
-          ]}
-          image="/features/invoicing-preview.png"
-          imageAlt="Aperçu de la facturation"
-          link="/features/invoicing"
-          linkLabel="Découvrir la facturation"
         />
 
         <FeatureGrid

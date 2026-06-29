@@ -3,6 +3,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { buildReceiptPdfBase64 } from '../_shared/receiptPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml } from '../_shared/html.ts'
 
 interface SendReceiptEmailPayload {
   receipt_id: string
@@ -79,26 +80,26 @@ Deno.serve(async (req: Request) => {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Votre reçu ${documentNumber}</title>
+    <title>Votre reçu ${escapeHtml(documentNumber)}</title>
   </head>
   <body style="font-family: Arial, sans-serif; color: #333;" >
     <p>Bonjour,</p>
-    <p>Veuillez trouver ci-joint votre reçu <strong>${documentNumber}</strong> de <strong>${orgName}</strong>.</p>
-    <p>Total : <strong>${formatCurrency(Number(receipt.total), receipt.currency as string)}</strong></p>
+    <p>Veuillez trouver ci-joint votre reçu <strong>${escapeHtml(documentNumber)}</strong> de <strong>${escapeHtml(orgName)}</strong>.</p>
+    <p>Total : <strong>${escapeHtml(formatCurrency(Number(receipt.total), receipt.currency as string))}</strong></p>
     <p>Merci pour votre confiance.</p>
     <br />
     <p><em>Cet email a été envoyé automatiquement par StockFlow.</em></p>
   </body>
 </html>`
 
-    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre reçu ${documentNumber} de ${orgName}.\nTotal : ${formatCurrency(
+    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre reçu ${escapeHtml(documentNumber)} de ${escapeHtml(orgName)}.\nTotal : ${formatCurrency(
       Number(receipt.total),
       receipt.currency as string
     )}\n\nMerci pour votre confiance.\n\nCet email a été envoyé automatiquement par StockFlow.`
 
     const emailResult = await sendEmail({
       to: recipient,
-      subject: `Votre reçu ${documentNumber} - ${orgName}`,
+      subject: `Votre reçu ${escapeHtml(documentNumber)} - ${escapeHtml(orgName)}`,
       html,
       text,
       attachments: [

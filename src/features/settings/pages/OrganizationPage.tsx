@@ -1,15 +1,10 @@
 import { useState, type SyntheticEvent } from 'react'
 import {
-  Building2,
-  MapPin,
   Star,
   Store,
   ShoppingCart,
   Plug,
-  Receipt,
   Percent,
-  FileText,
-  Bell,
   ExternalLink,
   AlertTriangle,
 } from 'lucide-react'
@@ -21,6 +16,7 @@ import { useAuth } from '@/features/auth/context/AuthContext'
 import { useLocations, useSetDefaultLocation } from '@/features/locations/hooks/useLocations'
 import { useOrganization, useUpdateOrganization } from '../hooks/useSettings'
 import { SettingsTabs } from '../components/SettingsTabs'
+import { PageHeader, PageSection } from '@/components/design-system'
 import type { Organization } from '@/types'
 import { COUNTRY_DEFAULTS, CURRENCIES, TIMEZONES, getCountryDefault } from '@/lib/countries'
 
@@ -50,15 +46,13 @@ function FeatureToggle({
   const inputId = `feature-toggle-${label.toLowerCase().replace(/\s+/g, '-')}`
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent">
-      <div className="flex h-10 min-h-[44px] w-10 min-w-[44px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="flex items-start gap-4 rounded-xl border p-4 transition-colors hover:bg-accent">
+      <div className="flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor={inputId} className="font-medium cursor-pointer">
-            {label}
-          </Label>
+          <Label htmlFor={inputId} className="font-medium">{label}</Label>
           <label
             htmlFor={inputId}
             className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -123,8 +117,8 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {formError && <p className="text-destructive">{formError}</p>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {formError && <p className="text-sm text-destructive">{formError}</p>}
 
       <div className="space-y-2">
         <Label htmlFor="org-name">Nom de l'organisation</Label>
@@ -141,13 +135,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         <Label htmlFor="org-slug">
           Identifiant unique <span className="text-muted-foreground">(ex: ma-boutique)</span>
         </Label>
-        <Input
-          id="org-slug"
-          value={organization.slug}
-          placeholder="ma-boutique"
-          disabled
-          readOnly
-        />
+        <Input id="org-slug" value={organization.slug} placeholder="ma-boutique" disabled readOnly />
         <p className="text-sm text-muted-foreground">
           Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.{' '}
           <span className="font-medium text-foreground">Géré par StockFlow :</span> contactez le
@@ -207,7 +195,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
       </div>
 
       {currencyChanged && (
-        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
             Vous changez la devise de l’organisation. Les futurs documents utiliseront{' '}
@@ -216,7 +204,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         </div>
       )}
 
-      <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+      <div className="rounded-lg border border-dashed p-4 text-sm">
         <p className="font-medium text-foreground">Portail public</p>
         <a
           href={`/store/${organization.slug}`}
@@ -227,7 +215,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
           {window.location.origin}/store/{organization.slug}
           <ExternalLink className="h-3 w-3" />
         </a>
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-sm text-muted-foreground">
           L'URL de votre boutique dépend de l'identifiant. Pour le changer, contactez le support.
         </p>
       </div>
@@ -285,8 +273,8 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {formError && <p className="text-destructive">{formError}</p>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {formError && <p className="text-sm text-destructive">{formError}</p>}
 
       <div className="space-y-3">
         <FeatureToggle
@@ -316,7 +304,7 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
       </div>
 
       {hasStorefrontEnabled && (
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-lg border bg-muted/50 p-4">
           <Label htmlFor="storefront-location">Emplacement du store front</Label>
           <Select
             id="storefront-location"
@@ -333,7 +321,7 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
           </Select>
           <p className="text-sm text-muted-foreground">
             URL publique :{' '}
-            <code>
+            <code className="rounded bg-background px-1 py-0.5 text-xs">
               {window.location.origin}/store/{organization.slug}
             </code>
           </p>
@@ -350,20 +338,12 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
 }
 
 function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
-  const [hasInvoicingEnabled, setHasInvoicingEnabled] = useState(organization.hasInvoicingEnabled)
   const [hasTaxEnabled, setHasTaxEnabled] = useState(organization.hasTaxEnabled)
   const [taxName, setTaxName] = useState(organization.taxName ?? 'TVA')
   const [taxRate, setTaxRate] = useState(organization.taxRate ?? 0)
   const [taxId, setTaxId] = useState(organization.taxId ?? '')
-  const [invoicePrefix, setInvoicePrefix] = useState(organization.invoicePrefix ?? 'FA')
-  const [quotePrefix, setQuotePrefix] = useState(organization.quotePrefix ?? 'DE')
-  const [deliveryNotePrefix, setDeliveryNotePrefix] = useState(
-    organization.deliveryNotePrefix ?? 'BL'
-  )
   const [receiptPrefix, setReceiptPrefix] = useState(organization.receiptPrefix ?? 'RE')
   const [legalMentions, setLegalMentions] = useState(organization.legalMentions ?? '')
-  const [autoReminderEnabled, setAutoReminderEnabled] = useState(organization.autoReminderEnabled)
-  const [autoReminderDays, setAutoReminderDays] = useState(organization.autoReminderDays ?? 3)
   const [formError, setFormError] = useState<string | null>(null)
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
@@ -384,18 +364,12 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
         hasStorefrontEnabled: organization.hasStorefrontEnabled,
         hasApiEnabled: organization.hasApiEnabled,
         storefrontLocationId: organization.storefrontLocationId,
-        hasInvoicingEnabled,
         hasTaxEnabled,
         taxName: taxName.trim() || null,
         taxRate: hasTaxEnabled ? taxRate : null,
         taxId: taxId.trim() || null,
-        invoicePrefix: invoicePrefix.trim() || null,
-        quotePrefix: quotePrefix.trim() || null,
-        deliveryNotePrefix: deliveryNotePrefix.trim() || null,
         receiptPrefix: receiptPrefix.trim() || null,
         legalMentions: legalMentions.trim() || null,
-        autoReminderEnabled,
-        autoReminderDays: autoReminderEnabled ? autoReminderDays : 3,
       },
       {
         onError: (err) => setFormError(err.message),
@@ -404,157 +378,83 @@ function BillingCard({ organization, canManage, update }: FeaturesCardProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {formError && <p className="text-destructive">{formError}</p>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {formError && <p className="text-sm text-destructive">{formError}</p>}
 
       <FeatureToggle
-        label="Facturation et reçus"
-        description="Active les reçus de caisse, les devis, les factures et les bons de livraison."
-        icon={Receipt}
-        checked={hasInvoicingEnabled}
+        label="Taxe applicable"
+        description="Applique une taxe (TVA ou autre) aux ventes et reçus de caisse."
+        icon={Percent}
+        checked={hasTaxEnabled}
         disabled={!canManage}
-        onChange={setHasInvoicingEnabled}
+        onChange={setHasTaxEnabled}
       />
 
-      {hasInvoicingEnabled && (
-        <div className="space-y-4 rounded-lg border p-4">
-          <FeatureToggle
-            label="Taxe applicable"
-            description="Applique une taxe (TVA ou autre) aux ventes et reçus de caisse."
-            icon={Percent}
-            checked={hasTaxEnabled}
-            disabled={!canManage}
-            onChange={setHasTaxEnabled}
-          />
-
-          {hasTaxEnabled && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="space-y-1">
-                <Label htmlFor="tax-name">Nom de la taxe</Label>
-                <Input
-                  id="tax-name"
-                  value={taxName}
-                  onChange={(e) => setTaxName(e.target.value)}
-                  placeholder="TVA"
-                  disabled={!canManage}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="tax-rate">Taux (%)</Label>
-                <Input
-                  id="tax-rate"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(Number(e.target.value))}
-                  disabled={!canManage}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="tax-id">Identifiant fiscal</Label>
-                <Input
-                  id="tax-id"
-                  value={taxId}
-                  onChange={(e) => setTaxId(e.target.value)}
-                  placeholder="ex: 12345678"
-                  disabled={!canManage}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="invoice-prefix">Préfixe factures</Label>
-              <Input
-                id="invoice-prefix"
-                value={invoicePrefix}
-                onChange={(e) => setInvoicePrefix(e.target.value)}
-                placeholder="FA"
-                disabled={!canManage}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="quote-prefix">Préfixe devis</Label>
-              <Input
-                id="quote-prefix"
-                value={quotePrefix}
-                onChange={(e) => setQuotePrefix(e.target.value)}
-                placeholder="DE"
-                disabled={!canManage}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="delivery-prefix">Préfixe bons de livraison</Label>
-              <Input
-                id="delivery-prefix"
-                value={deliveryNotePrefix}
-                onChange={(e) => setDeliveryNotePrefix(e.target.value)}
-                placeholder="BL"
-                disabled={!canManage}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="receipt-prefix">Préfixe reçus</Label>
-              <Input
-                id="receipt-prefix"
-                value={receiptPrefix}
-                onChange={(e) => setReceiptPrefix(e.target.value)}
-                placeholder="RE"
-                disabled={!canManage}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="legal-mentions">
-              Mentions légales (affichées sur les reçus et factures)
-            </Label>
-            <textarea
-              id="legal-mentions"
-              value={legalMentions}
-              onChange={(e) => setLegalMentions(e.target.value)}
-              placeholder="N° RCCM, centre fiscal, régime, etc."
-              rows={3}
+      {hasTaxEnabled && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="tax-name">Nom de la taxe</Label>
+            <Input
+              id="tax-name"
+              value={taxName}
+              onChange={(e) => setTaxName(e.target.value)}
+              placeholder="TVA"
               disabled={!canManage}
-              className="w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
-
-          <FeatureToggle
-            label="Relances automatiques"
-            description="Envoie un rappel par email X jours avant l'échéance ou après."
-            icon={Bell}
-            checked={autoReminderEnabled}
-            disabled={!canManage}
-            onChange={setAutoReminderEnabled}
-          />
-
-          {autoReminderEnabled && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="reminder-days">Jours avant/après échéance</Label>
-                <Input
-                  id="reminder-days"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={90}
-                  value={autoReminderDays}
-                  onChange={(e) => setAutoReminderDays(Number(e.target.value))}
-                  disabled={!canManage}
-                />
-              </div>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="tax-rate">Taux (%)</Label>
+            <Input
+              id="tax-rate"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={taxRate}
+              onChange={(e) => setTaxRate(Number(e.target.value))}
+              disabled={!canManage}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tax-id">Identifiant fiscal</Label>
+            <Input
+              id="tax-id"
+              value={taxId}
+              onChange={(e) => setTaxId(e.target.value)}
+              placeholder="ex: 12345678"
+              disabled={!canManage}
+            />
+          </div>
         </div>
       )}
 
+      <div className="space-y-2">
+        <Label htmlFor="receipt-prefix">Préfixe reçus</Label>
+        <Input
+          id="receipt-prefix"
+          value={receiptPrefix}
+          onChange={(e) => setReceiptPrefix(e.target.value)}
+          placeholder="RE"
+          disabled={!canManage}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="legal-mentions">Mentions légales (affichées sur les reçus)</Label>
+        <textarea
+          id="legal-mentions"
+          value={legalMentions}
+          onChange={(e) => setLegalMentions(e.target.value)}
+          placeholder="N° RCCM, centre fiscal, régime, etc."
+          rows={3}
+          disabled={!canManage}
+          className="w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
       {canManage && (
         <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? 'Enregistrement…' : 'Enregistrer la facturation'}
+          {update.isPending ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       )}
     </form>
@@ -571,7 +471,7 @@ function LocationsList() {
     return <p className="text-muted-foreground">Aucun emplacement enregistré.</p>
 
   return (
-    <ul className="divide-y rounded-lg border">
+    <ul className="divide-y rounded-xl border">
       {locations.map((location) => (
         <li key={location.id} className="flex items-center justify-between px-4 py-3">
           <div className="min-w-0">
@@ -588,8 +488,8 @@ function LocationsList() {
             onClick={() => setDefault.mutate(location.id)}
             aria-label={location.isDefault ? 'Emplacement par défaut' : 'Définir par défaut'}
           >
-            <Star className="mr-1 h-3.5 w-3.5" />
-            {location.isDefault ? 'Par défaut' : 'Par défaut'}
+            <Star className={`mr-1 h-3.5 w-3.5 ${location.isDefault ? 'fill-current' : ''}`} />
+            {location.isDefault ? 'Par défaut' : 'Définir'}
           </Button>
         </li>
       ))}
@@ -609,30 +509,25 @@ export default function OrganizationPage() {
   const formKey = displayOrganization?.id ?? 'new'
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">Gérez les informations de votre organisation.</p>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader
+        title="Paramètres"
+        description="Gérez les informations, fonctionnalités et préférences de votre organisation."
+      />
 
       <SettingsTabs />
 
       {error && <p className="text-destructive">{error.message}</p>}
-      {update.isSuccess && <p className="text-sm text-green-600">Organisation mise à jour.</p>}
+      {update.isSuccess && (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          Organisation mise à jour.
+        </p>
+      )}
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Organisation</h2>
-            <p className="text-sm text-muted-foreground">
-              Nom, identifiant, devise et fuseau horaire.
-            </p>
-          </div>
-        </div>
-
+      <PageSection
+        title="Organisation"
+        description="Nom, identifiant, pays, devise et fuseau horaire."
+      >
         {isLoading ? (
           <p className="text-muted-foreground">Chargement…</p>
         ) : displayOrganization ? (
@@ -643,21 +538,12 @@ export default function OrganizationPage() {
             update={update}
           />
         ) : null}
-      </div>
+      </PageSection>
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Store className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Fonctionnalités</h2>
-            <p className="text-sm text-muted-foreground">
-              Activez la caisse, le store front et l'API publique pour votre organisation.
-            </p>
-          </div>
-        </div>
-
+      <PageSection
+        title="Fonctionnalités"
+        description="Activez la caisse, le store front et l'API publique pour votre organisation."
+      >
         {isLoading ? (
           <p className="text-muted-foreground">Chargement…</p>
         ) : displayOrganization ? (
@@ -669,21 +555,12 @@ export default function OrganizationPage() {
             update={update}
           />
         ) : null}
-      </div>
+      </PageSection>
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Facturation</h2>
-            <p className="text-sm text-muted-foreground">
-              Activez les reçus de caisse, la taxe, et configurez les numérotations.
-            </p>
-          </div>
-        </div>
-
+      <PageSection
+        title="Reçus et taxes"
+        description="Activez la taxe et configurez les mentions légales et la numérotation des reçus."
+      >
         {isLoading ? (
           <p className="text-muted-foreground">Chargement…</p>
         ) : displayOrganization ? (
@@ -695,26 +572,17 @@ export default function OrganizationPage() {
             update={update}
           />
         ) : null}
-      </div>
+      </PageSection>
 
       {displayOrganization?.hasStorefrontEnabled && (
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Store className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-semibold">Store front</h2>
-              <p className="text-sm text-muted-foreground">
-                Boutique publique et commandes en ligne.
-              </p>
-            </div>
-          </div>
-
+        <PageSection
+          title="Store front"
+          description="Boutique publique et commandes en ligne."
+        >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               URL publique :{' '}
-              <code>
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">
                 {window.location.origin}/store/{displayOrganization.slug}
               </code>
             </p>
@@ -724,33 +592,25 @@ export default function OrganizationPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
+                <ExternalLink className="mr-2 h-4 w-4" />
                 Ouvrir la boutique
               </a>
             </Button>
           </div>
-        </div>
+        </PageSection>
       )}
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Emplacements</h2>
-            <p className="text-sm text-muted-foreground">
-              Gérez vos dépôts, magasins et zones de stockage.
-            </p>
-          </div>
-        </div>
-
+      <PageSection
+        title="Emplacements"
+        description="Gérez vos dépôts, magasins et zones de stockage."
+      >
         <div className="space-y-4">
           <LocationsList />
           <Button variant="outline" asChild>
             <a href="/locations">Gérer les emplacements</a>
           </Button>
         </div>
-      </div>
+      </PageSection>
     </div>
   )
 }

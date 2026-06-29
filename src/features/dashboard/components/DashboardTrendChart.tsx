@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import { Button } from '@/components/ui/button'
 
 type Period = 30 | 90 | 'custom'
 
@@ -56,7 +57,7 @@ function drawTrend(
     ctx.stroke()
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
-    ctx.fillStyle = 'var(--text-faint)'
+    ctx.fillStyle = 'var(--muted-foreground)'
     ctx.font = fontSpec
     ctx.textAlign = 'right'
     ctx.fillText(String(value), padding.left - 8, y + 4)
@@ -120,7 +121,7 @@ function drawTrend(
     })
   }
 
-  ctx.fillStyle = 'var(--text)'
+  ctx.fillStyle = 'var(--foreground)'
   ctx.font = fontSpec
   ctx.textAlign = 'center'
   aggregated.forEach((d, i) => {
@@ -201,46 +202,48 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
   }, [aggregated])
 
   return (
-    <div className="card p-4">
+    <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="card-t flex items-center gap-1.5">
-          <CalendarDays className="h-3.5 w-3.5 text-[var(--indigo)]" />
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <CalendarDays className="h-3.5 w-3.5 text-indigo-500" />
           Tendance des sorties
         </h3>
         <div className="flex gap-1.5">
           {[30, 90].map((p) => (
-            <button
+            <Button
               key={p}
               type="button"
+              size="sm"
+              variant={period === p ? 'default' : 'outline'}
               onClick={() => setPeriod(p as Period)}
-              className={`${period === p ? 'btn-p' : 'btn-o'} btn-sm`}
             >
               {p}j
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant={isCustom ? 'default' : 'outline'}
             onClick={() => setPeriod('custom')}
-            className={`${isCustom ? 'btn-p' : 'btn-o'} btn-sm`}
           >
             Perso
-          </button>
+          </Button>
         </div>
       </div>
 
       {isCustom && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-base text-[var(--text)]">
+          <label className="flex items-center gap-1.5 text-sm text-foreground">
             Du
             <input
               type="date"
               value={startDate}
               max={endDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-base text-[var(--text-h)]"
+              className="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
             />
           </label>
-          <label className="flex items-center gap-1.5 text-base text-[var(--text)]">
+          <label className="flex items-center gap-1.5 text-sm text-foreground">
             au
             <input
               type="date"
@@ -248,7 +251,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
               min={startDate}
               max={toInputDate(today)}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-base text-[var(--text-h)]"
+              className="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
             />
           </label>
         </div>
@@ -258,7 +261,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
         {aggregated.some((d) => d.value > 0) ? (
           <canvas ref={canvasRef} />
         ) : (
-          <div className="dash-empty flex h-full items-center justify-center">
+          <div className="flex h-full items-center justify-center text-base text-muted-foreground">
             Aucune sortie sur la période.
           </div>
         )}

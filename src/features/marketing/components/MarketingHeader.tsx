@@ -25,11 +25,6 @@ const navItems: NavItem[] = [
         description: 'Ventes, scan et reçus',
       },
       {
-        label: 'Facturation',
-        href: '/features/invoicing',
-        description: 'Devis, factures et rappels',
-      },
-      {
         label: 'Mode offline',
         href: '/features/offline',
         description: 'Travaillez sans connexion',

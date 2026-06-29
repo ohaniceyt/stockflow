@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { Logo } from '@/features/marketing/components/Logo'
+import { EmptyState } from '@/components/design-system'
 
 const VALID_PLANS = ['free', 'starter', 'pro'] as const
 type PlanParam = (typeof VALID_PLANS)[number]
@@ -88,16 +89,10 @@ export default function SignupPage() {
 
         {success ? (
           <div className="space-y-4 text-center">
-            <div className="rounded-xl bg-primary/10 p-6">
-              <p className="text-lg font-semibold text-primary">Vérifiez votre email</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Un lien de confirmation a été envoyé à{' '}
-                <span className="font-medium text-foreground">{form.email}</span>.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Cliquez sur le lien, puis connectez-vous avec votre email et mot de passe.
-              </p>
-            </div>
+            <EmptyState
+              title="Vérifiez votre email"
+              description={`Un lien de confirmation a été envoyé à ${form.email}. Cliquez sur le lien, puis connectez-vous.`}
+            />
             <Button asChild className="w-full">
               <Link to="/login" replace>
                 Aller à la connexion

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Eye, ShieldAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -20,6 +19,7 @@ import {
   setOrganizationPlan,
   suspendOrganization,
 } from '../services/platformService'
+import { PageHeader, PageSection, StatusBadge } from '@/components/design-system'
 import type { BackOfficeOrganization, Paginated } from '../types'
 
 const PLANS = ['free', 'starter', 'pro', 'enterprise']
@@ -76,174 +76,176 @@ export default function BackOfficeOrganizationsPage() {
   const total = data?.total ?? 0
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Organisations</h1>
-          <p className="text-muted-foreground">Gérer et surveiller les organisations.</p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Organisations"
+        description="Gérer et surveiller les organisations."
+      />
+
+      <PageSection>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Input
+            placeholder="Rechercher par nom"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setOffset(0)
+            }}
+          />
+          <Select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value as 'active' | 'suspended' | 'all')
+              setOffset(0)
+            }}
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="active">Actif</option>
+            <option value="suspended">Suspendu</option>
+          </Select>
+          <Select
+            value={planId}
+            onChange={(e) => {
+              setPlanId(e.target.value)
+              setOffset(0)
+            }}
+          >
+            <option value="">Tous les plans</option>
+            {PLANS.map((plan) => (
+              <option key={plan} value={plan}>
+                {plan}
+              </option>
+            ))}
+          </Select>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Input
-          placeholder="Rechercher par nom"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setOffset(0)
-          }}
-        />
-        <Select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as 'active' | 'suspended' | 'all')
-            setOffset(0)
-          }}
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actif</option>
-          <option value="suspended">Suspendu</option>
-        </Select>
-        <Select
-          value={planId}
-          onChange={(e) => {
-            setPlanId(e.target.value)
-            setOffset(0)
-          }}
-        >
-          <option value="">Tous les plans</option>
-          {PLANS.map((plan) => (
-            <option key={plan} value={plan}>
-              {plan}
-            </option>
-          ))}
-        </Select>
-      </div>
+        {(error ?? planMutation.error ?? suspendMutation.error) && (
+          <p className="mt-4 text-destructive">
+            {(error ?? planMutation.error ?? suspendMutation.error)?.message}
+          </p>
+        )}
 
-      {(error ?? planMutation.error ?? suspendMutation.error) && (
-        <p className="text-destructive">
-          {(error ?? planMutation.error ?? suspendMutation.error)?.message}
-        </p>
-      )}
-
-      {isLoading ? (
-        <p className="text-muted-foreground">Chargement…</p>
-      ) : (
-        <>
-          <div className="rounded-xl border bg-card shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Utilisateurs</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {organizations.map((org) => {
-                  const subscription = Array.isArray(org.subscriptions)
-                    ? org.subscriptions[0]
-                    : org.subscriptions
-                  return (
-                    <TableRow key={org.id}>
-                      <TableCell className="font-medium">
-                        <button
-                          type="button"
-                          className="text-left hover:underline"
-                          onClick={() => navigate(`/back-office/organizations/${org.id}`)}
-                        >
-                          {org.name}
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        {isSuperAdmin ? (
-                          <Select
-                            value={subscription?.plan_id ?? 'free'}
-                            onChange={(e) =>
-                              planMutation.mutate({ orgId: org.id, plan: e.target.value })
-                            }
-                          >
-                            {PLANS.map((plan) => (
-                              <option key={plan} value={plan}>
-                                {plan}
-                              </option>
-                            ))}
-                          </Select>
-                        ) : (
-                          (subscription?.plan_id ?? '—')
-                        )}
-                      </TableCell>
-                      <TableCell>{org.users_count ?? 0}</TableCell>
-                      <TableCell>
-                        {org.is_suspended ? (
-                          <Badge variant="destructive">Suspendue</Badge>
-                        ) : (
-                          <Badge variant="default">Active</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
+        {isLoading ? (
+          <p className="mt-4 text-muted-foreground">Chargement…</p>
+        ) : (
+          <>
+            <div className="mt-4 rounded-xl border bg-card shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Utilisateurs</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {organizations.map((org) => {
+                    const subscription = Array.isArray(org.subscriptions)
+                      ? org.subscriptions[0]
+                      : org.subscriptions
+                    return (
+                      <TableRow key={org.id}>
+                        <TableCell className="font-medium">
+                          <button
+                            type="button"
+                            className="text-left hover:underline"
                             onClick={() => navigate(`/back-office/organizations/${org.id}`)}
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {isSuperAdmin && (
+                            {org.name}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          {isSuperAdmin ? (
+                            <Select
+                              value={subscription?.plan_id ?? 'free'}
+                              onChange={(e) =>
+                                planMutation.mutate({ orgId: org.id, plan: e.target.value })
+                              }
+                            >
+                              {PLANS.map((plan) => (
+                                <option key={plan} value={plan}>
+                                  {plan}
+                                </option>
+                              ))}
+                            </Select>
+                          ) : (
+                            (subscription?.plan_id ?? '—')
+                          )}
+                        </TableCell>
+                        <TableCell>{org.users_count ?? 0}</TableCell>
+                        <TableCell>
+                          {org.is_suspended ? (
+                            <StatusBadge variant="danger">Suspendue</StatusBadge>
+                          ) : (
+                            <StatusBadge variant="success">Active</StatusBadge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              onClick={() => void handleSudo(org)}
-                              title="Entrer en sudo"
+                              size="icon"
+                              className="h-10 w-10"
+                              onClick={() => navigate(`/back-office/organizations/${org.id}`)}
                             >
-                              <ShieldAlert className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                          {isSuperAdmin && (
-                            <Button
-                              variant={org.is_suspended ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => suspendMutation.mutate(org)}
-                              disabled={suspendMutation.isPending}
-                            >
-                              {org.is_suspended ? 'Réactiver' : 'Suspendre'}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                            {isSuperAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10"
+                                onClick={() => void handleSudo(org)}
+                                title="Entrer en sudo"
+                              >
+                                <ShieldAlert className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {isSuperAdmin && (
+                              <Button
+                                variant={org.is_suspended ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => suspendMutation.mutate(org)}
+                                disabled={suspendMutation.isPending}
+                              >
+                                {org.is_suspended ? 'Réactiver' : 'Suspendre'}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={offset === 0}
-              onClick={() => setOffset((o) => Math.max(0, o - limit))}
-            >
-              Précédent
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {offset + 1} – {Math.min(offset + organizations.length, total)} sur {total}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={offset + organizations.length >= total}
-              onClick={() => setOffset((o) => o + limit)}
-            >
-              Suivant
-            </Button>
-          </div>
-        </>
-      )}
+            <div className="mt-4 flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset === 0}
+                onClick={() => setOffset((o) => Math.max(0, o - limit))}
+              >
+                Précédent
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {offset + 1} – {Math.min(offset + organizations.length, total)} sur {total}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset + organizations.length >= total}
+                onClick={() => setOffset((o) => o + limit)}
+              >
+                Suivant
+              </Button>
+            </div>
+          </>
+        )}
+      </PageSection>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { buildDocumentPdfBase64, type DocumentType } from '../_shared/documentPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml } from '../_shared/html.ts'
 
 interface SendDocumentEmailPayload {
   document_id: string
@@ -83,23 +84,23 @@ Deno.serve(async (req: Request) => {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Votre ${typeLabel} ${documentNumber}</title>
+    <title>Votre ${typeLabel} ${escapeHtml(documentNumber)}</title>
   </head>
   <body style="font-family: Arial, sans-serif; color: #333;">
     <p>Bonjour,</p>
-    <p>Veuillez trouver ci-joint votre ${typeLabel.toLowerCase()} <strong>${documentNumber}</strong> de <strong>${orgName}</strong>.</p>
-    <p>Total : <strong>${totalFormatted}</strong></p>
+    <p>Veuillez trouver ci-joint votre ${escapeHtml(typeLabel.toLowerCase())} <strong>${escapeHtml(documentNumber)}</strong> de <strong>${escapeHtml(orgName)}</strong>.</p>
+    <p>Total : <strong>${escapeHtml(totalFormatted)}</strong></p>
     <p>Merci pour votre confiance.</p>
     <br />
     <p><em>Cet email a été envoyé automatiquement par StockFlow.</em></p>
   </body>
 </html>`
 
-    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre ${typeLabel.toLowerCase()} ${documentNumber} de ${orgName}.\nTotal : ${totalFormatted}\n\nMerci pour votre confiance.\n\nCet email a été envoyé automatiquement par StockFlow.`
+    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre ${escapeHtml(typeLabel.toLowerCase())} ${escapeHtml(documentNumber)} de ${escapeHtml(orgName)}.\nTotal : ${escapeHtml(totalFormatted)}\n\nMerci pour votre confiance.\n\nCet email a été envoyé automatiquement par StockFlow.`
 
     const emailResult = await sendEmail({
       to: recipient,
-      subject: `Votre ${typeLabel} ${documentNumber} - ${orgName}`,
+      subject: `Votre ${typeLabel} ${escapeHtml(documentNumber)} - ${escapeHtml(orgName)}`,
       html,
       text,
       attachments: [{ filename, content: pdfBase64 }],

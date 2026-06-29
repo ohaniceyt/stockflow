@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Badge } from '@/components/ui/badge'
+import { CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { changeOrganizationPlan, getOrgLimits } from '../services/subscriptionService'
 import { SettingsTabs } from '../components/SettingsTabs'
+import { PageHeader, PageSection, DataCard, StatusBadge } from '@/components/design-system'
 
 function UsageBar({ used, max, label }: { used: number; max: number | null; label: string }) {
   const unlimited = max === null
@@ -22,7 +23,15 @@ function UsageBar({ used, max, label }: { used: number; max: number | null; labe
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={`h-full rounded-full ${unlimited ? 'bg-muted-foreground' : atLimit ? 'bg-destructive' : pct >= 90 ? 'bg-amber-500' : 'bg-primary'}`}
+          className={`h-full rounded-full transition-all ${
+            unlimited
+              ? 'bg-muted-foreground'
+              : atLimit
+                ? 'bg-destructive'
+                : pct >= 90
+                  ? 'bg-amber-500'
+                  : 'bg-primary'
+          }`}
           style={{ width: unlimited ? '100%' : `${String(pct)}%` }}
         />
       </div>
@@ -68,10 +77,10 @@ export default function SubscriptionPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">Plan actuel et utilisation de vos quotas.</p>
-      </div>
+      <PageHeader
+        title="Paramètres"
+        description="Plan actuel et utilisation de vos quotas."
+      />
 
       <SettingsTabs />
 
@@ -81,17 +90,20 @@ export default function SubscriptionPage() {
 
       {limits && (
         <>
-          <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Plan actuel</p>
-                <p className="text-lg font-semibold capitalize">{limits.planId}</p>
-              </div>
-              {limits.isSuspended ? (
-                <Badge variant="destructive">Suspendue</Badge>
-              ) : (
-                <Badge variant="default">Active</Badge>
-              )}
+          <PageSection
+            title="Abonnement"
+            description={`Plan actuel : ${limits.planId}`}
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <DataCard
+                label="Plan"
+                value={limits.planId}
+                icon={CreditCard}
+                status={limits.isSuspended ? 'danger' : 'success'}
+              />
+              <StatusBadge variant={limits.isSuspended ? 'danger' : 'success'}>
+                {limits.isSuspended ? 'Suspendue' : 'Active'}
+              </StatusBadge>
             </div>
 
             <div className="space-y-4 pt-2">
@@ -108,17 +120,13 @@ export default function SubscriptionPage() {
                 label="Mouvements ce mois"
               />
             </div>
-          </div>
+          </PageSection>
 
           {canManage && (
-            <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-              <div>
-                <h2 className="text-lg font-semibold">Changer de plan</h2>
-                <p className="text-sm text-muted-foreground">
-                  Sélectionnez un plan adapté à votre activité.
-                </p>
-              </div>
-
+            <PageSection
+              title="Changer de plan"
+              description="Sélectionnez un plan adapté à votre activité."
+            >
               <div className="grid gap-3 sm:grid-cols-2">
                 {plans.map((plan) => {
                   const isCurrent = limits.planId === plan.id
@@ -133,7 +141,7 @@ export default function SubscriptionPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{plan.name}</span>
-                        {isCurrent && <Badge variant="default">Actuel</Badge>}
+                        {isCurrent && <StatusBadge variant="success">Actuel</StatusBadge>}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {isFree ? 'Gratuit' : `${monthly} €/mois — ${yearly} €/an`}
@@ -151,7 +159,7 @@ export default function SubscriptionPage() {
                   )
                 })}
               </div>
-            </div>
+            </PageSection>
           )}
         </>
       )}

@@ -1,4 +1,7 @@
 import { FileSpreadsheet, FileText, RefreshCw, Search, Share2 } from 'lucide-react'
+import { PageHeader } from '@/components/design-system'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface StockHeaderProps {
   totalProducts: number
@@ -24,87 +27,80 @@ export function StockHeader({
   canExport = false,
 }: StockHeaderProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-h)]">Stock</h1>
-          <p className="text-sm text-[var(--text-faint)]">
-            Visualisation des niveaux de stock par emplacement
-          </p>
-        </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Stock"
+        description="Visualisation des niveaux de stock par emplacement."
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              aria-label="Rafraîchir"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            {canExport && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onExportPdf}
+                  aria-label="Exporter PDF"
+                >
+                  <FileText className="mr-1.5 h-4 w-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onExportExcel}
+                  aria-label="Exporter Excel"
+                >
+                  <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+                  <span className="hidden sm:inline">Excel</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onShareWhatsApp}
+                  aria-label="Partager sur WhatsApp"
+                >
+                  <Share2 className="mr-1.5 h-4 w-4" />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="btn-o btn-sm"
-            aria-label="Rafraîchir"
-            title="Rafraîchir"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
-
-          {canExport && (
-            <>
-              <button
-                type="button"
-                onClick={onExportPdf}
-                className="btn-o btn-sm"
-                aria-label="Exporter PDF"
-                title="Exporter PDF"
-              >
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">PDF</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onExportExcel}
-                className="btn-o btn-sm"
-                aria-label="Exporter Excel"
-                title="Exporter Excel"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">Excel</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onShareWhatsApp}
-                className="btn-p btn-sm"
-                aria-label="Partager sur WhatsApp"
-                title="WhatsApp"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">WhatsApp</span>
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="card flex items-center gap-2 px-3 py-2">
-        <Search className="h-4 w-4 shrink-0 text-[var(--text-faint)]" />
-        <input
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Rechercher par nom, catégorie ou référence…"
-          className="w-full bg-transparent text-sm text-[var(--text-h)] placeholder:text-[var(--text-faint)] focus:outline-none"
+          className="pl-9 pr-16"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={() => onSearchChange('')}
-            className="text-sm text-[var(--text-faint)] hover:text-[var(--text)]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground hover:text-foreground"
           >
             Effacer
           </button>
         )}
       </div>
 
-      <div className="card bg-[var(--surface-2)] px-4 py-2 text-center text-sm font-medium text-[var(--text)]">
+      <div className="rounded-xl border bg-muted px-4 py-2 text-center text-sm font-medium text-foreground">
         {totalProducts.toLocaleString()} produit{totalProducts > 1 ? 's' : ''} en stock
       </div>
     </div>

@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml } from '../_shared/html.ts'
 
 interface OrgReminderSettings {
   id: string
@@ -25,7 +26,7 @@ Deno.serve(async (req: Request) => {
 
   const authHeader = req.headers.get('authorization')
   const expectedSecret = Deno.env.get('AUTO_REMINDER_SECRET')
-  if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+  if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -117,23 +118,23 @@ Deno.serve(async (req: Request) => {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Rappel - Votre facture ${inv.document_number}</title>
+    <title>Rappel - Votre facture ${escapeHtml(inv.document_number)}</title>
   </head>
   <body style="font-family: Arial, sans-serif; color: #333;">
     <p>Bonjour,</p>
-    <p>Nous vous rappelons que votre facture <strong>${inv.document_number}</strong> de <strong>${orgName}</strong> d'un montant de <strong>${formatCurrency(inv.total, inv.currency)}</strong> n'a pas encore été réglée.</p>
-    ${remaining > 0 ? `<p>Reste à payer : <strong>${formatCurrency(remaining, inv.currency)}</strong></p>` : ''}
+    <p>Nous vous rappelons que votre facture <strong>${escapeHtml(inv.document_number)}</strong> de <strong>${escapeHtml(orgName)}</strong> d'un montant de <strong>${escapeHtml(formatCurrency(inv.total, inv.currency))}</strong> n'a pas encore été réglée.</p>
+    ${remaining > 0 ? `<p>Reste à payer : <strong>${escapeHtml(formatCurrency(remaining, inv.currency))}</strong></p>` : ''}
     <p>La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.</p>
     <br />
     <p><em>Cet email a été envoyé automatiquement par StockFlow.</em></p>
   </body>
 </html>`
 
-          const text = `Bonjour,\n\nNous vous rappelons que votre facture ${inv.document_number} de ${orgName} d'un montant de ${formatCurrency(inv.total, inv.currency)} n'a pas encore été réglée.\n${remaining > 0 ? `Reste à payer : ${formatCurrency(remaining, inv.currency)}\n` : ''}La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.\n\nCet email a été envoyé automatiquement par StockFlow.`
+          const text = `Bonjour,\n\nNous vous rappelons que votre facture ${escapeHtml(inv.document_number)} de ${escapeHtml(orgName)} d'un montant de ${escapeHtml(formatCurrency(inv.total, inv.currency))} n'a pas encore été réglée.\n${remaining > 0 ? `Reste à payer : ${escapeHtml(formatCurrency(remaining, inv.currency))}\n` : ''}La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.\n\nCet email a été envoyé automatiquement par StockFlow.`
 
           await sendEmail({
             to: inv.contact_email,
-            subject: `Rappel : Votre facture ${inv.document_number} - ${orgName}`,
+            subject: `Rappel : Votre facture ${escapeHtml(inv.document_number)} - ${escapeHtml(orgName)}`,
             html,
             text,
             attachments: [{ filename, content: pdfBase64 }],

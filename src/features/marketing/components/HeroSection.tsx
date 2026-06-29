@@ -5,7 +5,7 @@ import HeroDemoDialog from './HeroDemoDialog'
 
 const valueProps = [
   'Gérez le stock multi-emplacements',
-  'Encaissez et facturez en un clic',
+  'Encaissez en un clic',
   'Fonctionne hors ligne',
 ]
 
@@ -27,7 +27,7 @@ export function HeroSection() {
               Vendez plus, <span className="text-primary">gérez mieux</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              StockFlow centralise votre inventaire, votre caisse, vos factures et vos analyses en
+              StockFlow centralise votre inventaire, votre caisse et vos analyses en
               une seule app rapide, offline-first et sécurisée.
             </p>
             <ul className="mt-8 space-y-3">

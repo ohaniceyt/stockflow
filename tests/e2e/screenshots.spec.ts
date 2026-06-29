@@ -19,14 +19,6 @@ authTest.describe('landing page screenshots', () => {
     await page.screenshot({ path: 'public/features/pos-preview.png', fullPage: false })
   })
 
-  authTest('capture invoicing', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 800 })
-    await page.goto(`${BASE_URL}/invoices`)
-    await expect(page.getByText('Facturation').first()).toBeVisible()
-    await page.waitForTimeout(2000)
-    await page.screenshot({ path: 'public/features/invoicing-preview.png', fullPage: false })
-  })
-
   authTest('capture stock', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto(`${BASE_URL}/stock`)

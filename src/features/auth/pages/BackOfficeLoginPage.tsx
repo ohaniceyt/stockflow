@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Shield } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { StatusBadge } from '@/components/design-system'
 
 export default function BackOfficeLoginPage() {
   const navigate = useNavigate()
@@ -49,6 +50,12 @@ export default function BackOfficeLoginPage() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-4">
+            <StatusBadge variant="danger">{error}</StatusBadge>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -73,8 +80,6 @@ export default function BackOfficeLoginPage() {
               required
             />
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Connexion…' : 'Accéder au Back Office'}

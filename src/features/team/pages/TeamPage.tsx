@@ -16,6 +16,7 @@ import {
   useMyOrganizations,
 } from '../hooks/useInvitations'
 import { useCreateUser, useResetUserPin, useTeamUsers, useUpdateUserActive } from '../hooks/useTeam'
+import { PageHeader, PageSection, EmptyState, StatusBadge } from '@/components/design-system'
 import type { TeamMember, UserRole } from '@/types'
 
 export default function TeamPage() {
@@ -103,69 +104,81 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Équipe</h1>
-          <p className="text-muted-foreground">Gérez les utilisateurs de votre organisation.</p>
-        </div>
-        {canCreate && (
-          <Button className="w-full sm:w-auto" onClick={() => setInviteOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Inviter
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Équipe"
+        description="Gérez les utilisateurs de votre organisation."
+        actions={
+          canCreate
+            ? [
+                <Button key="invite" onClick={() => setInviteOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Inviter
+                </Button>,
+              ]
+            : undefined
+        }
+      />
 
       {toggleError && (
-        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
-          {toggleError}
-        </p>
+        <StatusBadge variant="danger">{toggleError}</StatusBadge>
       )}
 
       {myInvitations && myInvitations.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Invitations reçues</h2>
+        <PageSection title="Invitations reçues">
           <MyInvitations invitations={myInvitations} />
-        </div>
+        </PageSection>
       )}
 
-      {isLoading && <p className="text-muted-foreground">Chargement de l'équipe…</p>}
-      {error && <p className="text-destructive">{error.message}</p>}
-      {!isLoading && !error && members && (
-        <TeamList
-          members={members}
-          currentMembershipId={session?.membership.id ?? ''}
-          onToggleActive={handleToggleActive}
-          onResetPin={handleResetPin}
-          isUpdating={updateActive.isPending || resetPin.isPending}
-        />
-      )}
+      <PageSection title="Membres de l’équipe">
+        {isLoading && <p className="text-muted-foreground">Chargement de l'équipe…</p>}
+        {error && <p className="text-destructive">{error.message}</p>}
+        {!isLoading && !error && members && (
+          <TeamList
+            members={members}
+            currentMembershipId={session?.membership.id ?? ''}
+            onToggleActive={handleToggleActive}
+            onResetPin={handleResetPin}
+            isUpdating={updateActive.isPending || resetPin.isPending}
+          />
+        )}
+        {!isLoading && !error && members?.length === 0 && (
+          <EmptyState
+            title="Aucun membre"
+            description="Vous êtes seul pour l’instant. Invitez des collaborateurs pour commencer."
+            action={
+              canCreate ? (
+                <Button onClick={() => setInviteOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Inviter
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+      </PageSection>
 
       {invitations && invitations.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Invitations en attente</h2>
+        <PageSection title="Invitations en attente">
           <InvitationList
             invitations={invitations}
             onCancel={(id) => declineInvitation.mutate(id)}
             isLoading={declineInvitation.isPending}
           />
-        </div>
+        </PageSection>
       )}
 
       {switchError && (
-        <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
-          {switchError}
-        </p>
+        <StatusBadge variant="danger">{switchError}</StatusBadge>
       )}
 
       {myOrganizations && myOrganizations.length > 1 && (
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <PageSection title="Mes organisations">
           <OrgSwitcher
             organizations={myOrganizations}
             onSwitch={handleSwitchOrg}
             isSwitching={isSwitching}
           />
-        </div>
+        </PageSection>
       )}
 
       <ResetPinDialog

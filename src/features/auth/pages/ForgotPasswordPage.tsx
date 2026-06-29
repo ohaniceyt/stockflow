@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { EmptyState } from '@/components/design-system'
 
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth()
@@ -38,14 +39,10 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <div className="space-y-4 text-center">
-            <div className="rounded-xl bg-primary/10 p-6">
-              <p className="font-medium text-primary">Email envoyé</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Si un compte existe pour{' '}
-                <span className="font-medium text-foreground">{email}</span>, vous allez recevoir un
-                lien pour choisir un nouveau mot de passe.
-              </p>
-            </div>
+            <EmptyState
+              title="Email envoyé"
+              description={`Si un compte existe pour ${email}, vous allez recevoir un lien pour choisir un nouveau mot de passe.`}
+            />
             <Button asChild className="w-full">
               <Link to="/login" replace>
                 Retour à la connexion

@@ -1,6 +1,7 @@
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { StockItem } from '@/features/stock/services/stockService'
 import { Warehouse, AlertTriangle, PackageCheck, Boxes } from 'lucide-react'
+import { DataCard } from '@/components/design-system'
 
 interface DashboardStatsProps {
   stock: StockItem[]
@@ -19,53 +20,37 @@ export function DashboardStats({ stock, productCount }: DashboardStatsProps) {
     {
       label: 'Qté totale en stock',
       value: isAdmin ? totalQuantity.toLocaleString('fr-FR') : '—',
-      sub: 'Quantité totale',
+      subtitle: 'Quantité totale',
       icon: Warehouse,
-      colorClass: 'ca',
-      barClass: 'bg-[var(--indigo)]',
+      status: 'info' as const,
     },
     {
       label: 'Ruptures',
       value: String(ruptures.length),
-      sub: 'Produits épuisés',
+      subtitle: 'Produits épuisés',
       icon: AlertTriangle,
-      colorClass: 'cr',
-      barClass: 'bg-[var(--rose)]',
+      status: 'danger' as const,
     },
     {
       label: 'Alertes',
       value: String(alertes.length),
-      sub: 'Stock faible',
+      subtitle: 'Stock faible',
       icon: PackageCheck,
-      colorClass: 'cy',
-      barClass: 'bg-[var(--amber)]',
+      status: 'warning' as const,
     },
     {
       label: 'Produits',
       value: String(productCount),
-      sub: 'Références',
+      subtitle: 'Références',
       icon: Boxes,
-      colorClass: 'ca',
-      barClass: 'bg-[var(--indigo)]',
+      status: 'info' as const,
     },
   ]
 
   return (
-    <div className="sg">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <div key={card.label} className="sc text-left">
-          <span className={`sc-bar ${card.barClass}`} />
-          <div className="mb-3 flex items-start justify-between gap-2">
-            <span className="text-base font-semibold uppercase tracking-wide text-[var(--text-faint)]">
-              {card.label}
-            </span>
-            <span className={`rounded-md p-1.5 ${card.colorClass}`}>
-              <card.icon className="h-4 w-4" />
-            </span>
-          </div>
-          <p className={`text-2xl font-bold text-[var(--text-h)] sm:text-3xl`}>{card.value}</p>
-          <p className="mt-1 text-base text-[var(--text-faint)]">{card.sub}</p>
-        </div>
+        <DataCard key={card.label} {...card} />
       ))}
     </div>
   )

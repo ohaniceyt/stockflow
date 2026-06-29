@@ -65,7 +65,7 @@ export default function StockPage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={isFetching}>
-      <div className="space-y-4 pb-6">
+      <div className="space-y-6 md:space-y-8">
         <StockHeader
           totalProducts={stock?.length ?? 0}
           searchQuery={searchQuery}
@@ -79,27 +79,28 @@ export default function StockPage() {
         />
 
         {(error ?? exportError) && (
-          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+          <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
             {error?.message ?? exportError}
           </p>
         )}
 
         {isPending ? (
-          <div className="stock-grid">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="sk p-4">
-                <div className="mb-3 h-1 w-full animate-pulse rounded-full bg-[var(--surface-2)]" />
+              <div key={i} className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm">
+                <span className="absolute left-0 right-0 top-0 h-1 bg-border" />
+                <div className="mb-3 h-1 w-full animate-pulse rounded-full bg-muted" />
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div className="space-y-2">
-                    <div className="h-4 w-28 animate-pulse rounded bg-[var(--surface-2)]" />
-                    <div className="h-3 w-20 animate-pulse rounded bg-[var(--surface-2)]" />
+                    <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-20 animate-pulse rounded bg-muted" />
                   </div>
-                  <div className="h-5 w-14 animate-pulse rounded-full bg-[var(--surface-2)]" />
+                  <div className="h-5 w-14 animate-pulse rounded-full bg-muted" />
                 </div>
-                <div className="mb-2 h-7 w-16 animate-pulse rounded bg-[var(--surface-2)]" />
+                <div className="mb-2 h-7 w-16 animate-pulse rounded bg-muted" />
                 <div className="mt-auto space-y-2">
-                  <div className="h-1 w-full animate-pulse rounded-full bg-[var(--surface-2)]" />
-                  <div className="h-3 w-24 animate-pulse rounded bg-[var(--surface-2)]" />
+                  <div className="h-1.5 w-full animate-pulse rounded-full bg-muted" />
+                  <div className="h-3 w-24 animate-pulse rounded bg-muted" />
                 </div>
               </div>
             ))}

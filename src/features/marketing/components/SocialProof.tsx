@@ -19,7 +19,7 @@ const testimonials = [
   },
   {
     quote:
-      'Le mode offline nous a sauvé la vie. Même quand la connexion est instable, on continue à vendre et à facturer.',
+      'Le mode offline nous a sauvé la vie. Même quand la connexion est instable, on continue à vendre et à encaisser.',
     author: 'Koffi Mensah',
     role: 'Responsable magasin, Électro Dakar',
     location: 'Abidjan',

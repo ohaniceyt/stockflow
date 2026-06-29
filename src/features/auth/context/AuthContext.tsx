@@ -220,28 +220,14 @@ function buildSession(
           typeof organizationRaw.storefrontLocationId === 'string'
             ? organizationRaw.storefrontLocationId
             : null,
-        hasInvoicingEnabled: Boolean(organizationRaw.hasInvoicingEnabled),
         hasTaxEnabled: Boolean(organizationRaw.hasTaxEnabled),
         taxName: typeof organizationRaw.taxName === 'string' ? organizationRaw.taxName : null,
         taxRate: typeof organizationRaw.taxRate === 'number' ? organizationRaw.taxRate : null,
         taxId: typeof organizationRaw.taxId === 'string' ? organizationRaw.taxId : null,
-        invoicePrefix:
-          typeof organizationRaw.invoicePrefix === 'string' ? organizationRaw.invoicePrefix : null,
-        quotePrefix:
-          typeof organizationRaw.quotePrefix === 'string' ? organizationRaw.quotePrefix : null,
-        deliveryNotePrefix:
-          typeof organizationRaw.deliveryNotePrefix === 'string'
-            ? organizationRaw.deliveryNotePrefix
-            : null,
         receiptPrefix:
           typeof organizationRaw.receiptPrefix === 'string' ? organizationRaw.receiptPrefix : null,
         legalMentions:
           typeof organizationRaw.legalMentions === 'string' ? organizationRaw.legalMentions : null,
-        autoReminderEnabled: Boolean(organizationRaw.autoReminderEnabled),
-        autoReminderDays:
-          typeof organizationRaw.autoReminderDays === 'number'
-            ? organizationRaw.autoReminderDays
-            : null,
         createdAt: typeof organizationRaw.createdAt === 'string' ? organizationRaw.createdAt : now,
         updatedAt: typeof organizationRaw.updatedAt === 'string' ? organizationRaw.updatedAt : now,
       }
@@ -260,18 +246,12 @@ function buildSession(
         hasStorefrontEnabled: false,
         hasApiEnabled: false,
         storefrontLocationId: null,
-        hasInvoicingEnabled: false,
         hasTaxEnabled: false,
         taxName: null,
         taxRate: null,
         taxId: null,
-        invoicePrefix: null,
-        quotePrefix: null,
-        deliveryNotePrefix: null,
         receiptPrefix: null,
         legalMentions: null,
-        autoReminderEnabled: false,
-        autoReminderDays: null,
         createdAt: now,
         updatedAt: now,
       }

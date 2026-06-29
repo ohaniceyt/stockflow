@@ -77,7 +77,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
     ctx.stroke()
 
     const value = Math.round(maxValue - (maxValue / gridCount) * i)
-    ctx.fillStyle = 'var(--text-faint)'
+    ctx.fillStyle = 'var(--muted-foreground)'
     ctx.font = fontSpec
     ctx.textAlign = 'right'
     ctx.fillText(String(value), padding.left - 8, y + 4)
@@ -129,7 +129,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
     ctx.shadowBlur = 0
     ctx.shadowOffsetY = 0
 
-    ctx.fillStyle = 'var(--text)'
+    ctx.fillStyle = 'var(--foreground)'
     ctx.font = fontSpec
     ctx.textAlign = 'center'
     ctx.fillText(day.label, groupX, cssHeight - 24)
@@ -143,7 +143,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
   ctx.fillRect(cssWidth / 2 - 70, legendY - 8, 10, 10)
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.fillStyle = 'var(--text)'
+  ctx.fillStyle = 'var(--foreground)'
   ctx.textAlign = 'left'
   ctx.fillText('Entrées', cssWidth / 2 - 54, legendY)
 
@@ -153,7 +153,7 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
   ctx.fillRect(cssWidth / 2 + 10, legendY - 8, 10, 10)
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
-  ctx.fillStyle = 'var(--text)'
+  ctx.fillStyle = 'var(--foreground)'
   ctx.textAlign = 'left'
   ctx.fillText('Sorties', cssWidth / 2 + 26, legendY)
 }
@@ -181,7 +181,7 @@ export function DashboardFluxChart({ movements }: DashboardFluxChartProps) {
       {hasData ? (
         <canvas ref={canvasRef} />
       ) : (
-        <div className="dash-empty flex h-full items-center justify-center">
+        <div className="flex h-full items-center justify-center text-base text-muted-foreground">
           Aucun mouvement sur les 7 derniers jours.
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
   useSetDefaultLocation,
   useUpdateLocation,
 } from '../hooks/useLocations'
+import { PageHeader, PageSection, EmptyState } from '@/components/design-system'
 import type { Location } from '@/types'
 import type { LocationFormData } from '../schemas/locationSchema'
 
@@ -69,31 +70,50 @@ export default function LocationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Emplacements</h1>
-          <p className="text-muted-foreground">Gérez les entrepôts et zones de stockage.</p>
-        </div>
-        {canManage && (
-          <Button className="w-full sm:w-auto" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvel emplacement
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Emplacements"
+        description="Gérez les entrepôts et zones de stockage."
+        actions={
+          canManage
+            ? [
+                <Button key="new" onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvel emplacement
+                </Button>,
+              ]
+            : undefined
+        }
+      />
 
-      {isLoading && <p className="text-muted-foreground">Chargement…</p>}
-      {error && <p className="text-destructive">{error.message}</p>}
-      {setDefault.error && <p className="text-destructive">{setDefault.error.message}</p>}
-      {!isLoading && !error && locations && (
-        <LocationList
-          locations={locations}
-          currentUserRole={session?.membership.role ?? 'operator'}
-          onEdit={handleEdit}
-          onSetDefault={handleSetDefault}
-          isUpdating={create.isPending || update.isPending || setDefault.isPending}
-        />
-      )}
+      <PageSection>
+        {isLoading && <p className="text-muted-foreground">Chargement…</p>}
+        {error && <p className="text-destructive">{error.message}</p>}
+        {setDefault.error && <p className="text-destructive">{setDefault.error.message}</p>}
+        {!isLoading && !error && locations && locations.length > 0 && (
+          <LocationList
+            locations={locations}
+            currentUserRole={session?.membership.role ?? 'operator'}
+            onEdit={handleEdit}
+            onSetDefault={handleSetDefault}
+            isUpdating={create.isPending || update.isPending || setDefault.isPending}
+          />
+        )}
+        {!isLoading && !error && locations?.length === 0 && (
+          <EmptyState
+            icon={MapPin}
+            title="Aucun emplacement"
+            description="Créez votre premier entrepôt ou zone de stockage."
+            action={
+              canManage ? (
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvel emplacement
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+      </PageSection>
 
       <Dialog open={isDialogOpen || Boolean(editingLocation)} onOpenChange={handleOpenChange}>
         <DialogContent>

@@ -8,6 +8,7 @@ import { PullToRefresh } from '@/features/stock/components/PullToRefresh'
 import { StockDetailOverlay } from '@/features/stock/components/StockDetailOverlay'
 import type { StockItem } from '@/features/stock/services/stockService'
 import { PinSetupPrompt } from '@/features/auth/components/PinSetupPrompt'
+import { PageSection } from '@/components/design-system'
 import { DashboardHeader } from '../components/DashboardHeader'
 import { DashboardStats } from '../components/DashboardStats'
 import { DashboardFluxChart } from '../components/DashboardFluxChart'
@@ -19,29 +20,26 @@ import { DashboardRecentMovements } from '../components/DashboardRecentMovements
 
 function SectionSkeleton({ label }: { label: string }) {
   return (
-    <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="h-5 w-32 animate-pulse rounded bg-[var(--surface-2)]" />
-      </div>
+    <PageSection title={label}>
       <div className="space-y-3">
-        <div className="h-4 w-full animate-pulse rounded bg-[var(--surface-2)]" />
-        <div className="h-4 w-5/6 animate-pulse rounded bg-[var(--surface-2)]" />
-        <div className="h-4 w-4/6 animate-pulse rounded bg-[var(--surface-2)]" />
+        <div className="h-4 w-full animate-pulse rounded bg-muted" />
+        <div className="h-4 w-5/6 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-4/6 animate-pulse rounded bg-muted" />
       </div>
-      <p className="sr-only">{label}</p>
-    </div>
+    </PageSection>
   )
 }
 
 function StatCardSkeleton() {
   return (
-    <div className="sc">
+    <div className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm">
+      <span className="absolute left-0 right-0 top-0 h-1 bg-border" />
       <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="h-4 w-20 animate-pulse rounded bg-[var(--surface-2)]" />
-        <div className="h-7 w-7 animate-pulse rounded bg-[var(--surface-2)]" />
+        <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+        <div className="h-7 w-7 animate-pulse rounded bg-muted" />
       </div>
-      <div className="h-8 w-24 animate-pulse rounded bg-[var(--surface-2)]" />
-      <div className="mt-2 h-3 w-28 animate-pulse rounded bg-[var(--surface-2)]" />
+      <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+      <div className="mt-2 h-3 w-28 animate-pulse rounded bg-muted" />
     </div>
   )
 }
@@ -80,7 +78,6 @@ export default function DashboardPage() {
     if (item) {
       setSelectedItem(item)
     } else {
-      // Fallback item when product has no stock yet
       setSelectedItem({
         id: productId,
         productId,
@@ -107,11 +104,11 @@ export default function DashboardPage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={isPending}>
-      <div className="space-y-4 pb-6">
+      <div className="space-y-6 md:space-y-8">
         <DashboardHeader onRefresh={handleRefresh} isRefreshing={isPending} />
 
         {queryError && (
-          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-base text-[var(--rose)]">
+          <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-base text-rose-700">
             {queryError.length === 1
               ? queryError[0]?.message
               : `Erreurs de chargement : ${queryError.map((e) => e?.message ?? 'inconnue').join(', ')}`}
@@ -119,8 +116,8 @@ export default function DashboardPage() {
         )}
 
         {isPending && (
-          <div className="space-y-4">
-            <div className="sg">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -143,10 +140,9 @@ export default function DashboardPage() {
           <>
             <DashboardStats stock={stockItems} productCount={activeProducts.length} />
 
-            <div className="card p-4">
-              <h3 className="card-t">Flux 7 jours</h3>
+            <PageSection title="Flux 7 jours">
               <DashboardFluxChart movements={movements} />
-            </div>
+            </PageSection>
 
             <DashboardTrendChart movements={movements} />
 
