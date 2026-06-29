@@ -23,6 +23,8 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
         return org.hasStorefrontEnabled
       case 'api':
         return org.hasApiEnabled
+      case 'invoicing':
+        return org.hasInvoicingEnabled
       default:
         return false
     }

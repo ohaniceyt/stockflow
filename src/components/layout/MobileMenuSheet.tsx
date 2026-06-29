@@ -27,6 +27,8 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
         return org.hasStorefrontEnabled
       case 'api':
         return org.hasApiEnabled
+      case 'invoicing':
+        return org.hasInvoicingEnabled
       default:
         return false
     }
