@@ -238,7 +238,7 @@ export default function OnboardingPage() {
                   }}
                   placeholder="ma-boutique"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Lettres minuscules, chiffres et tirets uniquement. Cet identifiant sera utilisé
                   pour le portail public de votre organisation.
                 </p>
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
                     </option>
                   ))}
                 </Select>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   La devise et le fuseau horaire par défaut sont automatiquement sélectionnés selon
                   le pays. Vous pouvez les ajuster ci-dessous si nécessaire.
                 </p>

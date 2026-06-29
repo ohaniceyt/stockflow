@@ -40,7 +40,7 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
           placeholder="Ex: Matériaux"
           disabled={isLoading}
         />
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>

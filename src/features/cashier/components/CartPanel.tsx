@@ -66,7 +66,7 @@ export function CartPanel({
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{item.productName}</p>
-                  <p className="text-xs text-muted-foreground">{item.locationName}</p>
+                  <p className="text-sm text-muted-foreground">{item.locationName}</p>
                 </div>
                 <button
                   type="button"
@@ -204,7 +204,7 @@ export function CartPanel({
           {isCheckingOut ? 'Enregistrement…' : 'Valider la vente'}
         </Button>
         {!openSession && (
-          <p className="text-center text-xs text-destructive">
+          <p className="text-center text-sm text-destructive">
             Ouvrez une caisse pour valider une vente.
           </p>
         )}

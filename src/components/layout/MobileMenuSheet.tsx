@@ -61,7 +61,7 @@ export function MobileMenuSheet({ open, onOpenChange, navItems }: MobileMenuShee
             <Logo variant="icon" className="h-9 w-9" />
             <div>
               <p className="font-bold leading-tight">StockFlow</p>
-              <p className="text-xs text-muted-foreground">{session?.user.name}</p>
+              <p className="text-sm text-muted-foreground">{session?.user.name}</p>
             </div>
           </div>
           <button

@@ -31,10 +31,10 @@ export function SocialProof() {
     <section className="border-y bg-muted/30 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-base font-medium uppercase tracking-wider text-muted-foreground">
             Ils gagnent du temps chaque jour
           </p>
-          <div className="mt-4 flex items-center justify-center gap-1 text-sm font-medium">
+          <div className="mt-4 flex items-center justify-center gap-1 text-base font-medium">
             <span className="flex">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star key={i} className="h-4 w-4 fill-primary text-primary" />
@@ -52,10 +52,10 @@ export function SocialProof() {
               key={logo.name}
               className="flex flex-col items-center gap-2 rounded-xl border bg-background p-4 opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-xs font-bold">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-base font-bold">
                 {logo.initials}
               </div>
-              <span className="text-center text-xs font-medium">{logo.name}</span>
+              <span className="text-center text-base font-medium">{logo.name}</span>
             </div>
           ))}
         </div>
@@ -70,15 +70,15 @@ export function SocialProof() {
               </div>
               <blockquote className="mb-4 text-foreground">“{t.quote}”</blockquote>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
                   {t.author
                     .split(' ')
                     .map((n) => n[0])
                     .join('')}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">{t.author}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-base font-semibold">{t.author}</p>
+                  <p className="text-base text-muted-foreground">
                     {t.role} — {t.location}
                   </p>
                 </div>

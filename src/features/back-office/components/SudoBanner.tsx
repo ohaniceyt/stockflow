@@ -16,7 +16,7 @@ export function SudoBanner() {
         <ShieldAlert className="h-4 w-4" />
         <span>
           Sudo actif : <span className="font-semibold">{sudoTarget.name}</span>{' '}
-          {platformAdminRole && <span className="text-xs">({platformAdminRole})</span>}
+          {platformAdminRole && <span className="text-sm">({platformAdminRole})</span>}
         </span>
       </div>
       <Button variant="outline" size="sm" onClick={() => void exitSudo()}>

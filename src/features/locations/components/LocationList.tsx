@@ -37,7 +37,7 @@ export function LocationList({
             <div className="flex items-center gap-2">
               <p className="truncate font-semibold">{location.name}</p>
               {location.isDefault && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">
                   Par défaut
                 </span>
               )}

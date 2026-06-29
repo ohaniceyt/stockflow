@@ -111,7 +111,7 @@ export default function DashboardPage() {
         <DashboardHeader onRefresh={handleRefresh} isRefreshing={isPending} />
 
         {queryError && (
-          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-sm text-[var(--rose)]">
+          <p className="rounded-lg border border-[var(--rose)] bg-[var(--rose-light)] p-3 text-base text-[var(--rose)]">
             {queryError.length === 1
               ? queryError[0]?.message
               : `Erreurs de chargement : ${queryError.map((e) => e?.message ?? 'inconnue').join(', ')}`}

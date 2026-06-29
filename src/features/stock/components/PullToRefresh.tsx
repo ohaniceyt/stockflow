@@ -83,7 +83,7 @@ export function PullToRefresh({ children, onRefresh, disabled }: PullToRefreshPr
           opacity: offset > 20 ? 1 : 0,
         }}
       >
-        <div className="flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text)] shadow-[var(--shadow-xs)]">
+        <div className="flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-1.5 text-sm font-medium text-[var(--text)] shadow-[var(--shadow-xs)]">
           <RotateCw className={`h-4 w-4 ${offset >= threshold ? 'animate-spin' : ''}`} />
           {offset >= threshold ? 'Relâcher pour rafraîchir' : 'Tirer pour rafraîchir'}
         </div>

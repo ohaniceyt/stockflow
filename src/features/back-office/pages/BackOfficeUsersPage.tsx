@@ -111,7 +111,7 @@ export default function BackOfficeUsersPage() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <p className="font-medium">{user.name || user.email}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </TableCell>
                       <TableCell>{membership?.organizations?.name ?? '—'}</TableCell>
                       <TableCell>{membership?.role ?? '—'}</TableCell>

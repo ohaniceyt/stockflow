@@ -247,7 +247,7 @@ export default function BackOfficeOrganizationDetailPage() {
                       <span>→</span>
                       <span className="font-mono">{entry.new_slug}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {new Date(entry.changed_at).toLocaleString('fr-FR')}
                     </span>
                   </div>
@@ -273,7 +273,7 @@ export default function BackOfficeOrganizationDetailPage() {
                     >
                       <div>
                         <p className="font-medium">{user.name || user.email}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {membership?.role} • {user.email}
                         </p>
                       </div>

@@ -98,7 +98,7 @@ export function SessionDetailDialog({
       cell: (count) => (
         <>
           {count.productName ?? '—'}
-          <span className="ml-1 text-xs text-muted-foreground">
+          <span className="ml-1 text-sm text-muted-foreground">
             ({count.productUnit ?? 'unité'})
           </span>
         </>

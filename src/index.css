@@ -110,6 +110,11 @@ html {
   html {
     font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
     font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    line-height: 1.6;
   }
 }
 
@@ -180,7 +185,7 @@ html {
 }
 
 @utility card-t {
-  @apply mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-faint)];
+  @apply mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-faint)];
 }
 
 @utility ca {
@@ -196,7 +201,7 @@ html {
 }
 
 @utility dash-empty {
-  @apply py-8 text-center text-sm text-[var(--text-faint)];
+  @apply py-8 text-center text-base text-[var(--text-faint)];
 }
 
 .ch-dash,

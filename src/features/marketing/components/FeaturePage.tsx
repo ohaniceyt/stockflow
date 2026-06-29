@@ -41,7 +41,7 @@ export function FeaturePage({
           <div className="mx-auto max-w-7xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div>
-                <span className="text-sm font-semibold uppercase tracking-wider text-primary">
+                <span className="text-base font-semibold uppercase tracking-wider text-primary">
                   {eyebrow}
                 </span>
                 <h1 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl">{title}</h1>
@@ -70,14 +70,14 @@ export function FeaturePage({
                   />
                 ) : null}
                 <div
-                  className={`fallback flex flex-col items-center justify-center rounded-xl bg-muted p-8 text-center text-sm text-muted-foreground ${
+                  className={`fallback flex flex-col items-center justify-center rounded-xl bg-muted p-8 text-center text-base text-muted-foreground ${
                     previewImage ? 'hidden' : ''
                   }`}
                   style={{ minHeight: '16rem' }}
                 >
                   <PreviewIcon className="mb-2 h-8 w-8 text-primary" />
                   <span className="font-medium">{previewLabel}</span>
-                  <span className="mt-1 text-xs">Capture d’écran à venir</span>
+                  <span className="mt-1 text-base">Capture d’écran à venir</span>
                 </div>
               </div>
             </div>
@@ -101,7 +101,7 @@ export function FeaturePage({
                       <Icon className="h-5 w-5" />
                     </div>
                     <h3 className="text-lg font-semibold">{f.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{f.description}</p>
+                    <p className="mt-2 text-base text-muted-foreground">{f.description}</p>
                   </div>
                 )
               })}
@@ -126,10 +126,10 @@ export function FeaturePage({
                     key={benefit}
                     className="flex items-start gap-3 rounded-2xl border bg-muted/30 p-6"
                   >
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
                       ✓
                     </span>
-                    <p className="text-sm font-medium">{benefit}</p>
+                    <p className="text-base font-medium">{benefit}</p>
                   </div>
                 ))}
               </div>

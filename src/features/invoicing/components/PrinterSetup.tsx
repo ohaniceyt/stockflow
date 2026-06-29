@@ -115,7 +115,7 @@ export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProp
         </Button>
       </div>
 
-      <div className="text-muted-foreground text-xs">
+      <div className="text-muted-foreground text-sm">
         Choisissez le mode de connexion. WebUSB/Bluetooth nécessitent HTTPS et un navigateur
         compatible (Chrome/Edge). Le mode réseau envoie les données brutes à une petite passerelle
         locale.
@@ -144,7 +144,7 @@ export default function PrinterSetup({ doc, orgName, onClose }: PrinterSetupProp
 
       {message && (
         <p
-          className={`text-xs ${status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
+          className={`text-sm ${status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
         >
           {message}
         </p>

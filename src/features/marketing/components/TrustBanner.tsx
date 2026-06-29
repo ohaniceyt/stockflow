@@ -13,7 +13,7 @@ export function TrustBanner() {
   return (
     <section className="border-y bg-muted/30 px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <p className="mb-6 text-center text-sm font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-6 text-center text-base font-medium uppercase tracking-wider text-muted-foreground">
           Conçu pour les PME ambitieuses
         </p>
         <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
@@ -22,7 +22,7 @@ export function TrustBanner() {
             return (
               <div key={item.label} className="flex flex-col items-center gap-2 text-center">
                 <Icon className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-base font-medium">{item.label}</span>
               </div>
             )
           })}

@@ -107,19 +107,19 @@ export default function PricingPage() {
                   }`}
                 >
                   {plan.highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-base font-semibold text-primary-foreground">
                       Le plus populaire
                     </span>
                   )}
                   <h3 className="text-lg font-semibold">{plan.name}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="mt-2 text-base text-muted-foreground">{plan.description}</p>
                   <div className="mt-6 flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold">{plan.price}</span>
-                    <span className="text-sm text-muted-foreground">{plan.period}</span>
+                    <span className="text-base text-muted-foreground">{plan.period}</span>
                   </div>
                   <ul className="mt-6 flex-1 space-y-3">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm">
+                      <li key={feature} className="flex items-start gap-2 text-base">
                         <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                         {feature}
                       </li>
@@ -150,7 +150,7 @@ export default function PricingPage() {
                     <HelpCircle className="h-5 w-5 text-primary" />
                     {faq.question}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{faq.answer}</p>
+                  <p className="mt-2 text-base text-muted-foreground">{faq.answer}</p>
                 </div>
               ))}
             </div>

@@ -58,7 +58,7 @@ export default function SetPinPage() {
             Choisissez un code PIN simple pour déverrouiller rapidement l’application sur cet
             appareil.
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             Ce PIN est un verrouillage local de cet appareil. Il n’est pas synchronisé et ne
             remplace pas votre mot de passe StockFlow.
           </p>

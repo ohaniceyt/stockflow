@@ -38,15 +38,15 @@ export function FeatureBlock({
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Icon className="h-6 w-6" />
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-primary">
+            <span className="text-base font-semibold uppercase tracking-wider text-primary">
               {eyebrow}
             </span>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
             <p className="mt-4 text-lg text-muted-foreground">{description}</p>
             <ul className="mt-6 space-y-3">
               {bullets.map((bullet) => (
-                <li key={bullet} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="mt-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                <li key={bullet} className="flex items-start gap-2 text-base text-foreground">
+                  <span className="mt-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
                     ✓
                   </span>
                   {bullet}
@@ -73,10 +73,10 @@ export function FeatureBlock({
                 loading="lazy"
                 sizes="(min-width: 1024px) 50vw, 100vw"
               />
-              <div className="fallback absolute inset-0 flex flex-col items-center justify-center bg-muted/80 p-6 text-center text-sm text-muted-foreground">
+              <div className="fallback absolute inset-0 flex flex-col items-center justify-center bg-muted/80 p-6 text-center text-base text-muted-foreground">
                 <Icon className="mb-2 h-8 w-8 text-primary" />
                 <span className="font-medium">{imageAlt}</span>
-                <span className="mt-1 text-xs">Capture d’écran à venir</span>
+                <span className="mt-1 text-base">Capture d’écran à venir</span>
               </div>
             </div>
           </div>

@@ -146,12 +146,12 @@ export function RecapStats({
           <div className={`sc-bar ${card.barColor}`} />
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <p className="text-xs text-[var(--text-faint)] truncate">{card.label}</p>
+              <p className="text-sm text-[var(--text-faint)] truncate">{card.label}</p>
               <p className="mt-1 text-2xl font-bold text-[var(--text-h)] truncate">
                 {card.isMoney ? card.value : card.value.toLocaleString()}
               </p>
               {'sub' in card && card.sub && (
-                <p className="mt-1 text-xs text-[var(--text-faint)] truncate">{card.sub}</p>
+                <p className="mt-1 text-sm text-[var(--text-faint)] truncate">{card.sub}</p>
               )}
             </div>
             <div className={`rounded-lg ${card.iconBg} p-2 shrink-0`}>

@@ -49,7 +49,7 @@ export function MarketingHeader() {
           <Logo className="h-8" />
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
+        <nav className="hidden items-center gap-8 text-base font-medium md:flex">
           {navItems.map((item) =>
             item.children ? (
               <details key={item.label} className="group relative">
@@ -64,9 +64,9 @@ export function MarketingHeader() {
                       to={child.href}
                       className="block rounded-lg px-3 py-2 hover:bg-accent"
                     >
-                      <p className="text-sm font-medium">{child.label}</p>
+                      <p className="text-base font-medium">{child.label}</p>
                       {child.description && (
-                        <p className="text-xs text-muted-foreground">{child.description}</p>
+                        <p className="text-base text-muted-foreground">{child.description}</p>
                       )}
                     </Link>
                   ))}
@@ -107,12 +107,12 @@ export function MarketingHeader() {
               {navItems.map((item) =>
                 item.children ? (
                   <div key={item.label} className="space-y-1">
-                    <p className="text-sm font-semibold text-muted-foreground">{item.label}</p>
+                    <p className="text-base font-semibold text-muted-foreground">{item.label}</p>
                     {item.children.map((child) => (
                       <Link
                         key={child.label}
                         to={child.href}
-                        className="block rounded-lg px-3 py-2 text-sm hover:bg-accent"
+                        className="block rounded-lg px-3 py-2 text-base hover:bg-accent"
                       >
                         {child.label}
                       </Link>
@@ -122,7 +122,7 @@ export function MarketingHeader() {
                   <Link
                     key={item.label}
                     to={item.href}
-                    className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
+                    className="block rounded-lg px-3 py-2 text-base font-medium hover:bg-accent"
                   >
                     {item.label}
                   </Link>

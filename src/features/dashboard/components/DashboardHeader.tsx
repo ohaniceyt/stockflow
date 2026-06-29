@@ -10,7 +10,7 @@ export function DashboardHeader({ onRefresh, isRefreshing }: DashboardHeaderProp
     <div className="flex items-center justify-between gap-3">
       <div>
         <h1 className="text-xl font-bold text-[var(--text-h)] sm:text-2xl">Tableau de bord</h1>
-        <p className="text-sm text-[var(--text-faint)]">Vue d'ensemble de votre stock.</p>
+        <p className="text-base text-[var(--text-faint)]">Vue d'ensemble de votre stock.</p>
       </div>
       <button
         type="button"

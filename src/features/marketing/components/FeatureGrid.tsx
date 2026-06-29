@@ -26,7 +26,7 @@ export function FeatureGrid({ title, subtitle, items }: FeatureGridProps) {
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+                <p className="mt-2 text-base text-muted-foreground">{item.description}</p>
               </div>
             )
           })}

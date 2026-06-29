@@ -66,7 +66,7 @@ export function CreateSessionDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Inventaire fin juin"
             />
-            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+            {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
@@ -83,7 +83,7 @@ export function CreateSessionDialog({
                 </option>
               ))}
             </Select>
-            {errors.locationId && <p className="text-xs text-destructive">{errors.locationId}</p>}
+            {errors.locationId && <p className="text-sm text-destructive">{errors.locationId}</p>}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

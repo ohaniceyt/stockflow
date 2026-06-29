@@ -156,7 +156,7 @@ export function ProductForm({
           placeholder="Ex: Ciment 50kg"
           disabled={disabled}
         />
-        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -178,7 +178,7 @@ export function ProductForm({
             placeholder="Ex: sac"
             disabled={disabled}
           />
-          {errors.unit && <p className="text-xs text-destructive">{errors.unit}</p>}
+          {errors.unit && <p className="text-sm text-destructive">{errors.unit}</p>}
         </div>
       </div>
 

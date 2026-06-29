@@ -164,7 +164,7 @@ export function MovementForm({
             </option>
           ))}
         </Select>
-        {errors.productId && <p className="text-xs text-destructive">{errors.productId}</p>}
+        {errors.productId && <p className="text-sm text-destructive">{errors.productId}</p>}
       </div>
 
       <div className="space-y-2">
@@ -179,7 +179,7 @@ export function MovementForm({
             </option>
           ))}
         </Select>
-        {errors.locationId && <p className="text-xs text-destructive">{errors.locationId}</p>}
+        {errors.locationId && <p className="text-sm text-destructive">{errors.locationId}</p>}
       </div>
 
       {type === 'TRANSFER' && (
@@ -200,7 +200,7 @@ export function MovementForm({
               ))}
           </Select>
           {errors.targetLocationId && (
-            <p className="text-xs text-destructive">{errors.targetLocationId}</p>
+            <p className="text-sm text-destructive">{errors.targetLocationId}</p>
           )}
         </div>
       )}
@@ -248,7 +248,7 @@ export function MovementForm({
             }}
           />
           {type === 'ADJUSTMENT' && currentStock !== null && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Stock actuel : {currentStock}
               {quantity !== currentStock && (
                 <>
@@ -259,7 +259,7 @@ export function MovementForm({
               )}
             </p>
           )}
-          {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
+          {errors.quantity && <p className="text-sm text-destructive">{errors.quantity}</p>}
         </div>
 
         {type === 'OUT' && (

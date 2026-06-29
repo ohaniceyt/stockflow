@@ -130,7 +130,7 @@ export default function BackOfficeAuditLogsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{log.actorRole ?? '—'}</Badge>
-                      <p className="mt-1 max-w-[120px] truncate text-xs text-muted-foreground">
+                      <p className="mt-1 max-w-[120px] truncate text-sm text-muted-foreground">
                         {log.actorId ?? '—'}
                       </p>
                     </TableCell>
@@ -140,7 +140,7 @@ export default function BackOfficeAuditLogsPage() {
                     <TableCell>
                       {log.targetType ?? '—'}:{log.targetId ?? '—'}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
+                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
                       {log.metadata ? JSON.stringify(log.metadata) : '—'}
                     </TableCell>
                   </TableRow>

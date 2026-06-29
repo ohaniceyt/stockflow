@@ -127,7 +127,7 @@ export function PinPad({
         <button
           type="button"
           onClick={handleClear}
-          className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+          className="mt-3 w-full text-center text-sm text-muted-foreground hover:text-foreground"
         >
           Effacer
         </button>

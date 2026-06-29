@@ -28,7 +28,7 @@ export function TeamList({
         <>
           {member.name}
           {member.membershipId === currentMembershipId && (
-            <span className="ml-2 text-xs text-muted-foreground">(vous)</span>
+            <span className="ml-2 text-sm text-muted-foreground">(vous)</span>
           )}
         </>
       ),

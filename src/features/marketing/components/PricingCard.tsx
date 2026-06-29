@@ -38,13 +38,13 @@ export function PricingCard({
       )}
     >
       {popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-base font-semibold text-primary-foreground">
           Le plus populaire
         </span>
       )}
       <div className="mb-4">
         <h3 className="text-lg font-semibold">{name}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-base text-muted-foreground">{description}</p>
       </div>
 
       <div className="mb-6">
@@ -55,17 +55,17 @@ export function PricingCard({
             <span className="text-3xl font-bold">
               {priceMode === 'free' ? '0 €' : `${monthly} €`}
             </span>
-            {priceMode !== 'free' && <span className="text-sm text-muted-foreground">/mois</span>}
+            {priceMode !== 'free' && <span className="text-base text-muted-foreground">/mois</span>}
           </div>
         )}
         {priceMode === 'fixed' && (
-          <p className="text-xs text-muted-foreground">{yearly} €/an (économisez 2 mois)</p>
+          <p className="text-base text-muted-foreground">{yearly} €/an (économisez 2 mois)</p>
         )}
       </div>
 
       <ul className="mb-6 flex-1 space-y-3">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2 text-sm">
+          <li key={feature} className="flex items-start gap-2 text-base">
             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <span>{feature}</span>
           </li>

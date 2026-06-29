@@ -66,12 +66,12 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
               {highlightText(item.productName, searchQuery)}
             </h3>
             {item.category && (
-              <p className="truncate text-xs text-[var(--text-faint)]">
+              <p className="truncate text-sm text-[var(--text-faint)]">
                 {highlightText(item.category, searchQuery)}
               </p>
             )}
             {!item.category && item.barcode && (
-              <p className="truncate text-xs text-[var(--text-faint)]">
+              <p className="truncate text-sm text-[var(--text-faint)]">
                 Réf: {highlightText(item.barcode, searchQuery)}
               </p>
             )}
@@ -83,25 +83,25 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
           <span className="text-[1.75rem] font-bold leading-none text-[var(--text-h)]">
             {item.quantity.toLocaleString()}
           </span>
-          <span className="text-xs font-medium text-[var(--text-faint)]">{item.productUnit}</span>
+          <span className="text-sm font-medium text-[var(--text-faint)]">{item.productUnit}</span>
         </div>
 
         {isAdmin && (item.costPrice > 0 || item.sellingPrice > 0) && (
-          <div className="mb-3 grid grid-cols-3 gap-1 text-xs">
+          <div className="mb-3 grid grid-cols-3 gap-1 text-sm">
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-xs text-[var(--text-faint)]">PA</span>
+              <span className="block text-sm text-[var(--text-faint)]">PA</span>
               <span className="font-semibold text-[var(--text)]">
                 {item.costPrice.toLocaleString()}
               </span>
             </div>
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-xs text-[var(--text-faint)]">PV</span>
+              <span className="block text-sm text-[var(--text-faint)]">PV</span>
               <span className="font-semibold text-[var(--text)]">
                 {item.sellingPrice.toLocaleString()}
               </span>
             </div>
             <div className="rounded bg-[var(--surface-2)] px-2 py-1">
-              <span className="block text-xs text-[var(--text-faint)]">Marge</span>
+              <span className="block text-sm text-[var(--text-faint)]">Marge</span>
               <span className="font-semibold text-[var(--emerald)]">
                 {(item.sellingPrice - item.costPrice).toLocaleString()}
               </span>
@@ -116,7 +116,7 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
               style={{ width: `${String(Math.min(progress, 100))}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-[var(--text-faint)]">
+          <p className="mt-1 text-sm text-[var(--text-faint)]">
             mini: {item.threshold.toLocaleString()} {item.productUnit}
           </p>
         </div>

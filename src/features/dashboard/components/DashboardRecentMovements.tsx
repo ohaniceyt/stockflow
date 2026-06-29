@@ -30,7 +30,7 @@ export function DashboardRecentMovements({
       ) : (
         <>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-[var(--text-faint)]">
                   <th className="pb-2 font-medium">Date</th>
@@ -62,7 +62,7 @@ export function DashboardRecentMovements({
                       >
                         {typeLabels[m.type] ?? m.type}
                         {m.isCancelled && (
-                          <span className="ml-1 text-xs font-normal">(annulé)</span>
+                          <span className="ml-1 text-base font-normal">(annulé)</span>
                         )}
                       </span>
                     </td>
@@ -85,11 +85,11 @@ export function DashboardRecentMovements({
                   <button
                     type="button"
                     onClick={() => onSelectProduct(m.productId, m.productName)}
-                    className="block w-full truncate text-left text-sm font-medium text-[var(--text-h)] hover:text-[var(--indigo)] hover:underline"
+                    className="block w-full truncate text-left text-base font-medium text-[var(--text-h)] hover:text-[var(--indigo)] hover:underline"
                   >
                     {m.productName ?? '—'}
                   </button>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[var(--text-faint)]">
+                  <div className="mt-1 flex items-center gap-2 text-base text-[var(--text-faint)]">
                     <span>{format(new Date(m.createdAt), 'dd/MM HH:mm', { locale: fr })}</span>
                     <span
                       className={`badge ${
@@ -97,12 +97,12 @@ export function DashboardRecentMovements({
                       }`}
                     >
                       {typeLabels[m.type] ?? m.type}
-                      {m.isCancelled && <span className="ml-1 text-xs font-normal">(annulé)</span>}
+                      {m.isCancelled && <span className="ml-1 text-base font-normal">(annulé)</span>}
                     </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-[var(--text-h)]">
+                  <p className="text-base font-semibold text-[var(--text-h)]">
                     {m.quantity.toLocaleString('fr-FR')}
                   </p>
                 </div>

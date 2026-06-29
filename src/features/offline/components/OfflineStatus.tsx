@@ -13,7 +13,7 @@ export function OfflineStatus({ className }: OfflineStatusProps) {
   return (
     <div
       className={cn(
-        'fixed left-4 right-auto z-50 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-full px-4 py-2 text-xs font-medium text-white shadow-lg md:right-4 md:left-auto',
+        'fixed left-4 right-auto z-50 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-full px-4 py-2 text-sm font-medium text-white shadow-lg md:right-4 md:left-auto',
         !online ? 'bg-amber-500' : deadCount > 0 || lastError ? 'bg-red-600' : 'bg-blue-600',
         className ?? 'bottom-20 md:bottom-4'
       )}

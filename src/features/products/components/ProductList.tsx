@@ -117,7 +117,7 @@ export function ProductList({
       mobileCardTitle={(product) => (
         <span>
           {product.name}{' '}
-          <span className="text-xs font-normal text-muted-foreground">({product.unit})</span>
+          <span className="text-sm font-normal text-muted-foreground">({product.unit})</span>
         </span>
       )}
     />

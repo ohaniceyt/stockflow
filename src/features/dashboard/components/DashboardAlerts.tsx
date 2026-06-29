@@ -16,7 +16,7 @@ export function DashboardAlerts({ stock, onSelectItem }: DashboardAlertsProps) {
       <h3 className="card-t">Alertes stock</h3>
 
       {alerts.length === 0 ? (
-        <div className="flex items-center gap-2 py-4 text-sm text-[var(--emerald)]">
+        <div className="flex items-center gap-2 py-4 text-base text-[var(--emerald)]">
           <CheckCircle2 className="h-4 w-4" />
           Tous les stocks sont à niveau ✅
         </div>
@@ -39,7 +39,7 @@ export function DashboardAlerts({ stock, onSelectItem }: DashboardAlertsProps) {
                       {isRupture ? 'Rupture' : 'Alerte'}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-[var(--text)]">
+                  <p className="mt-1 text-base text-[var(--text)]">
                     {item.quantity.toLocaleString('fr-FR')} /{' '}
                     {item.threshold.toLocaleString('fr-FR')} {item.productUnit}
                   </p>

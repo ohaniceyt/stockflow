@@ -50,7 +50,7 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+              'flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-sm font-medium transition-colors',
               isActive ? 'text-primary' : 'text-muted-foreground'
             )
           }
@@ -67,7 +67,7 @@ export function MobileNav({ navItems, onMenuOpen }: MobileNavProps) {
       <button
         type="button"
         onClick={onMenuOpen}
-        className="flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors active:text-foreground"
+        className="flex min-h-[44px] min-w-[3.5rem] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground transition-colors active:text-foreground"
         aria-label="Ouvrir le menu"
       >
         <Menu className="h-6 w-6" />

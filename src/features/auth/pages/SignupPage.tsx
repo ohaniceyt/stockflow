@@ -94,7 +94,7 @@ export default function SignupPage() {
                 Un lien de confirmation a été envoyé à{' '}
                 <span className="font-medium text-foreground">{form.email}</span>.
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Cliquez sur le lien, puis connectez-vous avec votre email et mot de passe.
               </p>
             </div>

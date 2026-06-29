@@ -97,7 +97,7 @@ export function StockHeader({
           <button
             type="button"
             onClick={() => onSearchChange('')}
-            className="text-xs text-[var(--text-faint)] hover:text-[var(--text)]"
+            className="text-sm text-[var(--text-faint)] hover:text-[var(--text)]"
           >
             Effacer
           </button>

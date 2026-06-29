@@ -26,7 +26,7 @@ function UsageBar({ used, max, label }: { used: number; max: number | null; labe
           style={{ width: unlimited ? '100%' : `${String(pct)}%` }}
         />
       </div>
-      {!unlimited && atLimit && <p className="text-xs text-destructive">Limite atteinte</p>}
+      {!unlimited && atLimit && <p className="text-sm text-destructive">Limite atteinte</p>}
     </div>
   )
 }

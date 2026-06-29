@@ -126,14 +126,14 @@ function DocumentList({
         >
           <div className="space-y-0.5">
             <p className="font-medium">{doc.documentNumber}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {new Date(doc.issueDate).toLocaleDateString('fr-FR')} — {doc.status}
             </p>
           </div>
           <p className="font-semibold">{formatCurrency(doc.total, doc.currency)}</p>
         </button>
       ))}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {items.length} {label.toLowerCase()}
       </p>
     </div>
@@ -364,7 +364,7 @@ function CreateForm({
           return (
             <div key={line.id} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Ligne {index + 1}</p>
+                <p className="text-sm text-muted-foreground">Ligne {index + 1}</p>
                 <Button
                   type="button"
                   variant="ghost"
@@ -377,7 +377,7 @@ function CreateForm({
                 </Button>
               </div>
               <div className="space-y-1">
-                <label htmlFor={`product-${line.id}`} className="text-xs font-medium">
+                <label htmlFor={`product-${line.id}`} className="text-sm font-medium">
                   Produit (optionnel)
                 </label>
                 <select
@@ -395,7 +395,7 @@ function CreateForm({
                 </select>
               </div>
               <div className="space-y-1">
-                <label htmlFor={`description-${line.id}`} className="text-xs font-medium">
+                <label htmlFor={`description-${line.id}`} className="text-sm font-medium">
                   Description
                 </label>
                 <input
@@ -408,7 +408,7 @@ function CreateForm({
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="space-y-1">
-                  <label htmlFor={`qty-${line.id}`} className="text-xs font-medium">
+                  <label htmlFor={`qty-${line.id}`} className="text-sm font-medium">
                     Qté
                   </label>
                   <input
@@ -424,7 +424,7 @@ function CreateForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor={`price-${line.id}`} className="text-xs font-medium">
+                  <label htmlFor={`price-${line.id}`} className="text-sm font-medium">
                     P.U.
                   </label>
                   <input
@@ -440,7 +440,7 @@ function CreateForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor={`tax-${line.id}`} className="text-xs font-medium">
+                  <label htmlFor={`tax-${line.id}`} className="text-sm font-medium">
                     Taxe %
                   </label>
                   <input
@@ -455,7 +455,7 @@ function CreateForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor={`discount-${line.id}`} className="text-xs font-medium">
+                  <label htmlFor={`discount-${line.id}`} className="text-sm font-medium">
                     Remise
                   </label>
                   <input

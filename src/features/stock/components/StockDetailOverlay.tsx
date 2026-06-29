@@ -99,7 +99,7 @@ export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
       <div ref={panelRef} className="ov-panel">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-[var(--text-faint)]">
+            <p className="text-sm uppercase tracking-wide text-[var(--text-faint)]">
               {item.category ?? 'Sans catégorie'}
             </p>
             <h2 id="stock-detail-title" className="text-xl font-bold text-[var(--text-h)]">
@@ -137,19 +137,19 @@ export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div className="card p-3">
-            <p className="text-xs text-[var(--text-faint)]">Emplacement</p>
+            <p className="text-sm text-[var(--text-faint)]">Emplacement</p>
             <p className="font-semibold text-[var(--text-h)]">{item.locationName}</p>
           </div>
           {isAdmin && (
             <>
               <div className="card p-3">
-                <p className="text-xs text-[var(--text-faint)]">Valeur achat</p>
+                <p className="text-sm text-[var(--text-faint)]">Valeur achat</p>
                 <p className="font-semibold text-[var(--text-h)]">
                   {stockValue.toLocaleString()} FCFA
                 </p>
               </div>
               <div className="card p-3">
-                <p className="text-xs text-[var(--text-faint)]">Valeur vente</p>
+                <p className="text-sm text-[var(--text-faint)]">Valeur vente</p>
                 <p className="font-semibold text-[var(--text-h)]">
                   {stockSellingValue.toLocaleString()} FCFA
                 </p>
@@ -161,7 +161,7 @@ export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-semibold text-[var(--text-h)]">Derniers mouvements</h3>
           {movementsLoading && (
-            <span className="text-xs text-[var(--text-faint)]">Chargement…</span>
+            <span className="text-sm text-[var(--text-faint)]">Chargement…</span>
           )}
         </div>
 
@@ -195,13 +195,13 @@ export function StockDetailOverlay({ item, onClose }: StockDetailOverlayProps) {
                       {m.type === 'ADJUSTMENT' && 'Ajustement'}{' '}
                       <span className="text-[var(--text)]">× {m.quantity.toLocaleString()}</span>
                     </p>
-                    <p className="text-xs text-[var(--text-faint)]">
+                    <p className="text-sm text-[var(--text-faint)]">
                       {m.locationName ?? m.locationId} · {m.operatorName ?? m.operatorId} ·{' '}
                       {formatDate(m.createdAt)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[var(--text-faint)]">Stock</p>
+                    <p className="text-sm text-[var(--text-faint)]">Stock</p>
                     <p className="text-sm font-semibold text-[var(--text-h)]">
                       {m.stockBefore.toLocaleString()} → {m.stockAfter.toLocaleString()}
                     </p>

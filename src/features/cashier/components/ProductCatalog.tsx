@@ -64,7 +64,7 @@ export function ProductCatalog({
             >
               <div className="min-w-0">
                 <p className="truncate font-medium">{product.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {formatCurrency(product.sellingPrice)} / {product.unit} — stock{' '}
                   {product.available}
                 </p>

@@ -27,34 +27,34 @@ export function MarketingFooter() {
             <Link to="/" className="flex items-center gap-2">
               <Logo className="h-7" />
             </Link>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground">
               La gestion de stock, caisse et facturation simple et moderne pour les PME.
             </p>
           </div>
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h3 className="mb-3 text-sm font-semibold">{category}</h3>
+              <h3 className="mb-3 text-base font-semibold">{category}</h3>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
                     {link.href.startsWith('mailto:') ? (
                       <a
                         href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground"
+                        className="text-base text-muted-foreground hover:text-foreground"
                       >
                         {link.label}
                       </a>
                     ) : link.href.startsWith('#') ? (
                       <a
                         href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground"
+                        className="text-base text-muted-foreground hover:text-foreground"
                       >
                         {link.label}
                       </a>
                     ) : (
                       <Link
                         to={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground"
+                        className="text-base text-muted-foreground hover:text-foreground"
                       >
                         {link.label}
                       </Link>
@@ -65,7 +65,7 @@ export function MarketingFooter() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-base text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} StockFlow. Tous droits réservés.</p>
           <div className="flex gap-6">
             <a href="mailto:team@stockflow.grandigix.com" className="hover:text-foreground">

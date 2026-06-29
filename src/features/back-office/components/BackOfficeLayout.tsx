@@ -27,7 +27,7 @@ export default function BackOfficeLayout() {
           </div>
           <div>
             <p className="font-bold leading-tight">Back Office</p>
-            <p className="text-xs text-muted-foreground">{session?.user.email}</p>
+            <p className="text-sm text-muted-foreground">{session?.user.email}</p>
           </div>
         </div>
 

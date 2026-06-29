@@ -321,7 +321,7 @@ export default function LandingPage() {
                     {item.step}
                   </div>
                   <h3 className="mb-2 font-semibold">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <p className="text-base text-muted-foreground">{item.description}</p>
                 </div>
               ))}
             </div>
@@ -368,7 +368,7 @@ export default function LandingPage() {
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                         <Icon className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="text-sm font-medium">{text}</span>
+                      <span className="text-base font-medium">{text}</span>
                     </li>
                   ))}
                 </ul>
@@ -386,7 +386,7 @@ export default function LandingPage() {
                       key={stat.label}
                       className="flex items-center justify-between rounded-xl border bg-background p-4"
                     >
-                      <span className="text-sm text-muted-foreground">{stat.label}</span>
+                      <span className="text-base text-muted-foreground">{stat.label}</span>
                       <span className="font-semibold">{stat.value}</span>
                     </div>
                   ))}

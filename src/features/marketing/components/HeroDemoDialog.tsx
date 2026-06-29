@@ -20,8 +20,8 @@ export default function HeroDemoDialog() {
       <div className="aspect-video bg-muted">
         <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center text-muted-foreground">
           <Play className="h-12 w-12" />
-          <p className="text-sm">Vidéo de démo à intégrer (YouTube, Loom ou Vimeo)</p>
-          <p className="text-xs">Remplacez ce bloc par une balise &lt;iframe&gt;.</p>
+          <p className="text-base">Vidéo de démo à intégrer (YouTube, Loom ou Vimeo)</p>
+          <p className="text-base">Remplacez ce bloc par une balise &lt;iframe&gt;.</p>
         </div>
       </div>
     </dialog>

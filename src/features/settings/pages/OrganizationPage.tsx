@@ -77,7 +77,7 @@ function FeatureToggle({
             <span className="absolute left-0.5 h-6 w-6 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-5" />
           </label>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   )
@@ -148,7 +148,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
           disabled
           readOnly
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.{' '}
           <span className="font-medium text-foreground">Géré par StockFlow :</span> contactez le
           support pour le modifier.
@@ -227,7 +227,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
           {window.location.origin}/store/{organization.slug}
           <ExternalLink className="h-3 w-3" />
         </a>
-        <p className="mt-1 text-xs">
+        <p className="mt-1 text-sm">
           L'URL de votre boutique dépend de l'identifiant. Pour le changer, contactez le support.
         </p>
       </div>
@@ -331,7 +331,7 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
               </option>
             ))}
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             URL publique :{' '}
             <code>
               {window.location.origin}/store/{organization.slug}

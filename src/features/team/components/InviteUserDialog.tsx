@@ -87,22 +87,22 @@ export function InviteUserDialog({
           <div className="space-y-4 py-4">
             <div className="rounded-xl bg-green-50 p-4 text-center">
               <p className="text-sm text-green-700">Utilisateur créé avec succès.</p>
-              <p className="mt-2 text-xs text-muted-foreground">PIN temporaire :</p>
+              <p className="mt-2 text-sm text-muted-foreground">PIN temporaire :</p>
               <p className="text-2xl font-bold tracking-widest text-green-700">{createdPin}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 L'utilisateur doit d'abord définir son mot de passe via le lien ci-dessous, puis se
                 connecter pour choisir son PIN définitif.
               </p>
               {setupLink && (
                 <div className="mt-3 text-left">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Lien de configuration du mot de passe :
                   </p>
                   <a
                     href={setupLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="block break-all text-xs text-green-700 underline"
+                    className="block break-all text-sm text-green-700 underline"
                   >
                     {setupLink}
                   </a>
@@ -141,7 +141,7 @@ export function InviteUserDialog({
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Charlie Comptable"
                 />
-                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
               </div>
             )}
 
@@ -154,7 +154,7 @@ export function InviteUserDialog({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="charlie@exemple.com"
               />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">

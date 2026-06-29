@@ -7,7 +7,7 @@ export function TopBanner() {
   if (!visible) return null
 
   return (
-    <div className="relative bg-primary px-4 py-2 text-center text-xs font-medium text-primary-foreground sm:text-sm">
+    <div className="relative bg-primary px-4 py-2 text-center text-base font-medium text-primary-foreground sm:text-base">
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-2">
         <Zap className="hidden h-4 w-4 sm:inline" />
         <span>StockFlow est maintenant disponible — gestion de stock, caisse et facturation.</span>

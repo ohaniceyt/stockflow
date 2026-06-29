@@ -308,7 +308,7 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
           <p className="text-sm font-medium">Conversion du devis en facture</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label htmlFor="convertIssueDate" className="text-xs font-medium">
+              <label htmlFor="convertIssueDate" className="text-sm font-medium">
                 Date de facture
               </label>
               <input
@@ -320,7 +320,7 @@ export default function DocumentActions({ doc, type, onClose }: DocumentActionsP
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="convertDueDate" className="text-xs font-medium">
+              <label htmlFor="convertDueDate" className="text-sm font-medium">
                 Date d’échéance
               </label>
               <input

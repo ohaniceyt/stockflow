@@ -71,7 +71,7 @@ export function ResponsiveTable<T>({
             <dl className="space-y-1">
               {visibleMobileColumns.map((col) => (
                 <div key={col.key} className="flex items-start justify-between gap-3 py-1">
-                  <dt className="text-xs text-muted-foreground">{col.header}</dt>
+                  <dt className="text-sm text-muted-foreground">{col.header}</dt>
                   <dd className={cn('text-sm', col.className)}>{col.cell(item)}</dd>
                 </div>
               ))}

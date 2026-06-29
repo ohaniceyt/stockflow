@@ -157,7 +157,7 @@ export default function ApiKeysPage() {
 
           <div>
             <span className="text-sm font-medium">Emplacements autorisés</span>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Laissez vide pour autoriser tous les emplacements.
             </p>
             <div className="mt-2 space-y-2">
@@ -202,12 +202,12 @@ export default function ApiKeysPage() {
               <li key={key.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">{key.name}</p>
-                  <p className="text-xs text-muted-foreground">Scopes: {key.scopes.join(', ')}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">Scopes: {key.scopes.join(', ')}</p>
+                  <p className="text-sm text-muted-foreground">
                     Dernière utilisation: {formatDate(key.lastUsedAt)}
                   </p>
                   {key.allowedLocationIds && key.allowedLocationIds.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Emplacements: {key.allowedLocationIds.length}
                     </p>
                   )}

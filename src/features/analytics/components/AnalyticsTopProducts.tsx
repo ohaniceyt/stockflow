@@ -79,7 +79,7 @@ export function AnalyticsTopProducts({
               <li key={product.id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex min-w-0 items-center gap-2 font-medium text-[var(--text-h)]">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                       {index + 1}
                     </span>
                     <span className="truncate">{product.name}</span>
@@ -88,7 +88,7 @@ export function AnalyticsTopProducts({
                     {product.quantity.toLocaleString('fr-FR')}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-[var(--text-faint)]">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-faint)]">
                   <Banknote className="h-3.5 w-3.5" />
                   {product.revenue.toLocaleString('fr-FR')} {currency} de CA
                 </div>

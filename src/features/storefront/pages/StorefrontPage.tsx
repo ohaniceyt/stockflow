@@ -234,11 +234,11 @@ export default function StorefrontPage() {
                   >
                     <div>
                       <p className="font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {formatCurrency(product.sellingPrice, organization.currency)} /{' '}
                         {product.unit}
                       </p>
-                      <p className="text-xs text-muted-foreground">Stock: {product.available}</p>
+                      <p className="text-sm text-muted-foreground">Stock: {product.available}</p>
                     </div>
                     <Plus className="h-5 w-5 text-muted-foreground" />
                   </button>
@@ -259,7 +259,7 @@ export default function StorefrontPage() {
                       <div className="mb-2 flex items-start justify-between">
                         <div>
                           <p className="font-medium">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {formatCurrency(item.price, organization.currency)} / {item.unit}
                           </p>
                         </div>

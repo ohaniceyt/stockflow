@@ -58,7 +58,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           placeholder="Entrepôt principal"
           disabled={isLoading}
         />
-        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
       </div>
 
       <div className="space-y-2">
@@ -70,7 +70,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           placeholder="Zone de stockage principale"
           disabled={isLoading}
         />
-        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+        {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
       </div>
 
       <div className="space-y-2">
@@ -82,7 +82,7 @@ export function LocationForm({ defaultValues, onSubmit, onCancel, isLoading }: L
           placeholder="Abidjan, Côte d'Ivoire"
           disabled={isLoading}
         />
-        {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+        {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

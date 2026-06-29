@@ -14,7 +14,7 @@ export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitche
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Mes organisations
       </p>
       <div className="space-y-1">

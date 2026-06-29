@@ -55,7 +55,7 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
       <h3 className="card-t">Taux de rotation</h3>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
             <tr className="border-b border-[var(--border)] text-left text-[var(--text-faint)]">
               <th className="pb-2 font-medium">Produit</th>
@@ -91,8 +91,8 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
             key={row.productId}
             className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3"
           >
-            <p className="truncate text-sm font-medium text-[var(--text-h)]">{row.name}</p>
-            <div className="mt-1 grid grid-cols-3 gap-2 text-center text-xs text-[var(--text-faint)]">
+            <p className="truncate text-base font-medium text-[var(--text-h)]">{row.name}</p>
+            <div className="mt-1 grid grid-cols-3 gap-2 text-center text-base text-[var(--text-faint)]">
               <div>
                 <p className="font-semibold text-[var(--text)]">
                   {row.outQty.toLocaleString('fr-FR')}

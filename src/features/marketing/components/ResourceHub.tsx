@@ -35,8 +35,8 @@ export function ResourceHub({ resources }: ResourceHubProps) {
               >
                 <Icon className="h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-lg font-semibold">{resource.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{resource.description}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                <p className="mt-2 text-base text-muted-foreground">{resource.description}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-base font-medium text-primary">
                   Lire la suite{' '}
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </span>

@@ -201,7 +201,7 @@ export function BulkMovementForm({
                     ))}
                   </Select>
                   {errors[`line-${String(index)}-product`] && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-sm text-destructive">
                       {errors[`line-${String(index)}-product`]}
                     </p>
                   )}
@@ -225,7 +225,7 @@ export function BulkMovementForm({
                     ))}
                   </Select>
                   {errors[`line-${String(index)}-location`] && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-sm text-destructive">
                       {errors[`line-${String(index)}-location`]}
                     </p>
                   )}
@@ -250,7 +250,7 @@ export function BulkMovementForm({
                         ))}
                     </Select>
                     {errors[`line-${String(index)}-target`] && (
-                      <p className="text-xs text-destructive">
+                      <p className="text-sm text-destructive">
                         {errors[`line-${String(index)}-target`]}
                       </p>
                     )}
@@ -294,7 +294,7 @@ export function BulkMovementForm({
                     disabled={isLoading}
                   />
                   {errors[`line-${String(index)}-quantity`] && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-sm text-destructive">
                       {errors[`line-${String(index)}-quantity`]}
                     </p>
                   )}

@@ -15,8 +15,8 @@ export function HeroSection() {
       <div className="mx-auto max-w-7xl">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-sm">
-              <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-base">
+              <span className="rounded-full bg-primary px-2 py-0.5 text-base font-medium text-primary-foreground">
                 Nouveau
               </span>
               <span className="text-muted-foreground">
@@ -34,7 +34,7 @@ export function HeroSection() {
               {valueProps.map((prop) => (
                 <li
                   key={prop}
-                  className="flex items-center gap-2 text-sm font-medium text-foreground"
+                  className="flex items-center gap-2 text-base font-medium text-foreground"
                 >
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                   {prop}
@@ -56,7 +56,7 @@ export function HeroSection() {
                 Voir la démo
               </MarketingButton>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">
+            <p className="mt-4 text-base text-muted-foreground">
               1 mois d’essai gratuit. Sans carte bancaire.
             </p>
           </div>
@@ -74,7 +74,7 @@ export function HeroSection() {
                 fetchpriority="high"
                 sizes="(min-width: 1024px) 50vw, 100vw"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-muted/80 text-sm text-muted-foreground">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/80 text-base text-muted-foreground">
                 Aperçu du tableau de bord
               </div>
             </div>

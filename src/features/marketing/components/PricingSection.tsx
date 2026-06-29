@@ -35,7 +35,7 @@ export function PricingSection({ tiers }: PricingSectionProps) {
             <button
               type="button"
               onClick={() => setYearly(false)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
                 !yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
               }`}
             >
@@ -44,11 +44,11 @@ export function PricingSection({ tiers }: PricingSectionProps) {
             <button
               type="button"
               onClick={() => setYearly(true)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
                 yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
               }`}
             >
-              Annuel <span className="ml-1 text-xs text-primary">-20%</span>
+              Annuel <span className="ml-1 text-base text-primary">-20%</span>
             </button>
           </div>
         </div>
@@ -69,32 +69,32 @@ export function PricingSection({ tiers }: PricingSectionProps) {
                 }`}
               >
                 {tier.highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-base font-semibold text-primary-foreground">
                     Le plus populaire
                   </span>
                 )}
                 <h3 className="text-lg font-semibold">{tier.name}</h3>
                 <p
-                  className={`mt-2 text-sm ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
+                  className={`mt-2 text-base ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
                 >
                   {tier.description}
                 </p>
                 <div className="mt-6 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold">{price}</span>
                   <span
-                    className={`text-sm ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
+                    className={`text-base ${tier.highlighted ? 'text-foreground/80' : 'text-muted-foreground'}`}
                   >
                     {period}
                   </span>
                 </div>
                 {yearly && tier.yearlyPrice && (
-                  <p className="mt-1 text-xs text-primary">
+                  <p className="mt-1 text-base text-primary">
                     {`${(tier.yearlyPrice / 100).toLocaleString('fr-FR')} €`} facturés par an
                   </p>
                 )}
                 <ul className="mt-8 flex-1 space-y-3">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
+                    <li key={feature} className="flex items-start gap-2 text-base">
                       <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       {feature}
                     </li>
@@ -111,7 +111,7 @@ export function PricingSection({ tiers }: PricingSectionProps) {
             )
           })}
         </div>
-        <p className="mt-8 text-center text-sm text-muted-foreground">
+        <p className="mt-8 text-center text-base text-muted-foreground">
           Tous les plans payants incluent 1 mois d’essai gratuit. Annulation à tout moment.
         </p>
       </div>

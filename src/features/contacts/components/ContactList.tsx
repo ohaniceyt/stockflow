@@ -36,11 +36,11 @@ export function ContactList({
             <div className="flex items-center gap-2">
               <p className="truncate font-semibold">{contact.name}</p>
               {contact.isActive ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-sm font-medium text-emerald-700">
                   Actif
                 </span>
               ) : (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-medium text-muted-foreground">
                   Inactif
                 </span>
               )}

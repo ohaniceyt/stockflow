@@ -230,17 +230,17 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
 
       {isCustom && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-sm text-[var(--text)]">
+          <label className="flex items-center gap-1.5 text-base text-[var(--text)]">
             Du
             <input
               type="date"
               value={startDate}
               max={endDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--text-h)]"
+              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-base text-[var(--text-h)]"
             />
           </label>
-          <label className="flex items-center gap-1.5 text-sm text-[var(--text)]">
+          <label className="flex items-center gap-1.5 text-base text-[var(--text)]">
             au
             <input
               type="date"
@@ -248,7 +248,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
               min={startDate}
               max={toInputDate(today)}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--text-h)]"
+              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-base text-[var(--text-h)]"
             />
           </label>
         </div>

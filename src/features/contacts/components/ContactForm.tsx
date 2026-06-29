@@ -86,7 +86,7 @@ export function ContactForm({
           placeholder={type === 'SUPPLIER' ? 'Nom du fournisseur' : 'Nom du client'}
           disabled={disabled}
         />
-        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -100,7 +100,7 @@ export function ContactForm({
             placeholder="contact@exemple.com"
             disabled={disabled}
           />
-          {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="contact-phone">Téléphone</Label>
@@ -111,7 +111,7 @@ export function ContactForm({
             placeholder="+225 XX XX XX XX"
             disabled={disabled}
           />
-          {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+          {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export function ContactForm({
           placeholder="Abidjan, Côte d'Ivoire"
           disabled={disabled}
         />
-        {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+        {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
       </div>
 
       <div className="space-y-2">
@@ -136,7 +136,7 @@ export function ContactForm({
           placeholder="CI123456789"
           disabled={disabled}
         />
-        {errors.taxId && <p className="text-xs text-destructive">{errors.taxId}</p>}
+        {errors.taxId && <p className="text-sm text-destructive">{errors.taxId}</p>}
       </div>
 
       <div className="space-y-2">
@@ -148,7 +148,7 @@ export function ContactForm({
           placeholder="Informations complémentaires"
           disabled={disabled}
         />
-        {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
+        {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
       </div>
 
       <div className="space-y-2">

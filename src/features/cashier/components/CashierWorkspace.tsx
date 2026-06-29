@@ -201,7 +201,7 @@ export function CashierWorkspace({
       <div className="flex flex-col gap-3 border-b bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <div className="space-y-1">
-            <Label htmlFor="location" className="text-xs">
+            <Label htmlFor="location" className="text-sm">
               Emplacement
             </Label>
             <Select
@@ -223,7 +223,7 @@ export function CashierWorkspace({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="customer" className="text-xs">
+            <Label htmlFor="customer" className="text-sm">
               Client
             </Label>
             <Select

@@ -56,7 +56,7 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
             const isTop = index < 3
             return (
               <li key={product.id} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-base">
                   <span className="flex min-w-0 items-center gap-2 font-medium text-[var(--text-h)]">
                     <TrendingUp
                       className={`h-3.5 w-3.5 shrink-0 ${isTop ? 'text-[var(--emerald)]' : 'text-[var(--text-faint)]'}`}

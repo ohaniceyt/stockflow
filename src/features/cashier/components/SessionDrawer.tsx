@@ -159,7 +159,7 @@ export function SessionDrawer({
                   >
                     <div>
                       <p className="font-medium">{sale.productName ?? 'Produit'}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {formatDateTime(sale.createdAt)} — {sale.quantity} x{' '}
                         {formatCurrency(sale.unitPrice ?? 0)}
                       </p>
