@@ -7,6 +7,7 @@ const tabs = [
   { to: '/settings/team', label: 'Équipe' },
   { to: '/settings/api', label: 'API' },
   { to: '/settings/subscription', label: 'Abonnement' },
+  { to: '/settings/storefront', label: 'Store' },
 ]
 
 export function SettingsTabs() {

@@ -697,6 +697,40 @@ export default function OrganizationPage() {
         ) : null}
       </div>
 
+      {displayOrganization?.hasStorefrontEnabled && (
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Store className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Store front</h2>
+              <p className="text-sm text-muted-foreground">
+                Boutique publique et commandes en ligne.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              URL publique :{' '}
+              <code>
+                {window.location.origin}/store/{displayOrganization.slug}
+              </code>
+            </p>
+            <Button variant="outline" asChild>
+              <a
+                href={`/store/${displayOrganization.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ouvrir la boutique
+              </a>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">

@@ -76,6 +76,13 @@ export const navItems: NavItem[] = [
   { to: '/customers', label: 'Clients', icon: UserCheck, roles: ['super_admin', 'admin'] },
   { to: '/team', label: 'Équipe', icon: Users, roles: ['super_admin', 'admin'] },
   {
+    to: '/store',
+    label: 'Store',
+    icon: Store,
+    roles: ['super_admin', 'admin'],
+    requiresFeature: 'storefront',
+  },
+  {
     to: '/invoices',
     label: 'Facturation',
     icon: Receipt,

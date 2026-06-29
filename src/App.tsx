@@ -196,6 +196,14 @@ function App() {
                 </RequireAuth>
               }
             />
+            <Route
+              path="/settings/storefront"
+              element={
+                <RequireAuth roles={['super_admin', 'admin']}>
+                  <OrganizationSettingsPage />
+                </RequireAuth>
+              }
+            />
             <Route path="/settings/subscription" element={<SubscriptionPage />} />
             <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
           </Route>
