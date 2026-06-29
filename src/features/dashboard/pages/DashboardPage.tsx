@@ -16,7 +16,6 @@ import { DashboardTopProducts } from '../components/DashboardTopProducts'
 import { DashboardRotation } from '../components/DashboardRotation'
 import { DashboardAlerts } from '../components/DashboardAlerts'
 import { DashboardRecentMovements } from '../components/DashboardRecentMovements'
-import { DashboardRecap } from '../components/DashboardRecap'
 
 function SectionSkeleton({ label }: { label: string }) {
   return (
@@ -163,8 +162,6 @@ export default function DashboardPage() {
                 onSelectProduct={handleSelectProduct}
               />
             </div>
-
-            <DashboardRecap />
           </>
         )}
 
