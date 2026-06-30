@@ -12,11 +12,19 @@ CREATE INDEX IF NOT EXISTS idx_rate_limit_requests_key_type_created
 -- Enable RLS and lock the table down: only service-role can write.
 ALTER TABLE rate_limit_requests ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Service role only" ON rate_limit_requests
-  AS PERMISSIVE FOR ALL
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'rate_limit_requests' AND policyname = 'Service role only'
+  ) THEN
+    CREATE POLICY "Service role only" ON rate_limit_requests
+      AS PERMISSIVE FOR ALL
+      TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Clean old rows automatically after 24 hours.
 CREATE OR REPLACE FUNCTION cleanup_rate_limit_requests()

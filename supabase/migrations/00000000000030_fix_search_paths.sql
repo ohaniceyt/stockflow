@@ -5,31 +5,52 @@
 -- triggers during onboarding and normal operation. Restoring an explicit
 -- search_path of public, pg_catalog keeps table resolution deterministic
 -- while still avoiding search-path hijacking.
+--
+-- Wrapped in a DO block so missing functions are skipped when the migration is
+-- replayed on a fresh shadow DB (some functions are dropped/renamed by later
+-- migrations).
 
-ALTER FUNCTION public.update_updated_at_column() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.ensure_default_location() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.create_default_stock_level() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.record_movement(UUID, UUID, UUID, TEXT, INTEGER, TEXT, UUID, DECIMAL) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.apply_inventory_session(UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.set_default_location(UUID, UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_user_role() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_user_is_admin_or_super_admin() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_user_is_operator_or_above() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_membership() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_user_org_id() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.is_super_admin() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.is_platform_admin() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.is_platform_admin(UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.platform_admin_role(UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.log_platform_action(UUID, TEXT, TEXT, TEXT, UUID, JSONB) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.current_org_plan_id() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.movements_count_this_month(UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.cleanup_old_login_attempts(INTEGER) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.cleanup_old_magic_link_requests(INTEGER) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.update_contacts_updated_at() SET search_path = public, pg_catalog;
-ALTER FUNCTION public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.complete_onboarding(UUID, TEXT, TEXT, TEXT, TEXT, TEXT) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.create_inventory_session(UUID, UUID, TEXT, UUID) SET search_path = public, pg_catalog;
-ALTER FUNCTION public.update_inventory_count(UUID, INTEGER) SET search_path = public, pg_catalog;
+DO $$
+DECLARE
+  fn record;
+BEGIN
+  FOR fn IN
+    SELECT
+      p.proname AS name,
+      pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'update_updated_at_column',
+        'ensure_default_location',
+        'create_default_stock_level',
+        'record_movement',
+        'apply_inventory_session',
+        'set_default_location',
+        'current_user_role',
+        'current_user_is_admin_or_super_admin',
+        'current_user_is_operator_or_above',
+        'current_membership',
+        'current_user_org_id',
+        'is_super_admin',
+        'is_platform_admin',
+        'platform_admin_role',
+        'log_platform_action',
+        'current_org_plan_id',
+        'movements_count_this_month',
+        'cleanup_old_login_attempts',
+        'cleanup_old_magic_link_requests',
+        'update_contacts_updated_at',
+        'complete_onboarding',
+        'create_inventory_session',
+        'update_inventory_count'
+      )
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER FUNCTION public.%I(%s) SET search_path = public, pg_catalog', fn.name, fn.args);
+    EXCEPTION WHEN undefined_function THEN
+      RAISE NOTICE 'Skipping missing function: %(%s)', fn.name, fn.args;
+    END;
+  END LOOP;
+END $$;
