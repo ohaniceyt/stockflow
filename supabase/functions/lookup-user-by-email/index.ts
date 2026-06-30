@@ -15,8 +15,7 @@ Deno.serve((req: Request) => {
 
   return new Response(
     JSON.stringify({
-      error:
-        'This endpoint is disabled. Use an authenticated alternative or contact support.',
+      error: 'This endpoint is disabled. Use an authenticated alternative or contact support.',
     }),
     {
       status: 410,

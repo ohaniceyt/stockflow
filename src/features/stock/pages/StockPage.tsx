@@ -87,7 +87,10 @@ export default function StockPage() {
         {isPending ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm">
+              <div
+                key={i}
+                className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm"
+              >
                 <span className="absolute left-0 right-0 top-0 h-1 bg-border" />
                 <div className="mb-3 h-1 w-full animate-pulse rounded-full bg-muted" />
                 <div className="mb-2 flex items-start justify-between gap-2">

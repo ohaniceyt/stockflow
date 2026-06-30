@@ -3,6 +3,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface OrgFeatures {
   has_cashier_enabled: boolean
@@ -171,6 +172,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const receiptId = (saleData as { receipt_id: string }).receipt_id
+
+    await logActivity(adminClient, {
+      org_id: operator.org_id,
+      actor_id: claims.sub,
+      action: 'sale_completed',
+      entity_type: 'receipt',
+      entity_id: receiptId,
+      metadata: {
+        amount_paid: payload.amount_paid,
+        currency: payload.currency,
+        item_count: payload.items.length,
+        payment_method: payload.payment_method,
+      },
+    })
 
     const [{ data: receipt, error: receiptError }, { data: items }] = await Promise.all([
       adminClient.from('receipts').select('*').eq('id', receiptId).single(),

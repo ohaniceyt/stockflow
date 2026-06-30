@@ -19,10 +19,7 @@ export function FaqSection({ faqs }: FaqSectionProps) {
         </div>
         <div className="w-full">
           {faqs.map((faq, index) => (
-            <details
-              key={index}
-              className="group border-b border-border"
-            >
+            <details key={index} className="group border-b border-border">
               <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-left text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {faq.question}
                 <span className="ml-2 text-muted-foreground transition-transform group-open:rotate-180">

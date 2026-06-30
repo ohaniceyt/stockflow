@@ -59,10 +59,7 @@ export default function ApiKeysPage() {
   if (!canManage) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <PageHeader
-          title="Paramètres"
-          description="Gérez les clés API de votre organisation."
-        />
+        <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
         <SettingsTabs />
         <EmptyState
           icon={ShieldCheck}
@@ -75,17 +72,11 @@ export default function ApiKeysPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
-        title="Paramètres"
-        description="Gérez les clés API de votre organisation."
-      />
+      <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
 
       <SettingsTabs />
 
-      <PageSection
-        title="Clés API"
-        description="Connectez votre boutique externe à StockFlow."
-      >
+      <PageSection title="Clés API" description="Connectez votre boutique externe à StockFlow.">
         {createdKey && (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <p className="text-sm font-medium text-emerald-800">

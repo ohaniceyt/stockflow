@@ -1,13 +1,5 @@
 import { useState, type SyntheticEvent } from 'react'
-import {
-  Star,
-  Store,
-  ShoppingCart,
-  Plug,
-  Percent,
-  ExternalLink,
-  AlertTriangle,
-} from 'lucide-react'
+import { Star, Store, ShoppingCart, Plug, Percent, ExternalLink, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +44,9 @@ function FeatureToggle({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor={inputId} className="font-medium">{label}</Label>
+          <Label htmlFor={inputId} className="font-medium">
+            {label}
+          </Label>
           <label
             htmlFor={inputId}
             className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -135,7 +129,13 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         <Label htmlFor="org-slug">
           Identifiant unique <span className="text-muted-foreground">(ex: ma-boutique)</span>
         </Label>
-        <Input id="org-slug" value={organization.slug} placeholder="ma-boutique" disabled readOnly />
+        <Input
+          id="org-slug"
+          value={organization.slug}
+          placeholder="ma-boutique"
+          disabled
+          readOnly
+        />
         <p className="text-sm text-muted-foreground">
           Lettres minuscules, chiffres et tirets uniquement. Utilisé pour le portail public.{' '}
           <span className="font-medium text-foreground">Géré par StockFlow :</span> contactez le
@@ -575,10 +575,7 @@ export default function OrganizationPage() {
       </PageSection>
 
       {displayOrganization?.hasStorefrontEnabled && (
-        <PageSection
-          title="Store front"
-          description="Boutique publique et commandes en ligne."
-        >
+        <PageSection title="Store front" description="Boutique publique et commandes en ligne.">
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               URL publique :{' '}

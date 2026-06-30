@@ -16,6 +16,7 @@ export default defineConfig([
     '.npm-cache',
     '.claude',
     'playwright.config.ts',
+    'public/sw.js',
   ]),
   {
     files: ['**/*.{ts,tsx}'],

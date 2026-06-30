@@ -37,23 +37,15 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
-        title="Paramètres"
-        description="Gérez votre profil et vos préférences."
-      />
+      <PageHeader title="Paramètres" description="Gérez votre profil et vos préférences." />
 
       <SettingsTabs />
 
       {error && <p className="text-destructive">{error.message}</p>}
       {formError && <p className="text-destructive">{formError}</p>}
-      {update.isSuccess && (
-        <StatusBadge variant="success">Profil mis à jour.</StatusBadge>
-      )}
+      {update.isSuccess && <StatusBadge variant="success">Profil mis à jour.</StatusBadge>}
 
-      <PageSection
-        title="Informations personnelles"
-        description={session?.user.email}
-      >
+      <PageSection title="Informations personnelles" description={session?.user.email}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nom complet</Label>
@@ -98,11 +90,11 @@ export default function ProfilePage() {
 
       <PageSection title="Apparence" description="Choisissez le thème de l'interface.">
         <div className="flex flex-wrap gap-2">
-          {([
+          {[
             { mode: 'light' as Theme, label: 'Clair', icon: Sun },
             { mode: 'dark' as Theme, label: 'Sombre', icon: Moon },
             { mode: 'system' as Theme, label: 'Système', icon: Monitor },
-          ]).map(({ mode, label, icon: Icon }) => (
+          ].map(({ mode, label, icon: Icon }) => (
             <Button
               key={mode}
               type="button"

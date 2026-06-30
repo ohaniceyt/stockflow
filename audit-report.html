@@ -1,905 +1,1359 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Audit complet — StockFlow vNext</title>
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --primary: #2563eb;
-      --primary-soft: #eff6ff;
-      --success: #059669;
-      --success-soft: #d1fae5;
-      --warning: #d97706;
-      --warning-soft: #fef3c7;
-      --danger: #e11d48;
-      --danger-soft: #ffe4e6;
-      --border: #e2e8f0;
-      --radius: 0.75rem;
-      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-      --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.1);
-      --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-    }
-
-    /* Header */
-    .report-header {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 2.5rem;
-      margin-bottom: 2rem;
-      box-shadow: var(--shadow);
-    }
-
-    .report-header h1 {
-      font-size: 2.25rem;
-      font-weight: 800;
-      margin: 0 0 0.75rem;
-      letter-spacing: -0.02em;
-    }
-
-    .report-header .subtitle {
-      color: var(--muted);
-      font-size: 1.125rem;
-      margin: 0 0 1.5rem;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-    }
-
-    .meta-card {
-      background: var(--primary-soft);
-      border-radius: calc(var(--radius) - 4px);
-      padding: 1rem;
-    }
-
-    .meta-card .label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--primary);
-      margin-bottom: 0.25rem;
-    }
-
-    .meta-card .value {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    /* Global score */
-    .global-score {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: white;
-      border-radius: var(--radius);
-      padding: 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 2rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .global-score .score-circle {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      border: 8px solid rgba(255,255,255,0.15);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .global-score .score-number {
-      font-size: 2.75rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .global-score .score-label {
-      font-size: 0.875rem;
-      opacity: 0.8;
-      margin-top: 0.25rem;
-    }
-
-    .global-score .verdict {
-      flex: 1;
-      min-width: 260px;
-    }
-
-    .global-score .verdict h2 {
-      font-size: 1.5rem;
-      margin: 0 0 0.75rem;
-    }
-
-    .global-score .verdict p {
-      margin: 0;
-      opacity: 0.9;
-      font-size: 1rem;
-    }
-
-    /* Section headings */
-    h2 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin: 3rem 0 1.25rem;
-      letter-spacing: -0.01em;
-    }
-
-    h3 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin: 2rem 0 0.75rem;
-    }
-
-    h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin: 1.5rem 0 0.5rem;
-    }
-
-    p {
-      margin: 0 0 1rem;
-      color: var(--text);
-    }
-
-    /* Score cards */
-    .score-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .score-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-      box-shadow: var(--shadow);
-      transition: transform 0.15s ease;
-    }
-
-    .score-card:hover {
-      transform: translateY(-2px);
-    }
-
-    .score-card .domain {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .score-card .score-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-
-    .score-card .score {
-      font-size: 1.875rem;
-      font-weight: 800;
-    }
-
-    .score-card .comment {
-      font-size: 0.875rem;
-      color: var(--muted);
-      margin-top: 0.5rem;
-      line-height: 1.5;
-    }
-
-    /* Progress bar */
-    .progress {
-      width: 100%;
-      height: 8px;
-      background: var(--bg);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 0.75rem;
-    }
-
-    .progress-bar {
-      height: 100%;
-      border-radius: 999px;
-    }
-
-    .score-low { color: var(--danger); }
-    .score-mid { color: var(--warning); }
-    .score-high { color: var(--success); }
-    .bg-low { background: var(--danger); }
-    .bg-mid { background: var(--warning); }
-    .bg-high { background: var(--success); }
-
-    /* Tables */
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      margin-bottom: 2rem;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9375rem;
-    }
-
-    th, td {
-      padding: 0.875rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
-
-    th {
-      background: var(--bg);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover td {
-      background: var(--bg);
-    }
-
-    .severity {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .severity-critical {
-      background: var(--danger-soft);
-      color: var(--danger);
-    }
-
-    .severity-high {
-      background: var(--warning-soft);
-      color: var(--warning);
-    }
-
-    .severity-medium {
-      background: var(--primary-soft);
-      color: var(--primary);
-    }
-
-    .severity-low {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-
-    /* Cards / callouts */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: var(--shadow);
-    }
-
-    .callout {
-      border-left: 4px solid var(--primary);
-      background: var(--primary-soft);
-      padding: 1rem 1.25rem;
-      border-radius: 0 calc(var(--radius) - 4px) calc(var(--radius) - 4px) 0;
-      margin-bottom: 1.5rem;
-    }
-
-    .callout.danger {
-      border-left-color: var(--danger);
-      background: var(--danger-soft);
-    }
-
-    .callout.warning {
-      border-left-color: var(--warning);
-      background: var(--warning-soft);
-    }
-
-    .callout.success {
-      border-left-color: var(--success);
-      background: var(--success-soft);
-    }
-
-    .callout strong {
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-
-    /* Lists */
-    ul, ol {
-      margin: 0 0 1.25rem 1.25rem;
-      padding: 0;
-    }
-
-    li {
-      margin-bottom: 0.5rem;
-    }
-
-    /* Code / paths */
-    code {
-      font-family: 'SF Mono', Monaco, Consolas, monospace;
-      font-size: 0.85em;
-      background: var(--bg);
-      padding: 0.15rem 0.35rem;
-      border-radius: 4px;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    /* Action plan phases */
-    .phase {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      margin-bottom: 1.25rem;
-      box-shadow: var(--shadow);
-    }
-
-    .phase-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .phase-number {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.875rem;
-    }
-
-    .phase-title {
-      font-weight: 700;
-      font-size: 1.125rem;
-    }
-
-    .phase-meta {
-      font-size: 0.875rem;
-      color: var(--muted);
-      margin-left: auto;
-    }
-
-    /* Footer */
-    .report-footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.875rem;
-      margin-top: 3rem;
-      padding: 2rem 0;
-      border-top: 1px solid var(--border);
-    }
-
-    /* Print */
-    @media print {
-      body { background: white; }
-      .card, .score-card, .phase, .report-header, .table-wrap {
-        box-shadow: none;
-        break-inside: avoid;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audit complet — StockFlow vNext</title>
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text: #0f172a;
+        --muted: #475569;
+        --primary: #2563eb;
+        --primary-soft: #eff6ff;
+        --success: #059669;
+        --success-soft: #d1fae5;
+        --warning: #d97706;
+        --warning-soft: #fef3c7;
+        --danger: #e11d48;
+        --danger-soft: #ffe4e6;
+        --border: #e2e8f0;
+        --radius: 0.75rem;
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+        --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+
+      /* Header */
+      .report-header {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow);
+      }
+
+      .report-header h1 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin: 0 0 0.75rem;
+        letter-spacing: -0.02em;
+      }
+
+      .report-header .subtitle {
+        color: var(--muted);
+        font-size: 1.125rem;
+        margin: 0 0 1.5rem;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+
+      .meta-card {
+        background: var(--primary-soft);
+        border-radius: calc(var(--radius) - 4px);
+        padding: 1rem;
+      }
+
+      .meta-card .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        margin-bottom: 0.25rem;
+      }
+
+      .meta-card .value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* Global score */
       .global-score {
-        background: #0f172a !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        border-radius: var(--radius);
+        padding: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
       }
-    }
 
-    @media (max-width: 640px) {
-      .report-header h1 { font-size: 1.625rem; }
-      .global-score { padding: 1.5rem; }
-      .global-score .score-circle { width: 110px; height: 110px; }
-      .global-score .score-number { font-size: 2rem; }
-      .score-grid { grid-template-columns: 1fr; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header class="report-header">
-      <h1>Audit complet — StockFlow vNext</h1>
-      <p class="subtitle">Front-end, back-end, UI/UX, parcours utilisateur, sécurité, conformité réglementaire, tests, DevOps et opérations.</p>
-      <div class="meta-grid">
-        <div class="meta-card">
-          <div class="label">Date</div>
-          <div class="value">23 juin 2026</div>
-        </div>
-        <div class="meta-card">
-          <div class="label">Scope</div>
-          <div class="value">src/, supabase/, tests, configs</div>
-        </div>
-        <div class="meta-card">
-          <div class="label">Mode</div>
-          <div class="value">Revue statique — aucun fichier modifié</div>
-        </div>
-        <div class="meta-card">
-          <div class="label">Score global</div>
-          <div class="value">5,5 / 10</div>
-        </div>
-      </div>
-    </header>
+      .global-score .score-circle {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        border: 8px solid rgba(255, 255, 255, 0.15);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
 
-    <section class="global-score">
-      <div class="score-circle">
-        <span class="score-number">5,5</span>
-        <span class="score-label">sur 10</span>
-      </div>
-      <div class="verdict">
-        <h2>Verdict global</h2>
-        <p>StockFlow vNext est une application moderne et bien structurée, avec un bon socle technique. Cependant, elle n'est <strong>pas prête pour la production à grande échelle</strong> sans corriger d'abord les failles de sécurité, les lacunes de conformité et l'opérabilité immature.</p>
-      </div>
-    </section>
+      .global-score .score-number {
+        font-size: 2.75rem;
+        font-weight: 800;
+        line-height: 1;
+      }
 
-    <h2>Scores par domaine</h2>
-    <div class="score-grid">
-      <div class="score-card">
-        <div class="domain">Frontend</div>
-        <div class="score-row">
-          <span class="score score-high">7,3</span>
-        </div>
-        <div class="comment">Architecture solide, mais tokens en localStorage, AppLock mort et PWA inachevée.</div>
-        <div class="progress"><div class="progress-bar bg-high" style="width:73%"></div></div>
-      </div>
-      <div class="score-card">
-        <div class="domain">Backend Supabase</div>
-        <div class="score-row">
-          <span class="score score-mid">5,2</span>
-        </div>
-        <div class="comment">Fonctionnel mais trop permissif : totaux clients trustés, challenge admin brisé, CORS laxiste.</div>
-        <div class="progress"><div class="progress-bar bg-mid" style="width:52%"></div></div>
-      </div>
-      <div class="score-card">
-        <div class="domain">UI/UX & Parcours</div>
-        <div class="score-row">
-          <span class="score score-mid">6,8</span>
-        </div>
-        <div class="comment">Bonne base mobile-first, friction jusqu'à la première vente, pas de notifications globales.</div>
-        <div class="progress"><div class="progress-bar bg-mid" style="width:68%"></div></div>
-      </div>
-      <div class="score-card">
-        <div class="domain">Sécurité & Compliance</div>
-        <div class="score-row">
-          <span class="score score-low">4,0</span>
-        </div>
-        <div class="comment">Secrets exposés, pas de pages légales, audit logs incomplets, RGPD affiché sans fondement.</div>
-        <div class="progress"><div class="progress-bar bg-low" style="width:40%"></div></div>
-      </div>
-      <div class="score-card">
-        <div class="domain">Tests, DevOps & Ops</div>
-        <div class="score-row">
-          <span class="score score-low">4,3</span>
-        </div>
-        <div class="comment">Build vert, mais couverture de tests très faible, pas de monitoring, E2E ne bloque pas le déploiement.</div>
-        <div class="progress"><div class="progress-bar bg-low" style="width:43%"></div></div>
-      </div>
-    </div>
+      .global-score .score-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+      }
 
-    <h2>Top 15 risques critiques</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Risque</th>
-            <th>Sévérité</th>
-            <th>Fichier(s) clé</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td><strong>Clés et tokens exposés localement</strong> — <code>.env</code> contient la clé anon Supabase, <code>.env.local</code> un token Vercel OIDC.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>.env</code>, <code>.env.local</code></td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td><strong><code>complete_sale</code> fait confiance aux totaux envoyés par le client</strong> — subtotal, taxe, total, monnaie insérés sans recalcule serveur.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>supabase/functions/complete-sale/index.ts</code>, migration <code>00000000000049</code></td>
-          </tr>
-          <tr>
-            <td>3</td>
-            <td><strong>Le challenge "platform-admin" ne vérifie pas le mot de passe</strong> — n'importe quel admin plateforme peut exécuter des actions sensibles.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>create-platform-challenge/index.ts</code>, <code>_shared/platform.ts</code></td>
-          </tr>
-          <tr>
-            <td>4</td>
-            <td><strong>XSS dans les emails</strong> — nom d'org, numéro de document, etc. interpolés non échappés dans les templates HTML.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>send-receipt-email</code>, <code>send-document-email</code>, <code>send-invoice-reminder</code>, <code>send-magic-link</code>, <code>request-pin-reset</code></td>
-          </tr>
-          <tr>
-            <td>5</td>
-            <td><strong>PIN reset public non authentifié</strong> — n'importe qui peut forcer <code>force_pin_change=true</code> et envoyer un magic-link.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>supabase/functions/request-pin-reset/index.ts</code></td>
-          </tr>
-          <tr>
-            <td>6</td>
-            <td><strong><code>lookup-user-by-email</code> public expose nom, rôle, orgId, orgName</strong> — énumération d'utilisateurs possible.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>supabase/functions/lookup-user-by-email/index.ts</code></td>
-          </tr>
-          <tr>
-            <td>7</td>
-            <td><strong>Session stockée dans <code>localStorage</code></strong> — <code>accessToken</code>/<code>refreshToken</code> et <code>sudoTarget</code> vulnérables au XSS.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>src/features/auth/context/AuthContext.tsx</code></td>
-          </tr>
-          <tr>
-            <td>8</td>
-            <td><strong><code>send-auto-reminders</code> devient public si <code>AUTO_REMINDER_SECRET</code> est absent</strong> — fail open.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>supabase/functions/send-auto-reminders/index.ts</code></td>
-          </tr>
-          <tr>
-            <td>9</td>
-            <td><strong>Seed contient un admin démo avec PIN <code>1234</code></strong> — si appliqué en prod, accès total.</td>
-            <td><span class="severity severity-critical">Critique</span></td>
-            <td><code>supabase/seed.sql</code>, migrations <code>00000000000004</code>, <code>00000000000014</code></td>
-          </tr>
-          <tr>
-            <td>10</td>
-            <td><strong>Aucune page légale</strong> — pas de <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code>, ni DPO/contact, alors que le marketing affiche "RGPD-ready".</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td>Marketing pages</td>
-          </tr>
-          <tr>
-            <td>11</td>
-            <td><strong>Aucun monitoring / error tracking</strong> — pas de Sentry, logs structurés, health check, ni RUM.</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td>Ensemble du projet</td>
-          </tr>
-          <tr>
-            <td>12</td>
-            <td><strong>Tests très faibles</strong> — 9 tests Vitest, 0 test Edge Function, E2E en <code>continue-on-error</code>.</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td><code>tests/</code>, <code>.github/workflows/ci.yml</code></td>
-          </tr>
-          <tr>
-            <td>13</td>
-            <td><strong>CORS permissif avec localhost en production</strong> — fuite d'origines et exposition dev.</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td><code>supabase/functions/_shared/cors.ts</code></td>
-          </tr>
-          <tr>
-            <td>14</td>
-            <td><strong>Aucun service worker</strong> — l'app dit "offline-first" mais ne cache pas le shell/assets.</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td><code>public/manifest.json</code>, Vite config</td>
-          </tr>
-          <tr>
-            <td>15</td>
-            <td><strong>Pas de notification/toast global</strong> — feedback succès/erreur dispersé et manqué.</td>
-            <td><span class="severity severity-high">Haut</span></td>
-            <td><code>src/components/</code></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      .global-score .verdict {
+        flex: 1;
+        min-width: 260px;
+      }
 
-    <h2>Audit détaillé par domaine</h2>
+      .global-score .verdict h2 {
+        font-size: 1.5rem;
+        margin: 0 0 0.75rem;
+      }
 
-    <div class="card">
-      <h3>1. Frontend — 7,3 / 10</h3>
+      .global-score .verdict p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+
+      /* Section headings */
+      h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 3rem 0 1.25rem;
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 2rem 0 0.75rem;
+      }
+
+      h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 1.5rem 0 0.5rem;
+      }
+
+      p {
+        margin: 0 0 1rem;
+        color: var(--text);
+      }
+
+      /* Score cards */
+      .score-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .score-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        box-shadow: var(--shadow);
+        transition: transform 0.15s ease;
+      }
+
+      .score-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .score-card .domain {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+      }
+
+      .score-card .score-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .score-card .score {
+        font-size: 1.875rem;
+        font-weight: 800;
+      }
+
+      .score-card .comment {
+        font-size: 0.875rem;
+        color: var(--muted);
+        margin-top: 0.5rem;
+        line-height: 1.5;
+      }
+
+      /* Progress bar */
+      .progress {
+        width: 100%;
+        height: 8px;
+        background: var(--bg);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 0.75rem;
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: 999px;
+      }
+
+      .score-low {
+        color: var(--danger);
+      }
+      .score-mid {
+        color: var(--warning);
+      }
+      .score-high {
+        color: var(--success);
+      }
+      .bg-low {
+        background: var(--danger);
+      }
+      .bg-mid {
+        background: var(--warning);
+      }
+      .bg-high {
+        background: var(--success);
+      }
+
+      /* Tables */
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        margin-bottom: 2rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9375rem;
+      }
+
+      th,
+      td {
+        padding: 0.875rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--bg);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tr:hover td {
+        background: var(--bg);
+      }
+
+      .severity {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .severity-critical {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .severity-high {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .severity-medium {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .severity-low {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+
+      /* Cards / callouts */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow);
+      }
+
+      .callout {
+        border-left: 4px solid var(--primary);
+        background: var(--primary-soft);
+        padding: 1rem 1.25rem;
+        border-radius: 0 calc(var(--radius) - 4px) calc(var(--radius) - 4px) 0;
+        margin-bottom: 1.5rem;
+      }
+
+      .callout.danger {
+        border-left-color: var(--danger);
+        background: var(--danger-soft);
+      }
+
+      .callout.warning {
+        border-left-color: var(--warning);
+        background: var(--warning-soft);
+      }
+
+      .callout.success {
+        border-left-color: var(--success);
+        background: var(--success-soft);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin: 0 0 1.25rem 1.25rem;
+        padding: 0;
+      }
+
+      li {
+        margin-bottom: 0.5rem;
+      }
+
+      /* Code / paths */
+      code {
+        font-family: 'SF Mono', Monaco, Consolas, monospace;
+        font-size: 0.85em;
+        background: var(--bg);
+        padding: 0.15rem 0.35rem;
+        border-radius: 4px;
+        color: var(--text);
+        word-break: break-word;
+      }
+
+      /* Action plan phases */
+      .phase {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow);
+      }
+
+      .phase-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .phase-number {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+      }
+
+      .phase-title {
+        font-weight: 700;
+        font-size: 1.125rem;
+      }
+
+      .phase-meta {
+        font-size: 0.875rem;
+        color: var(--muted);
+        margin-left: auto;
+      }
+
+      /* Footer */
+      .report-footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin-top: 3rem;
+        padding: 2rem 0;
+        border-top: 1px solid var(--border);
+      }
+
+      /* Print */
+      @media print {
+        body {
+          background: white;
+        }
+        .card,
+        .score-card,
+        .phase,
+        .report-header,
+        .table-wrap {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .global-score {
+          background: #0f172a !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .report-header h1 {
+          font-size: 1.625rem;
+        }
+        .global-score {
+          padding: 1.5rem;
+        }
+        .global-score .score-circle {
+          width: 110px;
+          height: 110px;
+        }
+        .global-score .score-number {
+          font-size: 2rem;
+        }
+        .score-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="report-header">
+        <h1>Audit complet — StockFlow vNext</h1>
+        <p class="subtitle">
+          Front-end, back-end, UI/UX, parcours utilisateur, sécurité, conformité réglementaire,
+          tests, DevOps et opérations.
+        </p>
+        <div class="meta-grid">
+          <div class="meta-card">
+            <div class="label">Date</div>
+            <div class="value">23 juin 2026</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Scope</div>
+            <div class="value">src/, supabase/, tests, configs</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Mode</div>
+            <div class="value">Revue statique — aucun fichier modifié</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Score global</div>
+            <div class="value">5,5 / 10</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="global-score">
+        <div class="score-circle">
+          <span class="score-number">5,5</span>
+          <span class="score-label">sur 10</span>
+        </div>
+        <div class="verdict">
+          <h2>Verdict global</h2>
+          <p>
+            StockFlow vNext est une application moderne et bien structurée, avec un bon socle
+            technique. Cependant, elle n'est
+            <strong>pas prête pour la production à grande échelle</strong> sans corriger d'abord les
+            failles de sécurité, les lacunes de conformité et l'opérabilité immature.
+          </p>
+        </div>
+      </section>
+
+      <h2>Scores par domaine</h2>
+      <div class="score-grid">
+        <div class="score-card">
+          <div class="domain">Frontend</div>
+          <div class="score-row">
+            <span class="score score-high">7,3</span>
+          </div>
+          <div class="comment">
+            Architecture solide, mais tokens en localStorage, AppLock mort et PWA inachevée.
+          </div>
+          <div class="progress"><div class="progress-bar bg-high" style="width: 73%"></div></div>
+        </div>
+        <div class="score-card">
+          <div class="domain">Backend Supabase</div>
+          <div class="score-row">
+            <span class="score score-mid">5,2</span>
+          </div>
+          <div class="comment">
+            Fonctionnel mais trop permissif : totaux clients trustés, challenge admin brisé, CORS
+            laxiste.
+          </div>
+          <div class="progress"><div class="progress-bar bg-mid" style="width: 52%"></div></div>
+        </div>
+        <div class="score-card">
+          <div class="domain">UI/UX & Parcours</div>
+          <div class="score-row">
+            <span class="score score-mid">6,8</span>
+          </div>
+          <div class="comment">
+            Bonne base mobile-first, friction jusqu'à la première vente, pas de notifications
+            globales.
+          </div>
+          <div class="progress"><div class="progress-bar bg-mid" style="width: 68%"></div></div>
+        </div>
+        <div class="score-card">
+          <div class="domain">Sécurité & Compliance</div>
+          <div class="score-row">
+            <span class="score score-low">4,0</span>
+          </div>
+          <div class="comment">
+            Secrets exposés, pas de pages légales, audit logs incomplets, RGPD affiché sans
+            fondement.
+          </div>
+          <div class="progress"><div class="progress-bar bg-low" style="width: 40%"></div></div>
+        </div>
+        <div class="score-card">
+          <div class="domain">Tests, DevOps & Ops</div>
+          <div class="score-row">
+            <span class="score score-low">4,3</span>
+          </div>
+          <div class="comment">
+            Build vert, mais couverture de tests très faible, pas de monitoring, E2E ne bloque pas
+            le déploiement.
+          </div>
+          <div class="progress"><div class="progress-bar bg-low" style="width: 43%"></div></div>
+        </div>
+      </div>
+
+      <h2>Top 15 risques critiques</h2>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Sous-catégorie</th>
-              <th>Score</th>
-              <th>Commentaire</th>
+              <th>#</th>
+              <th>Risque</th>
+              <th>Sévérité</th>
+              <th>Fichier(s) clé</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>Architecture</td><td>7,5</td><td>Feature-based clair, lazy loading, mais pas de barrel files, <code>zustand</code> inutilisé, <code>src/app</code> mort</td></tr>
-            <tr><td>Qualité du code</td><td>8,0</td><td>TS strict, zéro <code>any</code>, mais 17 <code>eslint-disable</code>, 16 <code>console.*</code>, faible couverture tests</td></tr>
-            <tr><td>React best practices</td><td>7,5</td><td><code>AuthContext</code> monolithique (833 lignes) qui re-render tout, effets à vérifier</td></tr>
-            <tr><td>Routage & auth</td><td>7,0</td><td>Guards présents mais tokens en localStorage, AppLock désactivé, 404 → login</td></tr>
-            <tr><td>Design system</td><td>6,5</td><td>Utilitaires CSS legacy cohabitent avec shadcn/ui</td></tr>
-            <tr><td>Formulaires & a11y</td><td>6,5</td><td>Zod présent, pas de <code>react-hook-form</code>, validation au submit, manque <code>aria-invalid</code></td></tr>
-            <tr><td>Mobile / PWA</td><td>7,0</td><td>Bien responsive, mais manifest incomplet et <strong>aucun service worker</strong></td></tr>
-            <tr><td>Offline / sync</td><td>8,0</td><td>Dexie + queue robuste, mais pas de background sync et sync full des mouvements</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h4>Recommandations clés</h4>
-      <ul>
-        <li>Retirer <code>accessToken</code>/<code>refreshToken</code> du <code>localStorage</code> (cookies <code>httpOnly</code> ou Supabase SSR).</li>
-        <li>Activer ou supprimer le code AppLock mort (<code>APP_LOCK_ENABLED = false</code>).</li>
-        <li>Migrer les utilitaires CSS legacy vers shadcn.</li>
-        <li>Ajouter un Error Boundary global et un service worker via <code>vite-plugin-pwa</code>.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>2. Backend Supabase — 5,2 / 10</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
             <tr>
-              <th>Sous-catégorie</th>
-              <th>Score</th>
-              <th>Commentaire</th>
+              <td>1</td>
+              <td>
+                <strong>Clés et tokens exposés localement</strong> — <code>.env</code> contient la
+                clé anon Supabase, <code>.env.local</code> un token Vercel OIDC.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td><code>.env</code>, <code>.env.local</code></td>
             </tr>
-          </thead>
-          <tbody>
-            <tr><td>Architecture Edge Functions</td><td>5,0</td><td>Helpers partagés, mais chaque fonction recrée un client service-role, pas de middleware central</td></tr>
-            <tr><td>Authentification</td><td>6,0</td><td>JWT vérifié côté serveur, rate-limit magic-link, mais signup sans rate-limit, PIN reset faible</td></tr>
-            <tr><td>RLS</td><td>6,0</td><td>Activé et org-scoped, mais quelques tables sans policies ou policies trop permissives</td></tr>
-            <tr><td>Schéma DB</td><td>6,0</td><td>Multi-tenant solide, mais ordre des migrations cassé</td></tr>
-            <tr><td>Sécurité API</td><td>5,0</td><td>CORS faible, rate-limit manquant sur signup/API/storefront, messages d'erreur leakés</td></tr>
-            <tr><td>Contrôle d'accès</td><td>6,0</td><td>Rôles présents mais service-role bypass + challenge admin brisé</td></tr>
-            <tr><td>Intégrité données</td><td>6,0</td><td>RPC atomiques pour stock, mais orchestration Edge Functions best-effort</td></tr>
-            <tr><td>Back-office</td><td>4,0</td><td>Audit logs partiels, actions sensibles sans challenge, modérateurs peuvent désactiver des users</td></tr>
-            <tr><td>Webhooks / API keys</td><td>6,0</td><td>Clés hashées et loguées, mais SHA-256 non salé, pas de rate-limit ni IP allowlist</td></tr>
-            <tr><td>Secrets / anti-patterns</td><td>5,0</td><td>Pas de secrets dans le source, mais seed démo dangereuse, fallback localhost</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h4>Recommandations clés</h4>
-      <ul>
-        <li>Recalculer tous les totaux de vente côté serveur dans <code>complete_sale</code>.</li>
-        <li>Corriger le challenge admin pour qu'il vérifie réellement le mot de passe.</li>
-        <li>Ajouter du rate-limit sur <code>signup</code>, <code>api-gateway</code>, <code>create-storefront-order</code>.</li>
-        <li>Restreindre le service-role aux seules opérations impossibles en RLS.</li>
-        <li>Corriger l'ordre des migrations et supprimer le seed démo de la prod.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>3. UI/UX & Parcours utilisateur — 6,8 / 10</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
             <tr>
-              <th>Sous-catégorie</th>
-              <th>Score</th>
-              <th>Commentaire</th>
+              <td>2</td>
+              <td>
+                <strong
+                  ><code>complete_sale</code> fait confiance aux totaux envoyés par le
+                  client</strong
+                >
+                — subtotal, taxe, total, monnaie insérés sans recalcule serveur.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td>
+                <code>supabase/functions/complete-sale/index.ts</code>, migration
+                <code>00000000000049</code>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <tr><td>Parcours utilisateur</td><td>7,0</td><td>Inscription → onboarding clair, mais vérification email et activation caisse créent de la friction</td></tr>
-            <tr><td>Architecture info</td><td>7,0</td><td>Nav groupée, mais mismatch SettingsTabs/Store, pas de fil d'Ariane</td></tr>
-            <tr><td>Hiérarchie visuelle</td><td>8,0</td><td>Dashboard/Stock/Produits bien structurés</td></tr>
-            <tr><td>Formulaires</td><td>7,0</td><td>Validation présente mais non temps réel, feedback inconsistant</td></tr>
-            <tr><td>Empty/Error/Loading</td><td>7,0</td><td><code>EmptyState</code> réutilisable, mais pas d'Error Boundary global, loading textuel</td></tr>
-            <tr><td>Mobile</td><td>8,0</td><td>Touch targets, bottom nav, bottom sheets, pull-to-refresh</td></tr>
-            <tr><td>Accessibilité</td><td>6,0</td><td>Labels OK, mais menu marketing <code>&lt;details&gt;</code> mal géré, skip link manquant, contrastes à revoir</td></tr>
-            <tr><td>Copywriting FR</td><td>7,0</td><td>Bon, mais mélange Caisse/POS, Dashboard anglais, Storefront inconsistences</td></tr>
-            <tr><td>Confiance / conversion</td><td>7,0</td><td>Témoignages fictifs, démo placeholder, tarifs en € pour cible XOF</td></tr>
-            <tr><td>Onboarding & first value</td><td>6,0</td><td>Dashboard vide après onboarding, caisse désactivée par défaut, pas de wizard première vente</td></tr>
-            <tr><td>Notifications</td><td>5,0</td><td>Aucun toast/snackbar global, messages inline dispersés</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h4>Recommandations clés</h4>
-      <ul>
-        <li>Ajouter un <strong>wizard first-sale</strong> post-onboarding.</li>
-        <li>Implémenter un <strong>système de toast/notification global</strong>.</li>
-        <li>Activer la caisse par défaut ou permettre son activation depuis la page Caisse.</li>
-        <li>Corriger le mismatch Store dans SettingsTabs.</li>
-        <li>Améliorer l'accessibilité du menu marketing.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>4. Sécurité & Compliance — 4,0 / 10</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
             <tr>
-              <th>Sous-catégorie</th>
-              <th>Score</th>
-              <th>Commentaire</th>
+              <td>3</td>
+              <td>
+                <strong>Le challenge "platform-admin" ne vérifie pas le mot de passe</strong> —
+                n'importe quel admin plateforme peut exécuter des actions sensibles.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td>
+                <code>create-platform-challenge/index.ts</code>, <code>_shared/platform.ts</code>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <tr><td>Protection des données / RGPD</td><td>3/10</td><td>Pas de pages légales, pas de consentement, PII en localStorage, pas d'export/effacement</td></tr>
-            <tr><td>Conformité financière africaine</td><td>4/10</td><td>Numérotation reçus et taxes existent, mais totaux client-trusted, pas de certification fiscale</td></tr>
-            <tr><td>Sécurité authentification</td><td>5/10</td><td>JWT + refresh, MFA TOTP dispo, mais mots de passe faibles, tokens en localStorage, AppLock off</td></tr>
-            <tr><td>Contrôle d'accès</td><td>6/10</td><td>RLS + rôles, mais challenge admin brisé et actions sensibles sans preuve</td></tr>
-            <tr><td>Validation & sanitization</td><td>5/10</td><td>Zod sur formulaires, mais emails HTML non échappés, CSP absente, prix storefront client</td></tr>
-            <tr><td>Gestion des secrets</td><td>2/10</td><td><code>.env</code>/<code>.env.local</code> locaux avec vraies clés, token Vercel OIDC</td></tr>
-            <tr><td>Audit logging</td><td>5/10</td><td><code>platform_audit_logs</code> partiel, mais <code>activity_logs</code> et <code>login_attempts</code> jamais écrits</td></tr>
-            <tr><td>Résidence des données</td><td>3/10</td><td>Pooler en <code>eu-central-1</code>, pas de choix de région africain</td></tr>
-            <tr><td>Pages légales</td><td>1/10</td><td>Aucune page <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code></td></tr>
-            <tr><td>PCI / mobile money</td><td>4/10</td><td>Pas de traitement carte/mobile money réel, mais pas d'architecture sécurisée</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h4>Recommandations clés</h4>
-      <ul>
-        <li>Publier <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code> avant de prétendre au RGPD.</li>
-        <li>Mettre en place l'effacement/export des données (RGPD).</li>
-        <li>Ajouter CSP + security headers via <code>vercel.json</code>.</li>
-        <li>Considérer une région/résidence africaine pour Supabase.</li>
-        <li>Enregistrer <code>activity_logs</code> et <code>login_attempts</code> et définir une politique de rétention.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>5. Tests, DevOps & Opérations — 4,3 / 10</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
             <tr>
-              <th>Sous-catégorie</th>
-              <th>Score</th>
-              <th>Commentaire</th>
+              <td>4</td>
+              <td>
+                <strong>XSS dans les emails</strong> — nom d'org, numéro de document, etc.
+                interpolés non échappés dans les templates HTML.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td>
+                <code>send-receipt-email</code>, <code>send-document-email</code>,
+                <code>send-invoice-reminder</code>, <code>send-magic-link</code>,
+                <code>request-pin-reset</code>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <tr><td>Tests</td><td>3/10</td><td>9 tests Vitest, 0 test Edge Function, pas de couverture</td></tr>
-            <tr><td>CI/CD</td><td>5/10</td><td>CI complète mais E2E en <code>continue-on-error</code>, pas d'artifact build réutilisé</td></tr>
-            <tr><td>Build tooling</td><td>7/10</td><td>Vite + TS strict + ESLint solides, mais Husky non configuré</td></tr>
-            <tr><td>Documentation</td><td>5/10</td><td>README détaillé mais inline docs faibles, pas de CONTRIBUTING/CODEOWNERS</td></tr>
-            <tr><td>Dépendances</td><td>4/10</td><td><code>npm audit</code> : 22 vulnérabilités high, 19 packages outdated, pas de Dependabot</td></tr>
-            <tr><td>Env & déploiement</td><td>5/10</td><td>Vercel config OK, mais pas de staging, vieille URL <code>stockflow-ruby</code> dans config.toml</td></tr>
-            <tr><td>Monitoring</td><td>2/10</td><td>Aucun Sentry, logs structurés, health check, RUM, alerting</td></tr>
-            <tr><td>PWA</td><td>3/10</td><td>Manifest mais pas de service worker, icônes SVG uniquement</td></tr>
-            <tr><td>Performance</td><td>6/10</td><td>Code splitting + manual chunks, mais chunk Excel 930 KB, pas d'analyse bundle</td></tr>
-            <tr><td>DX</td><td>5/10</td><td>Pas de <code>.nvmrc</code>, Husky inactif, E2E demande Supabase+Inbucket locaux</td></tr>
+            <tr>
+              <td>5</td>
+              <td>
+                <strong>PIN reset public non authentifié</strong> — n'importe qui peut forcer
+                <code>force_pin_change=true</code> et envoyer un magic-link.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td><code>supabase/functions/request-pin-reset/index.ts</code></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>
+                <strong
+                  ><code>lookup-user-by-email</code> public expose nom, rôle, orgId, orgName</strong
+                >
+                — énumération d'utilisateurs possible.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td><code>supabase/functions/lookup-user-by-email/index.ts</code></td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>
+                <strong>Session stockée dans <code>localStorage</code></strong> —
+                <code>accessToken</code>/<code>refreshToken</code> et
+                <code>sudoTarget</code> vulnérables au XSS.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td><code>src/features/auth/context/AuthContext.tsx</code></td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>
+                <strong
+                  ><code>send-auto-reminders</code> devient public si
+                  <code>AUTO_REMINDER_SECRET</code> est absent</strong
+                >
+                — fail open.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td><code>supabase/functions/send-auto-reminders/index.ts</code></td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>
+                <strong>Seed contient un admin démo avec PIN <code>1234</code></strong> — si
+                appliqué en prod, accès total.
+              </td>
+              <td><span class="severity severity-critical">Critique</span></td>
+              <td>
+                <code>supabase/seed.sql</code>, migrations <code>00000000000004</code>,
+                <code>00000000000014</code>
+              </td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>
+                <strong>Aucune page légale</strong> — pas de <code>/privacy</code>,
+                <code>/terms</code>, <code>/cookies</code>, ni DPO/contact, alors que le marketing
+                affiche "RGPD-ready".
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td>Marketing pages</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>
+                <strong>Aucun monitoring / error tracking</strong> — pas de Sentry, logs structurés,
+                health check, ni RUM.
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td>Ensemble du projet</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>
+                <strong>Tests très faibles</strong> — 9 tests Vitest, 0 test Edge Function, E2E en
+                <code>continue-on-error</code>.
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td><code>tests/</code>, <code>.github/workflows/ci.yml</code></td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>
+                <strong>CORS permissif avec localhost en production</strong> — fuite d'origines et
+                exposition dev.
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td><code>supabase/functions/_shared/cors.ts</code></td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>
+                <strong>Aucun service worker</strong> — l'app dit "offline-first" mais ne cache pas
+                le shell/assets.
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td><code>public/manifest.json</code>, Vite config</td>
+            </tr>
+            <tr>
+              <td>15</td>
+              <td>
+                <strong>Pas de notification/toast global</strong> — feedback succès/erreur dispersé
+                et manqué.
+              </td>
+              <td><span class="severity severity-high">Haut</span></td>
+              <td><code>src/components/</code></td>
+            </tr>
           </tbody>
         </table>
       </div>
 
-      <h4>Recommandations clés</h4>
-      <ul>
-        <li>Enlever <code>continue-on-error</code> de l'E2E ou créer un job fumée bloquant.</li>
-        <li>Ajouter <code>@vitest/coverage-v8</code> et un seuil de couverture.</li>
-        <li>Résoudre les vulnérabilités <code>npm audit</code> (commencer par <code>vercel</code>).</li>
-        <li>Ajouter Sentry + health check + Web Vitals RUM.</li>
-        <li>Configurer Husky correctement avec <code>lint-staged</code>.</li>
-      </ul>
-    </div>
+      <h2>Audit détaillé par domaine</h2>
 
-    <h2>Synthèse transversale</h2>
-    <div class="card">
-      <ol>
-        <li><strong>Sécurité client-serveur déconnectée.</strong> Le frontend stocke des tokens sensibles et fait confiance au backend pour les totaux, tandis que le backend fait confiance au client pour les calculs financiers. Les deux côtés doivent être durcis.</li>
-        <li><strong>Permissions et audit incomplets.</strong> Rôles et RLS existants, mais actions sensibles manquant de proofing et logs d'audit non systématiques.</li>
-        <li><strong>Offline-first inachevé.</strong> Couche de données offline solide, mais service worker, icônes PWA et background sync manquants.</li>
-        <li><strong>Opérabilité immature.</strong> Pas de monitoring, tests insuffisants, CI qui ne bloque pas sur l'E2E, secrets locaux. Le projet est fonctionnel en dev mais fragile en prod.</li>
-        <li><strong>Conformité affichée sans fondement.</strong> "RGPD-ready" et "conforme" sont sur le marketing sans les pages/processus nécessaires.</li>
-      </ol>
-    </div>
+      <div class="card">
+        <h3>1. Frontend — 7,3 / 10</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sous-catégorie</th>
+                <th>Score</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Architecture</td>
+                <td>7,5</td>
+                <td>
+                  Feature-based clair, lazy loading, mais pas de barrel files,
+                  <code>zustand</code> inutilisé, <code>src/app</code> mort
+                </td>
+              </tr>
+              <tr>
+                <td>Qualité du code</td>
+                <td>8,0</td>
+                <td>
+                  TS strict, zéro <code>any</code>, mais 17 <code>eslint-disable</code>, 16
+                  <code>console.*</code>, faible couverture tests
+                </td>
+              </tr>
+              <tr>
+                <td>React best practices</td>
+                <td>7,5</td>
+                <td>
+                  <code>AuthContext</code> monolithique (833 lignes) qui re-render tout, effets à
+                  vérifier
+                </td>
+              </tr>
+              <tr>
+                <td>Routage & auth</td>
+                <td>7,0</td>
+                <td>Guards présents mais tokens en localStorage, AppLock désactivé, 404 → login</td>
+              </tr>
+              <tr>
+                <td>Design system</td>
+                <td>6,5</td>
+                <td>Utilitaires CSS legacy cohabitent avec shadcn/ui</td>
+              </tr>
+              <tr>
+                <td>Formulaires & a11y</td>
+                <td>6,5</td>
+                <td>
+                  Zod présent, pas de <code>react-hook-form</code>, validation au submit, manque
+                  <code>aria-invalid</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Mobile / PWA</td>
+                <td>7,0</td>
+                <td>
+                  Bien responsive, mais manifest incomplet et <strong>aucun service worker</strong>
+                </td>
+              </tr>
+              <tr>
+                <td>Offline / sync</td>
+                <td>8,0</td>
+                <td>
+                  Dexie + queue robuste, mais pas de background sync et sync full des mouvements
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <h2>Plan d'action priorisé</h2>
-
-    <div class="phase">
-      <div class="phase-header">
-        <div class="phase-number">1</div>
-        <div class="phase-title">Sécurité & conformité</div>
-        <div class="phase-meta">0 – 2 semaines</div>
+        <h4>Recommandations clés</h4>
+        <ul>
+          <li>
+            Retirer <code>accessToken</code>/<code>refreshToken</code> du
+            <code>localStorage</code> (cookies <code>httpOnly</code> ou Supabase SSR).
+          </li>
+          <li>
+            Activer ou supprimer le code AppLock mort (<code>APP_LOCK_ENABLED = false</code>).
+          </li>
+          <li>Migrer les utilitaires CSS legacy vers shadcn.</li>
+          <li>
+            Ajouter un Error Boundary global et un service worker via <code>vite-plugin-pwa</code>.
+          </li>
+        </ul>
       </div>
-      <ol>
-        <li>Rotation immédiate des clés Supabase et du token Vercel OIDC ; suppression de <code>.env</code>/<code>.env.local</code> de l'historique git.</li>
-        <li>Corriger le XSS dans tous les templates email (échapper toutes les variables utilisateur).</li>
-        <li>Recalculer les totaux de vente côté serveur et rejeter les écarts.</li>
-        <li>Corriger le challenge platform-admin pour vérifier le mot de passe.</li>
-        <li>Protéger <code>request-pin-reset</code> (authentification requise).</li>
-        <li>Restreindre ou supprimer <code>lookup-user-by-email</code>.</li>
-        <li>Publier <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code>.</li>
-      </ol>
-    </div>
 
-    <div class="phase">
-      <div class="phase-header">
-        <div class="phase-number">2</div>
-        <div class="phase-title">Architecture & fiabilité</div>
-        <div class="phase-meta">2 – 6 semaines</div>
+      <div class="card">
+        <h3>2. Backend Supabase — 5,2 / 10</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sous-catégorie</th>
+                <th>Score</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Architecture Edge Functions</td>
+                <td>5,0</td>
+                <td>
+                  Helpers partagés, mais chaque fonction recrée un client service-role, pas de
+                  middleware central
+                </td>
+              </tr>
+              <tr>
+                <td>Authentification</td>
+                <td>6,0</td>
+                <td>
+                  JWT vérifié côté serveur, rate-limit magic-link, mais signup sans rate-limit, PIN
+                  reset faible
+                </td>
+              </tr>
+              <tr>
+                <td>RLS</td>
+                <td>6,0</td>
+                <td>
+                  Activé et org-scoped, mais quelques tables sans policies ou policies trop
+                  permissives
+                </td>
+              </tr>
+              <tr>
+                <td>Schéma DB</td>
+                <td>6,0</td>
+                <td>Multi-tenant solide, mais ordre des migrations cassé</td>
+              </tr>
+              <tr>
+                <td>Sécurité API</td>
+                <td>5,0</td>
+                <td>
+                  CORS faible, rate-limit manquant sur signup/API/storefront, messages d'erreur
+                  leakés
+                </td>
+              </tr>
+              <tr>
+                <td>Contrôle d'accès</td>
+                <td>6,0</td>
+                <td>Rôles présents mais service-role bypass + challenge admin brisé</td>
+              </tr>
+              <tr>
+                <td>Intégrité données</td>
+                <td>6,0</td>
+                <td>RPC atomiques pour stock, mais orchestration Edge Functions best-effort</td>
+              </tr>
+              <tr>
+                <td>Back-office</td>
+                <td>4,0</td>
+                <td>
+                  Audit logs partiels, actions sensibles sans challenge, modérateurs peuvent
+                  désactiver des users
+                </td>
+              </tr>
+              <tr>
+                <td>Webhooks / API keys</td>
+                <td>6,0</td>
+                <td>
+                  Clés hashées et loguées, mais SHA-256 non salé, pas de rate-limit ni IP allowlist
+                </td>
+              </tr>
+              <tr>
+                <td>Secrets / anti-patterns</td>
+                <td>5,0</td>
+                <td>
+                  Pas de secrets dans le source, mais seed démo dangereuse, fallback localhost
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Recommandations clés</h4>
+        <ul>
+          <li>Recalculer tous les totaux de vente côté serveur dans <code>complete_sale</code>.</li>
+          <li>Corriger le challenge admin pour qu'il vérifie réellement le mot de passe.</li>
+          <li>
+            Ajouter du rate-limit sur <code>signup</code>, <code>api-gateway</code>,
+            <code>create-storefront-order</code>.
+          </li>
+          <li>Restreindre le service-role aux seules opérations impossibles en RLS.</li>
+          <li>Corriger l'ordre des migrations et supprimer le seed démo de la prod.</li>
+        </ul>
       </div>
-      <ol>
-        <li>Retirer les tokens du <code>localStorage</code> (cookies <code>httpOnly</code> ou Supabase SSR).</li>
-        <li>Ajouter rate-limit sur signup, API gateway, storefront.</li>
-        <li>Écrire dans <code>activity_logs</code> et <code>login_attempts</code> ; définir rétention.</li>
-        <li>Corriger l'ordre des migrations.</li>
-        <li>Nettoyer/supprimer le seed démo dangereux.</li>
-        <li>Ajouter CSP + security headers.</li>
-        <li>Ajouter un Error Boundary global et un service worker PWA.</li>
-      </ol>
-    </div>
 
-    <div class="phase">
-      <div class="phase-header">
-        <div class="phase-number">3</div>
-        <div class="phase-title">UX & croissance</div>
-        <div class="phase-meta">6 – 10 semaines</div>
+      <div class="card">
+        <h3>3. UI/UX & Parcours utilisateur — 6,8 / 10</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sous-catégorie</th>
+                <th>Score</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Parcours utilisateur</td>
+                <td>7,0</td>
+                <td>
+                  Inscription → onboarding clair, mais vérification email et activation caisse
+                  créent de la friction
+                </td>
+              </tr>
+              <tr>
+                <td>Architecture info</td>
+                <td>7,0</td>
+                <td>Nav groupée, mais mismatch SettingsTabs/Store, pas de fil d'Ariane</td>
+              </tr>
+              <tr>
+                <td>Hiérarchie visuelle</td>
+                <td>8,0</td>
+                <td>Dashboard/Stock/Produits bien structurés</td>
+              </tr>
+              <tr>
+                <td>Formulaires</td>
+                <td>7,0</td>
+                <td>Validation présente mais non temps réel, feedback inconsistant</td>
+              </tr>
+              <tr>
+                <td>Empty/Error/Loading</td>
+                <td>7,0</td>
+                <td>
+                  <code>EmptyState</code> réutilisable, mais pas d'Error Boundary global, loading
+                  textuel
+                </td>
+              </tr>
+              <tr>
+                <td>Mobile</td>
+                <td>8,0</td>
+                <td>Touch targets, bottom nav, bottom sheets, pull-to-refresh</td>
+              </tr>
+              <tr>
+                <td>Accessibilité</td>
+                <td>6,0</td>
+                <td>
+                  Labels OK, mais menu marketing <code>&lt;details&gt;</code> mal géré, skip link
+                  manquant, contrastes à revoir
+                </td>
+              </tr>
+              <tr>
+                <td>Copywriting FR</td>
+                <td>7,0</td>
+                <td>Bon, mais mélange Caisse/POS, Dashboard anglais, Storefront inconsistences</td>
+              </tr>
+              <tr>
+                <td>Confiance / conversion</td>
+                <td>7,0</td>
+                <td>Témoignages fictifs, démo placeholder, tarifs en € pour cible XOF</td>
+              </tr>
+              <tr>
+                <td>Onboarding & first value</td>
+                <td>6,0</td>
+                <td>
+                  Dashboard vide après onboarding, caisse désactivée par défaut, pas de wizard
+                  première vente
+                </td>
+              </tr>
+              <tr>
+                <td>Notifications</td>
+                <td>5,0</td>
+                <td>Aucun toast/snackbar global, messages inline dispersés</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Recommandations clés</h4>
+        <ul>
+          <li>Ajouter un <strong>wizard first-sale</strong> post-onboarding.</li>
+          <li>Implémenter un <strong>système de toast/notification global</strong>.</li>
+          <li>Activer la caisse par défaut ou permettre son activation depuis la page Caisse.</li>
+          <li>Corriger le mismatch Store dans SettingsTabs.</li>
+          <li>Améliorer l'accessibilité du menu marketing.</li>
+        </ul>
       </div>
-      <ol>
-        <li>Wizard first-sale post-onboarding.</li>
-        <li>Système de toast/notification global.</li>
-        <li>Activer la caisse par défaut ou depuis la page caisse.</li>
-        <li>Améliorer l'accessibilité marketing (menu, skip link, contrastes).</li>
-        <li>Remplacer les témoignages fictifs par des vrais cas clients.</li>
-      </ol>
-    </div>
 
-    <div class="phase">
-      <div class="phase-header">
-        <div class="phase-number">4</div>
-        <div class="phase-title">Opérations & qualité</div>
-        <div class="phase-meta">10 – 14 semaines</div>
+      <div class="card">
+        <h3>4. Sécurité & Compliance — 4,0 / 10</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sous-catégorie</th>
+                <th>Score</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Protection des données / RGPD</td>
+                <td>3/10</td>
+                <td>
+                  Pas de pages légales, pas de consentement, PII en localStorage, pas
+                  d'export/effacement
+                </td>
+              </tr>
+              <tr>
+                <td>Conformité financière africaine</td>
+                <td>4/10</td>
+                <td>
+                  Numérotation reçus et taxes existent, mais totaux client-trusted, pas de
+                  certification fiscale
+                </td>
+              </tr>
+              <tr>
+                <td>Sécurité authentification</td>
+                <td>5/10</td>
+                <td>
+                  JWT + refresh, MFA TOTP dispo, mais mots de passe faibles, tokens en localStorage,
+                  AppLock off
+                </td>
+              </tr>
+              <tr>
+                <td>Contrôle d'accès</td>
+                <td>6/10</td>
+                <td>RLS + rôles, mais challenge admin brisé et actions sensibles sans preuve</td>
+              </tr>
+              <tr>
+                <td>Validation & sanitization</td>
+                <td>5/10</td>
+                <td>
+                  Zod sur formulaires, mais emails HTML non échappés, CSP absente, prix storefront
+                  client
+                </td>
+              </tr>
+              <tr>
+                <td>Gestion des secrets</td>
+                <td>2/10</td>
+                <td>
+                  <code>.env</code>/<code>.env.local</code> locaux avec vraies clés, token Vercel
+                  OIDC
+                </td>
+              </tr>
+              <tr>
+                <td>Audit logging</td>
+                <td>5/10</td>
+                <td>
+                  <code>platform_audit_logs</code> partiel, mais <code>activity_logs</code> et
+                  <code>login_attempts</code> jamais écrits
+                </td>
+              </tr>
+              <tr>
+                <td>Résidence des données</td>
+                <td>3/10</td>
+                <td>Pooler en <code>eu-central-1</code>, pas de choix de région africain</td>
+              </tr>
+              <tr>
+                <td>Pages légales</td>
+                <td>1/10</td>
+                <td>
+                  Aucune page <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code>
+                </td>
+              </tr>
+              <tr>
+                <td>PCI / mobile money</td>
+                <td>4/10</td>
+                <td>
+                  Pas de traitement carte/mobile money réel, mais pas d'architecture sécurisée
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Recommandations clés</h4>
+        <ul>
+          <li>
+            Publier <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code> avant de
+            prétendre au RGPD.
+          </li>
+          <li>Mettre en place l'effacement/export des données (RGPD).</li>
+          <li>Ajouter CSP + security headers via <code>vercel.json</code>.</li>
+          <li>Considérer une région/résidence africaine pour Supabase.</li>
+          <li>
+            Enregistrer <code>activity_logs</code> et <code>login_attempts</code> et définir une
+            politique de rétention.
+          </li>
+        </ul>
       </div>
-      <ol>
-        <li>Ajouter Sentry + logs structurés + health check + RUM.</li>
-        <li>Augmenter la couverture de tests (Edge Functions, auth, sync).</li>
-        <li>Résoudre <code>npm audit</code> et ajouter Dependabot.</li>
-        <li>Corriger Husky + lint-staged.</li>
-        <li>Mettre en place un environnement de staging/preview.</li>
-      </ol>
-    </div>
 
-    <div class="callout">
-      <strong>Conclusion</strong>
-      StockFlow vNext est une application moderne et bien structurée avec un bon socle technique. Cependant, les axes <strong>sécurité</strong>, <strong>conformité</strong>, <strong>tests</strong> et <strong>opérabilité</strong> doivent être adressés avant tout lancement commercial ou scaling. Les efforts prioritaires doivent se concentrer sur la sécurisation des secrets et des flux financiers, la correction du challenge admin, la mise en place de pages légales, et l'amélioration du monitoring et des tests.
-    </div>
+      <div class="card">
+        <h3>5. Tests, DevOps & Opérations — 4,3 / 10</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sous-catégorie</th>
+                <th>Score</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Tests</td>
+                <td>3/10</td>
+                <td>9 tests Vitest, 0 test Edge Function, pas de couverture</td>
+              </tr>
+              <tr>
+                <td>CI/CD</td>
+                <td>5/10</td>
+                <td>
+                  CI complète mais E2E en <code>continue-on-error</code>, pas d'artifact build
+                  réutilisé
+                </td>
+              </tr>
+              <tr>
+                <td>Build tooling</td>
+                <td>7/10</td>
+                <td>Vite + TS strict + ESLint solides, mais Husky non configuré</td>
+              </tr>
+              <tr>
+                <td>Documentation</td>
+                <td>5/10</td>
+                <td>README détaillé mais inline docs faibles, pas de CONTRIBUTING/CODEOWNERS</td>
+              </tr>
+              <tr>
+                <td>Dépendances</td>
+                <td>4/10</td>
+                <td>
+                  <code>npm audit</code> : 22 vulnérabilités high, 19 packages outdated, pas de
+                  Dependabot
+                </td>
+              </tr>
+              <tr>
+                <td>Env & déploiement</td>
+                <td>5/10</td>
+                <td>
+                  Vercel config OK, mais pas de staging, vieille URL
+                  <code>stockflow-ruby</code> dans config.toml
+                </td>
+              </tr>
+              <tr>
+                <td>Monitoring</td>
+                <td>2/10</td>
+                <td>Aucun Sentry, logs structurés, health check, RUM, alerting</td>
+              </tr>
+              <tr>
+                <td>PWA</td>
+                <td>3/10</td>
+                <td>Manifest mais pas de service worker, icônes SVG uniquement</td>
+              </tr>
+              <tr>
+                <td>Performance</td>
+                <td>6/10</td>
+                <td>
+                  Code splitting + manual chunks, mais chunk Excel 930 KB, pas d'analyse bundle
+                </td>
+              </tr>
+              <tr>
+                <td>DX</td>
+                <td>5/10</td>
+                <td>
+                  Pas de <code>.nvmrc</code>, Husky inactif, E2E demande Supabase+Inbucket locaux
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <footer class="report-footer">
-      <p>Rapport généré automatiquement à partir d'une revue statique du code source. Un test de pénétration runtime et une revue des paramètres projet Supabase seraient nécessaires pour une assurance complète.</p>
-    </footer>
-  </div>
-</body>
+        <h4>Recommandations clés</h4>
+        <ul>
+          <li>Enlever <code>continue-on-error</code> de l'E2E ou créer un job fumée bloquant.</li>
+          <li>Ajouter <code>@vitest/coverage-v8</code> et un seuil de couverture.</li>
+          <li>
+            Résoudre les vulnérabilités <code>npm audit</code> (commencer par <code>vercel</code>).
+          </li>
+          <li>Ajouter Sentry + health check + Web Vitals RUM.</li>
+          <li>Configurer Husky correctement avec <code>lint-staged</code>.</li>
+        </ul>
+      </div>
+
+      <h2>Synthèse transversale</h2>
+      <div class="card">
+        <ol>
+          <li>
+            <strong>Sécurité client-serveur déconnectée.</strong> Le frontend stocke des tokens
+            sensibles et fait confiance au backend pour les totaux, tandis que le backend fait
+            confiance au client pour les calculs financiers. Les deux côtés doivent être durcis.
+          </li>
+          <li>
+            <strong>Permissions et audit incomplets.</strong> Rôles et RLS existants, mais actions
+            sensibles manquant de proofing et logs d'audit non systématiques.
+          </li>
+          <li>
+            <strong>Offline-first inachevé.</strong> Couche de données offline solide, mais service
+            worker, icônes PWA et background sync manquants.
+          </li>
+          <li>
+            <strong>Opérabilité immature.</strong> Pas de monitoring, tests insuffisants, CI qui ne
+            bloque pas sur l'E2E, secrets locaux. Le projet est fonctionnel en dev mais fragile en
+            prod.
+          </li>
+          <li>
+            <strong>Conformité affichée sans fondement.</strong> "RGPD-ready" et "conforme" sont sur
+            le marketing sans les pages/processus nécessaires.
+          </li>
+        </ol>
+      </div>
+
+      <h2>Plan d'action priorisé</h2>
+
+      <div class="phase">
+        <div class="phase-header">
+          <div class="phase-number">1</div>
+          <div class="phase-title">Sécurité & conformité</div>
+          <div class="phase-meta">0 – 2 semaines</div>
+        </div>
+        <ol>
+          <li>
+            Rotation immédiate des clés Supabase et du token Vercel OIDC ; suppression de
+            <code>.env</code>/<code>.env.local</code> de l'historique git.
+          </li>
+          <li>
+            Corriger le XSS dans tous les templates email (échapper toutes les variables
+            utilisateur).
+          </li>
+          <li>Recalculer les totaux de vente côté serveur et rejeter les écarts.</li>
+          <li>Corriger le challenge platform-admin pour vérifier le mot de passe.</li>
+          <li>Protéger <code>request-pin-reset</code> (authentification requise).</li>
+          <li>Restreindre ou supprimer <code>lookup-user-by-email</code>.</li>
+          <li>Publier <code>/privacy</code>, <code>/terms</code>, <code>/cookies</code>.</li>
+        </ol>
+      </div>
+
+      <div class="phase">
+        <div class="phase-header">
+          <div class="phase-number">2</div>
+          <div class="phase-title">Architecture & fiabilité</div>
+          <div class="phase-meta">2 – 6 semaines</div>
+        </div>
+        <ol>
+          <li>
+            Retirer les tokens du <code>localStorage</code> (cookies <code>httpOnly</code> ou
+            Supabase SSR).
+          </li>
+          <li>Ajouter rate-limit sur signup, API gateway, storefront.</li>
+          <li>
+            Écrire dans <code>activity_logs</code> et <code>login_attempts</code> ; définir
+            rétention.
+          </li>
+          <li>Corriger l'ordre des migrations.</li>
+          <li>Nettoyer/supprimer le seed démo dangereux.</li>
+          <li>Ajouter CSP + security headers.</li>
+          <li>Ajouter un Error Boundary global et un service worker PWA.</li>
+        </ol>
+      </div>
+
+      <div class="phase">
+        <div class="phase-header">
+          <div class="phase-number">3</div>
+          <div class="phase-title">UX & croissance</div>
+          <div class="phase-meta">6 – 10 semaines</div>
+        </div>
+        <ol>
+          <li>Wizard first-sale post-onboarding.</li>
+          <li>Système de toast/notification global.</li>
+          <li>Activer la caisse par défaut ou depuis la page caisse.</li>
+          <li>Améliorer l'accessibilité marketing (menu, skip link, contrastes).</li>
+          <li>Remplacer les témoignages fictifs par des vrais cas clients.</li>
+        </ol>
+      </div>
+
+      <div class="phase">
+        <div class="phase-header">
+          <div class="phase-number">4</div>
+          <div class="phase-title">Opérations & qualité</div>
+          <div class="phase-meta">10 – 14 semaines</div>
+        </div>
+        <ol>
+          <li>Ajouter Sentry + logs structurés + health check + RUM.</li>
+          <li>Augmenter la couverture de tests (Edge Functions, auth, sync).</li>
+          <li>Résoudre <code>npm audit</code> et ajouter Dependabot.</li>
+          <li>Corriger Husky + lint-staged.</li>
+          <li>Mettre en place un environnement de staging/preview.</li>
+        </ol>
+      </div>
+
+      <div class="callout">
+        <strong>Conclusion</strong>
+        StockFlow vNext est une application moderne et bien structurée avec un bon socle technique.
+        Cependant, les axes <strong>sécurité</strong>, <strong>conformité</strong>,
+        <strong>tests</strong> et <strong>opérabilité</strong> doivent être adressés avant tout
+        lancement commercial ou scaling. Les efforts prioritaires doivent se concentrer sur la
+        sécurisation des secrets et des flux financiers, la correction du challenge admin, la mise
+        en place de pages légales, et l'amélioration du monitoring et des tests.
+      </div>
+
+      <footer class="report-footer">
+        <p>
+          Rapport généré automatiquement à partir d'une revue statique du code source. Un test de
+          pénétration runtime et une revue des paramètres projet Supabase seraient nécessaires pour
+          une assurance complète.
+        </p>
+      </footer>
+    </div>
+  </body>
 </html>

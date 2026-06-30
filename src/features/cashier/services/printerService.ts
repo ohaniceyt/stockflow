@@ -254,4 +254,3 @@ async function printNetwork(config: NetworkPrinterConfig, data: Uint8Array): Pro
     throw new Error(`Erreur réseau : ${String(response.status)} ${response.statusText}`)
   }
 }
-

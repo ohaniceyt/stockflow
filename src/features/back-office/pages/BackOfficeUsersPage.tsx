@@ -46,10 +46,7 @@ export default function BackOfficeUsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Utilisateurs"
-        description="Rechercher et assister les utilisateurs."
-      />
+      <PageHeader title="Utilisateurs" description="Rechercher et assister les utilisateurs." />
 
       <PageSection>
         <div className="flex flex-col gap-3 sm:flex-row">

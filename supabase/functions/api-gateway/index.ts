@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
 
 interface ApiKeyRecord {
   id: string
@@ -73,14 +74,6 @@ async function getOrgFeatures(
     .single()
   if (error || !data) return null
   return data as unknown as OrgFeatures
-}
-
-function getClientIp(req: Request): string | null {
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  return req.headers.get('x-real-ip') || req.headers.get('cf-connecting-ip') || null
 }
 
 function logApiRequest(
@@ -325,6 +318,15 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    clientIp = getClientIp(req)
+    const ipKey = clientIp ? { key: clientIp, type: 'ip' as const } : null
+    if (
+      ipKey &&
+      (await isRateLimited(adminClient, ipKey, { maxRequests: 100, windowMinutes: 15 }))
+    ) {
+      return errorResponse(req, 'Too many requests from this network. Try again later.', 429)
+    }
+
     const apiKey = req.headers.get('x-stockflow-api-key')
     if (!apiKey) {
       return errorResponse(req, 'Missing X-StockFlow-API-Key header', 401)
@@ -350,6 +352,10 @@ Deno.serve(async (req: Request) => {
     clientIp = getClientIp(req)
 
     const response = await handleRequest(adminClient, keyRecord, features, req, url, requestPath)
+
+    if (ipKey) {
+      await recordRateLimitRequest(adminClient, ipKey)
+    }
 
     logApiRequest(
       adminClient,

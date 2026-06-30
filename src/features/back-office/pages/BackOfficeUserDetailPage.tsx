@@ -169,7 +169,10 @@ export default function BackOfficeUserDetailPage() {
               ) : (
                 <div className="space-y-2">
                   {attempts.map((attempt, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                    >
                       <span className="text-muted-foreground">
                         {new Date(attempt.created_at).toLocaleString('fr-FR')}
                       </span>
@@ -186,7 +189,10 @@ export default function BackOfficeUserDetailPage() {
 
             {(passwordResetMutation.error ?? resetPinMutation.error ?? toggleMutation.error) && (
               <StatusBadge variant="danger">
-                {(passwordResetMutation.error ?? resetPinMutation.error ?? toggleMutation.error)?.message}
+                {
+                  (passwordResetMutation.error ?? resetPinMutation.error ?? toggleMutation.error)
+                    ?.message
+                }
               </StatusBadge>
             )}
           </>

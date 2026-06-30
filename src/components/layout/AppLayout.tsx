@@ -7,6 +7,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { MobileMenuSheet } from './MobileMenuSheet'
 import { MobileNav } from './MobileNav'
+import { SkipLink } from '@/components/SkipLink'
 
 export function AppLayout() {
   const { session } = useAuth()
@@ -18,10 +19,11 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen">
+      <SkipLink />
       <Sidebar />
       <MobileMenuSheet open={menuOpen} onOpenChange={setMenuOpen} />
 
-      <main className="flex-1 overflow-auto md:pl-[240px]">
+      <main id="main-content" className="flex-1 overflow-auto md:pl-[240px]">
         <Topbar onMenuOpen={() => setMenuOpen(true)} />
         <div className="space-y-6 p-4 pb-24 md:space-y-8 md:p-6 md:pb-6 lg:p-8">
           <SudoBanner />

@@ -43,7 +43,8 @@ export default function CookiesPage() {
       <h2>6. Durée de conservation</h2>
       <p>
         Les cookies de session sont supprimés à la fermeture du navigateur. Les cookies persistants
-        sont conservés pour une durée maximale de 13 mois, conformément aux recommandations de la CNIL.
+        sont conservés pour une durée maximale de 13 mois, conformément aux recommandations de la
+        CNIL.
       </p>
 
       <h2>7. Contact</h2>

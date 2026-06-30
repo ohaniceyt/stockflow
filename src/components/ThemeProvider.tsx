@@ -39,9 +39,5 @@ export function ThemeProvider({
 
   const setTheme = (next: Theme) => setThemeState(next)
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }

@@ -1,6 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
+import { logActivity } from '../_shared/audit.ts'
+import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
 
 interface SignupPayload {
   name: string
@@ -37,10 +40,10 @@ function buildVerificationEmailHtml(link: string, _appUrl: string): string {
             Cliquez sur le bouton ci-dessous pour activer votre compte. Ce lien est valable 24 heures et ne peut être utilisé qu'une seule fois.
           </p>
           <p>
-            <a class="button" href="${link}" target="_blank">Vérifier mon compte</a>
+            <a class="button" href="${escapeHtmlAttribute(link)}" target="_blank">Vérifier mon compte</a>
           </p>
           <p class="link">
-            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${link}
+            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${escapeHtml(link)}
           </p>
           <p class="footer">
             StockFlow vNext — Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
@@ -111,6 +114,24 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    const clientIp = getClientIp(req)
+    const ipKey = clientIp ? { key: clientIp, type: 'ip' as const } : null
+    const emailKey = { key: normalizedEmail, type: 'email' as const }
+
+    if (ipKey && (await isRateLimited(adminClient, ipKey, { maxRequests: 5, windowMinutes: 60 }))) {
+      return new Response(
+        JSON.stringify({ error: 'Too many signups from this network. Try again later.' }),
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (await isRateLimited(adminClient, emailKey, { maxRequests: 3, windowMinutes: 60 })) {
+      return new Response(
+        JSON.stringify({ error: 'Too many signup attempts for this email. Try again later.' }),
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Refuse duplicate accounts
     const { data: existingUser } = await adminClient
       .from('users')
@@ -176,6 +197,18 @@ Deno.serve(async (req: Request) => {
         html: buildVerificationEmailHtml(linkData.properties.action_link, appUrl),
         text: `Cliquez sur ce lien pour vérifier votre compte StockFlow : ${linkData.properties.action_link}`,
       })
+
+      await Promise.all([
+        ipKey ? recordRateLimitRequest(adminClient, ipKey) : Promise.resolve(),
+        recordRateLimitRequest(adminClient, emailKey),
+        logActivity(adminClient, {
+          actor_id: authUserId,
+          action: 'user_registered',
+          entity_type: 'user',
+          entity_id: authUserId,
+          metadata: { email: normalizedEmail, plan: selectedPlan, ip_address: clientIp ?? null },
+        }),
+      ])
 
       return new Response(
         JSON.stringify({

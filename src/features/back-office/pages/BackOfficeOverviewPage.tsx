@@ -49,11 +49,7 @@ export default function BackOfficeOverviewPage() {
             icon={Building2}
             status="success"
           />
-          <DataCard
-            label="Utilisateurs"
-            value={isLoading ? '…' : stats.usersTotal}
-            icon={Users}
-          />
+          <DataCard label="Utilisateurs" value={isLoading ? '…' : stats.usersTotal} icon={Users} />
           <DataCard
             label="Utilisateurs en ligne"
             value={isLoading ? '…' : stats.usersOnline}

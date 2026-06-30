@@ -86,55 +86,55 @@ export async function exportStockToPdf(
 ) {
   const { redactFinancials = false } = options
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-    const pageWidth = doc.internal.pageSize.getWidth()
-    let y = 14
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 14
 
-    doc.setFontSize(16)
-    doc.text(`Stock - ${orgName}`, 14, y)
-    y += 8
+  doc.setFontSize(16)
+  doc.text(`Stock - ${orgName}`, 14, y)
+  y += 8
 
-    doc.setFontSize(10)
+  doc.setFontSize(10)
+  doc.setTextColor(100)
+  doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 14, y)
+  y += 10
+
+  stock.forEach((item, index) => {
+    if (y > 270) {
+      doc.addPage()
+      y = 14
+    }
+
+    const status =
+      item.quantity <= 0 ? 'RUPTURE' : item.quantity <= item.threshold ? 'ALERTE' : 'OK'
+    const color =
+      item.quantity <= 0
+        ? [225, 29, 72]
+        : item.quantity <= item.threshold
+          ? [217, 119, 6]
+          : [5, 150, 105]
+
+    doc.setFillColor(color[0], color[1], color[2])
+    doc.rect(14, y - 2, 2, 10, 'F')
+
+    doc.setFontSize(11)
+    doc.setTextColor(15, 23, 42)
+    doc.text(`${String(index + 1)}. ${item.productName}`, 18, y + 4)
+
+    doc.setFontSize(9)
     doc.setTextColor(100)
-    doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 14, y)
+    const details = redactFinancials
+      ? `${item.quantity.toLocaleString()} ${item.productUnit} · Seuil: ${item.threshold.toLocaleString()} · ${status}`
+      : `${item.quantity.toLocaleString()} ${item.productUnit} · PA: ${item.costPrice.toLocaleString()} · PV: ${item.sellingPrice.toLocaleString()} · ${status}`
+    doc.text(details, pageWidth - 14, y + 4, { align: 'right' })
+
     y += 10
+    doc.setDrawColor(226, 232, 240)
+    doc.line(14, y, pageWidth - 14, y)
+    y += 4
+  })
 
-    stock.forEach((item, index) => {
-      if (y > 270) {
-        doc.addPage()
-        y = 14
-      }
-
-      const status =
-        item.quantity <= 0 ? 'RUPTURE' : item.quantity <= item.threshold ? 'ALERTE' : 'OK'
-      const color =
-        item.quantity <= 0
-          ? [225, 29, 72]
-          : item.quantity <= item.threshold
-            ? [217, 119, 6]
-            : [5, 150, 105]
-
-      doc.setFillColor(color[0], color[1], color[2])
-      doc.rect(14, y - 2, 2, 10, 'F')
-
-      doc.setFontSize(11)
-      doc.setTextColor(15, 23, 42)
-      doc.text(`${String(index + 1)}. ${item.productName}`, 18, y + 4)
-
-      doc.setFontSize(9)
-      doc.setTextColor(100)
-      const details = redactFinancials
-        ? `${item.quantity.toLocaleString()} ${item.productUnit} · Seuil: ${item.threshold.toLocaleString()} · ${status}`
-        : `${item.quantity.toLocaleString()} ${item.productUnit} · PA: ${item.costPrice.toLocaleString()} · PV: ${item.sellingPrice.toLocaleString()} · ${status}`
-      doc.text(details, pageWidth - 14, y + 4, { align: 'right' })
-
-      y += 10
-      doc.setDrawColor(226, 232, 240)
-      doc.line(14, y, pageWidth - 14, y)
-      y += 4
-    })
-
-    doc.save(`stock-${orgName}-${today()}.pdf`)
-    await Promise.resolve()
+  doc.save(`stock-${orgName}-${today()}.pdf`)
+  await Promise.resolve()
 }
 
 export function shareStockOnWhatsApp(

@@ -97,10 +97,7 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
 
       <div className="space-y-2 md:hidden">
         {rows.map((row) => (
-          <div
-            key={row.productId}
-            className="rounded-lg border bg-background p-3"
-          >
+          <div key={row.productId} className="rounded-lg border bg-background p-3">
             <p className="truncate text-sm font-medium text-foreground">{row.name}</p>
             <div className="mt-1 grid grid-cols-3 gap-2 text-center text-sm text-muted-foreground">
               <div>

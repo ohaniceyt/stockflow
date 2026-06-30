@@ -77,10 +77,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
-        title="Paramètres"
-        description="Plan actuel et utilisation de vos quotas."
-      />
+      <PageHeader title="Paramètres" description="Plan actuel et utilisation de vos quotas." />
 
       <SettingsTabs />
 
@@ -90,10 +87,7 @@ export default function SubscriptionPage() {
 
       {limits && (
         <>
-          <PageSection
-            title="Abonnement"
-            description={`Plan actuel : ${limits.planId}`}
-          >
+          <PageSection title="Abonnement" description={`Plan actuel : ${limits.planId}`}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <DataCard
                 label="Plan"

@@ -139,9 +139,7 @@ Deno.serve(async (req: Request) => {
         failed_challenge_attempts: newFailedAttempts,
       }
       if (shouldLock) {
-        update.locked_until = new Date(
-          Date.now() + LOCKOUT_MINUTES * 60 * 1000
-        ).toISOString()
+        update.locked_until = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString()
       }
       await adminClient
         .from('platform_admins')

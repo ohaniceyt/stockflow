@@ -60,7 +60,11 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
     >
       <span
         className={`absolute left-0 right-0 top-0 h-1 ${
-          variant === 'success' ? 'bg-emerald-500' : variant === 'warning' ? 'bg-amber-500' : 'bg-rose-500'
+          variant === 'success'
+            ? 'bg-emerald-500'
+            : variant === 'warning'
+              ? 'bg-amber-500'
+              : 'bg-rose-500'
         }`}
       />
 
@@ -95,11 +99,15 @@ export function StockCard({ item, searchQuery = '', onClick }: StockCardProps) {
           <div className="mb-3 grid grid-cols-3 gap-1 text-sm">
             <div className="rounded bg-muted px-2 py-1">
               <span className="block text-sm text-muted-foreground">PA</span>
-              <span className="font-semibold text-foreground">{item.costPrice.toLocaleString()}</span>
+              <span className="font-semibold text-foreground">
+                {item.costPrice.toLocaleString()}
+              </span>
             </div>
             <div className="rounded bg-muted px-2 py-1">
               <span className="block text-sm text-muted-foreground">PV</span>
-              <span className="font-semibold text-foreground">{item.sellingPrice.toLocaleString()}</span>
+              <span className="font-semibold text-foreground">
+                {item.sellingPrice.toLocaleString()}
+              </span>
             </div>
             <div className="rounded bg-muted px-2 py-1">
               <span className="block text-sm text-muted-foreground">Marge</span>
