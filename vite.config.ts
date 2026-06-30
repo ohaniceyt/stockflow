@@ -1,11 +1,67 @@
 import { defineConfig } from 'vitest/config'
+import type { ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+// Routes that should be served by the React app shell (app.html) in dev.
+// In production Vercel handles these rewrites via vercel.json.
+const APP_ROUTES = [
+  /^\/login/,
+  /^\/signup/,
+  /^\/auth\//,
+  /^\/invite/,
+  /^\/change-pin/,
+  /^\/set-pin/,
+  /^\/onboarding/,
+  /^\/dashboard/,
+  /^\/stock\//,
+  /^\/movements/,
+  /^\/inventory\//,
+  /^\/products\//,
+  /^\/team/,
+  /^\/settings\//,
+  /^\/locations/,
+  /^\/suppliers/,
+  /^\/customers/,
+  /^\/analytics/,
+  /^\/recap/,
+  /^\/cashier\//,
+  /^\/caisse-pos/,
+  /^\/back-office\//,
+  /^\/store\//,
+  /^\/unauthorized/,
+]
+
+function appShellRewritePlugin() {
+  return {
+    name: 'app-shell-rewrite',
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req: { url?: string }, _res: unknown, next: () => void) => {
+        const url = req.url ?? ''
+        // Skip Vite internal URLs and file requests.
+        if (
+          url.startsWith('/@') ||
+          url.startsWith('/src/') ||
+          url.startsWith('/node_modules/') ||
+          url.startsWith('/assets/') ||
+          url.includes('.') ||
+          url.startsWith('/api/')
+        ) {
+          return next()
+        }
+        if (APP_ROUTES.some((pattern) => pattern.test(url))) {
+          req.url = '/app.html'
+        }
+        next()
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), appShellRewritePlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
