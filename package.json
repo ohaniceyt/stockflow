@@ -73,7 +73,7 @@
     "playwright": "^1.61.0",
     "prettier": "^3.8.4",
     "shadcn": "^4.11.0",
-    "supabase": "^2.107.0",
+    "supabase": "^2.108.0",
     "tsx": "^4.19.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
