@@ -6,6 +6,11 @@ import App from './App'
 import { ThemeProvider } from './components/ThemeProvider'
 import '@fontsource-variable/geist'
 import './index.css'
+import { initSentry } from './lib/sentry'
+
+void initSentry().catch(() => {
+  // Sentry is optional; do not block app startup.
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {
