@@ -4,6 +4,7 @@ interface LogoProps {
   className?: string
   variant?: 'horizontal' | 'wordmark' | 'icon'
   alt?: string
+  fetchpriority?: 'high' | 'low' | 'auto'
 }
 
 const viewBoxes: Record<string, { width: number; height: number }> = {
@@ -12,7 +13,12 @@ const viewBoxes: Record<string, { width: number; height: number }> = {
   '/app-icon': { width: 512, height: 512 },
 }
 
-export function Logo({ className = 'h-7', variant = 'horizontal', alt = 'StockFlow' }: LogoProps) {
+export function Logo({
+  className = 'h-7',
+  variant = 'horizontal',
+  alt = 'StockFlow',
+  fetchpriority = 'auto',
+}: LogoProps) {
   const isDark = useDarkMode()
   const base = variant === 'wordmark' ? '/wordmark' : variant === 'icon' ? '/app-icon' : '/logo'
   const { width, height } = viewBoxes[base]
@@ -24,6 +30,7 @@ export function Logo({ className = 'h-7', variant = 'horizontal', alt = 'StockFl
       className={className}
       width={width}
       height={height}
+      fetchPriority={fetchpriority}
     />
   )
 }

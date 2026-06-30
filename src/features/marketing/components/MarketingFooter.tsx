@@ -5,7 +5,6 @@ const footerLinks = {
   Product: [
     { label: 'Gestion de stock', href: '/features/inventory' },
     { label: 'Caisse & POS', href: '/features/pos-cashier' },
-    { label: 'Facturation', href: '/features/invoicing' },
     { label: 'Mode offline', href: '/features/offline' },
     { label: 'Analytics', href: '/features/analytics' },
     { label: 'Tarifs', href: '/pricing' },
@@ -15,7 +14,11 @@ const footerLinks = {
     { label: 'Documentation API', href: '#' },
     { label: "Centre d'aide", href: '#' },
   ],
-  Legal: [{ label: 'Sécurité', href: '#security' }],
+  Legal: [
+    { label: 'Politique de confidentialité', href: '/privacy' },
+    { label: "Conditions d'utilisation", href: '/terms' },
+    { label: 'Cookies', href: '/cookies' },
+  ],
 }
 
 export function MarketingFooter() {
@@ -28,7 +31,7 @@ export function MarketingFooter() {
               <Logo className="h-7" />
             </Link>
             <p className="mt-3 text-base text-muted-foreground">
-              La gestion de stock, caisse et facturation simple et moderne pour les PME.
+              La gestion de stock et de caisse simple et moderne pour les PME.
             </p>
           </div>
           {Object.entries(footerLinks).map(([category, links]) => (

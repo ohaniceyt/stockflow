@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 
 interface SendMagicLinkPayload {
   email: string
@@ -38,10 +39,10 @@ export function buildMagicLinkEmailHtml(link: string, _appUrl: string): string {
             Cliquez sur le bouton ci-dessous pour accéder à votre compte. Ce lien est valable 24 heures et ne peut être utilisé qu'une seule fois.
           </p>
           <p>
-            <a class="button" href="${link}" target="_blank">Se connecter</a>
+            <a class="button" href="${escapeHtmlAttribute(link)}" target="_blank">Se connecter</a>
           </p>
           <p class="link">
-            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${link}
+            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${escapeHtml(link)}
           </p>
           <p class="footer">
             StockFlow vNext — Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.

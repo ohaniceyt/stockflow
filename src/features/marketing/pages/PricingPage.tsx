@@ -14,7 +14,7 @@ const plans = [
       '100 produits',
       '2 emplacements',
       '2 000 mouvements/mois',
-      'Caisse & facturation',
+      'Caisse intégrée',
       'Mode offline',
       'Support prioritaire',
     ],

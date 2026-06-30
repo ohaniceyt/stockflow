@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { ArrowRightLeft } from 'lucide-react'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
 import type { StockItem } from '@/features/stock/services/stockService'
+import { EmptyState } from '@/components/design-system'
 
 interface DashboardRotationProps {
   stock: StockItem[]
@@ -43,21 +45,29 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
 
   if (rows.length === 0) {
     return (
-      <div className="card p-4">
-        <h3 className="card-t">Taux de rotation</h3>
-        <p className="dash-empty">Données insuffisantes.</p>
+      <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Taux de rotation
+        </h3>
+        <EmptyState
+          icon={ArrowRightLeft}
+          title="Données insuffisantes"
+          description="Enregistrez des sorties et du stock pour voir les taux de rotation."
+        />
       </div>
     )
   }
 
   return (
-    <div className="card p-4">
-      <h3 className="card-t">Taux de rotation</h3>
+    <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Taux de rotation
+      </h3>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-base">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--border)] text-left text-[var(--text-faint)]">
+            <tr className="border-b text-left text-muted-foreground">
               <th className="pb-2 font-medium">Produit</th>
               <th className="pb-2 font-medium text-right">Sorties</th>
               <th className="pb-2 font-medium text-right">Stock</th>
@@ -66,17 +76,17 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.productId} className="border-b border-[var(--border)] last:border-0">
-                <td className="max-w-[40%] truncate py-2 font-medium text-[var(--text-h)]">
+              <tr key={row.productId} className="border-b last:border-0">
+                <td className="max-w-[40%] truncate py-2 font-medium text-foreground">
                   {row.name}
                 </td>
-                <td className="py-2 text-right text-[var(--text)]">
+                <td className="py-2 text-right text-foreground">
                   {row.outQty.toLocaleString('fr-FR')}
                 </td>
-                <td className="py-2 text-right text-[var(--text)]">
+                <td className="py-2 text-right text-foreground">
                   {row.stockQty.toLocaleString('fr-FR')}
                 </td>
-                <td className="py-2 text-right font-semibold text-[var(--indigo)]">
+                <td className="py-2 text-right font-semibold text-indigo-600">
                   {row.rotation.toFixed(2)}
                 </td>
               </tr>
@@ -87,26 +97,23 @@ export function DashboardRotation({ stock, movements }: DashboardRotationProps) 
 
       <div className="space-y-2 md:hidden">
         {rows.map((row) => (
-          <div
-            key={row.productId}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3"
-          >
-            <p className="truncate text-base font-medium text-[var(--text-h)]">{row.name}</p>
-            <div className="mt-1 grid grid-cols-3 gap-2 text-center text-base text-[var(--text-faint)]">
+          <div key={row.productId} className="rounded-lg border bg-background p-3">
+            <p className="truncate text-sm font-medium text-foreground">{row.name}</p>
+            <div className="mt-1 grid grid-cols-3 gap-2 text-center text-sm text-muted-foreground">
               <div>
-                <p className="font-semibold text-[var(--text)]">
+                <p className="font-semibold text-foreground">
                   {row.outQty.toLocaleString('fr-FR')}
                 </p>
                 <p>Sorties</p>
               </div>
               <div>
-                <p className="font-semibold text-[var(--text)]">
+                <p className="font-semibold text-foreground">
                   {row.stockQty.toLocaleString('fr-FR')}
                 </p>
                 <p>Stock</p>
               </div>
               <div>
-                <p className="font-semibold text-[var(--indigo)]">{row.rotation.toFixed(2)}</p>
+                <p className="font-semibold text-indigo-600">{row.rotation.toFixed(2)}</p>
                 <p>Rotation</p>
               </div>
             </div>

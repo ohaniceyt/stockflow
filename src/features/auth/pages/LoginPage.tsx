@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { Logo } from '@/features/marketing/components/Logo'
+import { StatusBadge } from '@/components/design-system'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -48,14 +49,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-            <Logo variant="icon" className="h-16 w-16" />
+            <Logo variant="icon" className="h-16 w-16" fetchpriority="high" />
           </div>
           <h1 className="text-2xl font-bold">StockFlow</h1>
           <p className="text-sm text-muted-foreground">Connectez-vous à votre compte</p>
         </div>
 
         {banner && (
-          <div className="mb-4 rounded-xl bg-primary/10 p-4 text-sm text-primary">{banner}</div>
+          <div className="mb-4">
+            <StatusBadge variant="info">{banner}</StatusBadge>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

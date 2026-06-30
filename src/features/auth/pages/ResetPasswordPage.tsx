@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/services/supabase'
+import { StatusBadge } from '@/components/design-system'
 
 const TOKEN_TIMEOUT_MS = 10_000
 
@@ -86,7 +87,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl text-center">
-          <p className="text-muted-foreground">Vérification du lien de réinitialisation…</p>
+          <StatusBadge variant="info">Vérification du lien de réinitialisation…</StatusBadge>
         </div>
       </div>
     )
@@ -101,6 +102,12 @@ export default function ResetPasswordPage() {
             Choisissez un mot de passe fort pour sécuriser votre compte.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4">
+            <StatusBadge variant="danger">{error}</StatusBadge>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -127,8 +134,6 @@ export default function ResetPasswordPage() {
               required
             />
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Enregistrement…' : 'Enregistrer le mot de passe'}

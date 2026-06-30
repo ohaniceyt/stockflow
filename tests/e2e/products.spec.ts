@@ -9,7 +9,7 @@ test.afterEach(async () => {
 
 test('products page loads and can create a product with a category', async ({ page }) => {
   await page.goto('/products')
-  await expect(page.getByRole('heading', { name: 'Produits' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Produits', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: /Nouveau produit/ }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
@@ -38,7 +38,7 @@ test('products page loads and can create a product with a category', async ({ pa
 
 test('product can be deactivated and activated', async ({ page }) => {
   await page.goto('/products')
-  await expect(page.getByRole('heading', { name: 'Produits' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Produits', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: /Nouveau produit/ }).click()
   await page.getByLabel('Nom du produit *').fill('Ciment E2E Toggle')
@@ -56,7 +56,7 @@ test('product can be deactivated and activated', async ({ page }) => {
 
 test('categories tab allows creating and renaming a category', async ({ page }) => {
   await page.goto('/products')
-  await expect(page.getByRole('heading', { name: 'Produits' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Produits', exact: true })).toBeVisible()
 
   await page.getByRole('tab', { name: 'Catégories' }).click()
   await page.getByRole('button', { name: /Nouvelle catégorie/ }).click()
@@ -76,7 +76,7 @@ test('categories tab allows creating and renaming a category', async ({ page }) 
 
 test('can bulk import products from Excel', async ({ page }) => {
   await page.goto('/products')
-  await expect(page.getByRole('heading', { name: 'Produits' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Produits', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: /Importer/ }).click()
   await expect(page.getByRole('dialog')).toBeVisible()

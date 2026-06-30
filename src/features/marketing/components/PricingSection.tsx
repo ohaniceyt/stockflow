@@ -16,10 +16,26 @@ interface PricingTier {
 
 interface PricingSectionProps {
   tiers: PricingTier[]
+  currency: string
+  currencies: string[]
+  onCurrencyChange: (currency: string) => void
+  format: (cents: number, fractionDigits?: number) => string
 }
 
-export function PricingSection({ tiers }: PricingSectionProps) {
+export function PricingSection({
+  tiers,
+  currency,
+  currencies,
+  onCurrencyChange,
+  format,
+}: PricingSectionProps) {
   const [yearly, setYearly] = useState(false)
+
+  const currencyLabels: Record<string, string> = {
+    EUR: 'EUR (€)',
+    USD: 'USD ($)',
+    XOF: 'XOF (F CFA)',
+  }
 
   return (
     <section id="pricing" className="px-4 py-20 sm:px-6 lg:px-8">
@@ -31,33 +47,49 @@ export function PricingSection({ tiers }: PricingSectionProps) {
           <p className="mt-4 text-lg text-muted-foreground">
             Choisissez le plan qui correspond à votre activité. Changez d’échelle à tout moment.
           </p>
-          <div className="mt-6 inline-flex items-center gap-3 rounded-full border bg-muted/50 p-1">
-            <button
-              type="button"
-              onClick={() => setYearly(false)}
-              className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
-                !yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
-              }`}
-            >
-              Mensuel
-            </button>
-            <button
-              type="button"
-              onClick={() => setYearly(true)}
-              className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
-                yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
-              }`}
-            >
-              Annuel <span className="ml-1 text-base text-primary">-20%</span>
-            </button>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <div className="inline-flex items-center gap-3 rounded-full border bg-muted/50 p-1">
+              <button
+                type="button"
+                onClick={() => setYearly(false)}
+                className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
+                  !yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
+                }`}
+              >
+                Mensuel
+              </button>
+              <button
+                type="button"
+                onClick={() => setYearly(true)}
+                className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
+                  yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
+                }`}
+              >
+                Annuel <span className="ml-1 text-base text-primary">-20%</span>
+              </button>
+            </div>
+
+            <div className="inline-flex items-center rounded-full border bg-muted/50 p-1">
+              {currencies.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => onCurrencyChange(c)}
+                  className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
+                    currency === c
+                      ? 'bg-background text-foreground shadow'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {currencyLabels[c] ?? c}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div className="grid gap-8 lg:grid-cols-3">
           {tiers.map((tier) => {
-            const price =
-              yearly && tier.yearlyPrice
-                ? `${(tier.yearlyPrice / 100 / 12).toLocaleString('fr-FR')} €`
-                : tier.price
+            const price = yearly && tier.yearlyPrice ? format(tier.yearlyPrice / 12, 2) : tier.price
             const period = yearly && tier.yearlyPrice ? '/mois, facturé annuellement' : tier.period
             return (
               <div
@@ -89,7 +121,7 @@ export function PricingSection({ tiers }: PricingSectionProps) {
                 </div>
                 {yearly && tier.yearlyPrice && (
                   <p className="mt-1 text-base text-primary">
-                    {`${(tier.yearlyPrice / 100).toLocaleString('fr-FR')} €`} facturés par an
+                    {format(tier.yearlyPrice, 0)} facturés par an
                   </p>
                 )}
                 <ul className="mt-8 flex-1 space-y-3">

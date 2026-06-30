@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Activity, Building2, MousePointerClick, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader, PageSection, DataCard, EmptyState } from '@/components/design-system'
 import { getOverview } from '../services/platformService'
 import type { PlatformOverview } from '../types'
 
@@ -28,47 +29,50 @@ export default function BackOfficeOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Vue d'ensemble</h1>
-        <p className="text-muted-foreground">Activité globale de la plateforme en temps réel.</p>
-      </div>
+      <PageHeader
+        title="Vue d'ensemble"
+        description="Activité globale de la plateforme en temps réel."
+      />
 
       {error && <p className="text-destructive">{error.message}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Organisations"
-          value={stats.organizationsTotal}
-          icon={Building2}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Organisations actives"
-          value={stats.organizationsActive}
-          icon={Building2}
-          loading={isLoading}
-        />
-        <StatCard label="Utilisateurs" value={stats.usersTotal} icon={Users} loading={isLoading} />
-        <StatCard
-          label="Utilisateurs en ligne"
-          value={stats.usersOnline}
-          icon={Activity}
-          loading={isLoading}
-        />
-        <StatCard
-          label="Mouvements aujourd'hui"
-          value={stats.movementsToday}
-          icon={MousePointerClick}
-          loading={isLoading}
-        />
-      </div>
+      <PageSection>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <DataCard
+            label="Organisations"
+            value={isLoading ? '…' : stats.organizationsTotal}
+            icon={Building2}
+          />
+          <DataCard
+            label="Organisations actives"
+            value={isLoading ? '…' : stats.organizationsActive}
+            icon={Building2}
+            status="success"
+          />
+          <DataCard label="Utilisateurs" value={isLoading ? '…' : stats.usersTotal} icon={Users} />
+          <DataCard
+            label="Utilisateurs en ligne"
+            value={isLoading ? '…' : stats.usersOnline}
+            icon={Activity}
+            status="info"
+          />
+          <DataCard
+            label="Mouvements aujourd'hui"
+            value={isLoading ? '…' : stats.movementsToday}
+            icon={MousePointerClick}
+          />
+        </div>
+      </PageSection>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <h2 className="font-semibold">Répartition des plans</h2>
-          <div className="mt-4 space-y-2">
+        <PageSection title="Répartition des plans">
+          <div className="space-y-2">
             {Object.entries(stats.subscriptionsByPlan).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune donnée.</p>
+              <EmptyState
+                title="Aucune donnée"
+                description="Les statistiques de plans apparaîtront ici."
+                className="border-0 bg-transparent shadow-none"
+              />
             ) : (
               Object.entries(stats.subscriptionsByPlan).map(([plan, count]) => (
                 <div key={plan} className="flex items-center justify-between text-sm">
@@ -78,13 +82,16 @@ export default function BackOfficeOverviewPage() {
               ))
             )}
           </div>
-        </div>
+        </PageSection>
 
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <h2 className="font-semibold">Activité récente</h2>
-          <div className="mt-4 space-y-3">
+        <PageSection title="Activité récente">
+          <div className="space-y-3">
             {stats.recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune action récente.</p>
+              <EmptyState
+                title="Aucune action récente"
+                description="L'activité des administrateurs apparaîtra ici."
+                className="border-0 bg-transparent shadow-none"
+              />
             ) : (
               stats.recentActivity.slice(0, 10).map((log) => (
                 <div key={log.id} className="text-sm">
@@ -99,30 +106,8 @@ export default function BackOfficeOverviewPage() {
               ))
             )}
           </div>
-        </div>
+        </PageSection>
       </div>
-    </div>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  loading,
-}: {
-  label: string
-  value: number
-  icon: React.ElementType
-  loading?: boolean
-}) {
-  return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        <span className="text-sm">{label}</span>
-      </div>
-      <p className="mt-2 text-2xl font-bold">{loading ? '…' : value}</p>
     </div>
   )
 }

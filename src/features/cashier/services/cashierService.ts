@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase'
 import { edgeFetch } from '@/services/edgeFunctions'
-import { mapReceipt, mapReceiptItem } from '@/features/invoicing/services/receiptService'
+import { mapReceipt, mapReceiptItem } from '@/features/cashier/services/receiptMapper'
 import type { CashierSession, Movement, ReceiptWithItems } from '@/types'
 
 import type { Database } from '@/types/database'
@@ -99,11 +99,11 @@ export interface CompleteSaleInput {
   paymentMethod: 'cash' | 'card' | 'mobile_money' | 'transfer' | 'other'
   currency: string
   prefix?: string | null
-  subtotal: number
-  taxAmount: number
-  total: number
   amountPaid: number
   changeDue: number
+  total: number
+  subtotal: number
+  taxAmount: number
   notes?: string | null
   items: {
     productId: string
@@ -131,11 +131,7 @@ export async function completeSale(input: CompleteSaleInput): Promise<ReceiptWit
       payment_method: input.paymentMethod,
       currency: input.currency,
       prefix: input.prefix ?? null,
-      subtotal: input.subtotal,
-      tax_amount: input.taxAmount,
-      total: input.total,
       amount_paid: input.amountPaid,
-      change_due: input.changeDue,
       notes: input.notes ?? null,
       items: input.items.map((item) => ({
         product_id: item.productId,
@@ -144,7 +140,6 @@ export async function completeSale(input: CompleteSaleInput): Promise<ReceiptWit
         unit_price: item.unitPrice,
         discount_amount: item.discountAmount ?? 0,
         tax_amount: item.taxAmount ?? 0,
-        total: item.total,
       })),
     }),
   })

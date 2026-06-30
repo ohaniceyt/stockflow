@@ -25,11 +25,6 @@ const navItems: NavItem[] = [
         description: 'Ventes, scan et reçus',
       },
       {
-        label: 'Facturation',
-        href: '/features/invoicing',
-        description: 'Devis, factures et rappels',
-      },
-      {
         label: 'Mode offline',
         href: '/features/offline',
         description: 'Travaillez sans connexion',
@@ -85,8 +80,12 @@ export function MarketingHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <MarketingButton variant="ghost" size="sm" to="/login">Se connecter</MarketingButton>
-          <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
+          <MarketingButton variant="ghost" size="sm" to="/login">
+            Se connecter
+          </MarketingButton>
+          <MarketingButton size="sm" to="/signup">
+            Essayer gratuit
+          </MarketingButton>
         </div>
 
         <details className="group md:hidden">
@@ -129,8 +128,12 @@ export function MarketingHeader() {
                 )
               )}
               <div className="mt-2 flex flex-col gap-2 border-t pt-3">
-                <MarketingButton variant="outline" size="sm" to="/login">Se connecter</MarketingButton>
-                <MarketingButton size="sm" to="/signup">Essayer gratuit</MarketingButton>
+                <MarketingButton variant="outline" size="sm" to="/login">
+                  Se connecter
+                </MarketingButton>
+                <MarketingButton size="sm" to="/signup">
+                  Essayer gratuit
+                </MarketingButton>
               </div>
             </nav>
           </div>

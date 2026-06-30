@@ -5,13 +5,16 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { EmptyState, StatusBadge } from '@/components/design-system'
 import { useCashier } from '../hooks/useCashier'
+import { useFirstSale } from '../hooks/useFirstSale'
+import { FirstSaleWizard } from './FirstSaleWizard'
 import { CashierHeader } from './CashierHeader'
 import { ProductCatalog } from './ProductCatalog'
 import { CartPanel } from './CartPanel'
 import { SessionDrawer } from './SessionDrawer'
 import { ScannerDialog } from './ScannerDialog'
-import ReceiptActions from '@/features/invoicing/components/ReceiptActions'
+import ReceiptActions from '@/features/cashier/components/ReceiptActions'
 
 interface CashierWorkspaceProps {
   embedded?: boolean
@@ -41,7 +44,9 @@ export function CashierWorkspace({
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState('products')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [wizardDismissed, setWizardDismissed] = useState(false)
   const scannerContainerId = useMemo(() => `cashier-workspace-scanner-${crypto.randomUUID()}`, [])
+  const { isFirstSale, isLoading: firstSaleLoading } = useFirstSale()
 
   const {
     session,
@@ -140,16 +145,18 @@ export function CashierWorkspace({
 
   if (!hasCashierEnabled || !session) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="text-2xl font-bold">Caisse</h1>
-        <p className="text-muted-foreground">
-          La caisse n&apos;est pas activée pour cette organisation. Contactez un administrateur.
-        </p>
-        {onCloseTab && (
-          <Button type="button" variant="outline" onClick={onCloseTab}>
-            Fermer
-          </Button>
-        )}
+      <div className="flex h-screen flex-col items-center justify-center p-6">
+        <EmptyState
+          title="Caisse non activée"
+          description="La caisse n’est pas activée pour cette organisation. Contactez un administrateur."
+          action={
+            onCloseTab ? (
+              <Button type="button" variant="outline" onClick={onCloseTab}>
+                Fermer
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
     )
   }
@@ -198,6 +205,12 @@ export function CashierWorkspace({
         </div>
       </header>
 
+      {!firstSaleLoading && isFirstSale && !wizardDismissed && (
+        <div className="mx-4 mt-4">
+          <FirstSaleWizard onDismiss={() => setWizardDismissed(true)} />
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 border-b bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <div className="space-y-1">
@@ -240,13 +253,13 @@ export function CashierWorkspace({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
           {openSession ? (
-            <span>
+            <StatusBadge variant="success">
               Caisse ouverte — recette : <strong>{formatCurrency(sessionRevenue)}</strong>
-            </span>
+            </StatusBadge>
           ) : (
-            <span className="text-destructive">Caisse fermée</span>
+            <StatusBadge variant="danger">Caisse fermée</StatusBadge>
           )}
         </div>
       </div>

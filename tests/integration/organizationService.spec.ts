@@ -32,7 +32,7 @@ function buildOrgRow(overrides?: Partial<OrgRow>): OrgRow {
     has_storefront_enabled: false,
     has_api_enabled: false,
     storefront_location_id: null,
-    has_invoicing_enabled: true,
+    has_invoicing_enabled: false,
     has_tax_enabled: true,
     tax_name: 'TVA',
     tax_rate: 18,
@@ -42,8 +42,8 @@ function buildOrgRow(overrides?: Partial<OrgRow>): OrgRow {
     delivery_note_prefix: 'BL',
     receipt_prefix: 'REC',
     legal_mentions: null,
-    auto_reminder_enabled: true,
-    auto_reminder_days: 7,
+    auto_reminder_enabled: false,
+    auto_reminder_days: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     ...overrides,
@@ -70,33 +70,15 @@ describe('organizationService integration', () => {
       hasStorefrontEnabled: false,
       hasApiEnabled: false,
       storefrontLocationId: null,
-      hasInvoicingEnabled: true,
       hasTaxEnabled: true,
       taxName: 'TVA',
       taxRate: 18,
       taxId: null,
-      invoicePrefix: 'FA',
-      quotePrefix: 'DEV',
-      deliveryNotePrefix: 'BL',
       receiptPrefix: 'REC',
       legalMentions: null,
-      autoReminderEnabled: true,
-      autoReminderDays: 7,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     } satisfies Organization)
-  })
-
-  it('coerces nullable reminder defaults to safe values', () => {
-    const row = buildOrgRow({
-      auto_reminder_enabled: null,
-      auto_reminder_days: null,
-    })
-
-    const org = mapOrganizationRow(row)
-
-    expect(org.autoReminderEnabled).toBe(false)
-    expect(org.autoReminderDays).toBeNull()
   })
 
   it('updateOrganization falls back to defaults for NOT NULL billing fields', async () => {
@@ -122,9 +104,6 @@ describe('organizationService integration', () => {
       taxName: null,
       taxRate: null,
       taxId: null,
-      invoicePrefix: null,
-      quotePrefix: null,
-      deliveryNotePrefix: null,
       receiptPrefix: null,
     })
 
@@ -133,9 +112,6 @@ describe('organizationService integration', () => {
     expect(updateData.tax_name).toBe('TVA')
     expect(updateData.tax_rate).toBe(0)
     expect(updateData.tax_id).toBe('')
-    expect(updateData.invoice_prefix).toBe('FA')
-    expect(updateData.quote_prefix).toBe('DEV')
-    expect(updateData.delivery_note_prefix).toBe('BL')
     expect(updateData.receipt_prefix).toBe('REC')
   })
 })

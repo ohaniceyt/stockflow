@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { StatusBadge } from '@/components/design-system'
 
 export default function ChangePinPage() {
   const { changePin, session } = useAuth()
@@ -58,6 +59,12 @@ export default function ChangePinPage() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-4">
+            <StatusBadge variant="danger">{error}</StatusBadge>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isForcedReset && (
             <div className="space-y-2">
@@ -105,8 +112,6 @@ export default function ChangePinPage() {
               required
             />
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Enregistrement…' : 'Enregistrer'}

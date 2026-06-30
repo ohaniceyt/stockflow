@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, ListPlus } from 'lucide-react'
+import { Plus, ListPlus, ArrowLeftRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,6 +19,7 @@ import { MovementForm } from '../components/MovementForm'
 import { BulkMovementForm } from '../components/BulkMovementForm'
 import { MovementList } from '../components/MovementList'
 import { useCreateBulkMovements, useCreateMovement, useMovements } from '../hooks/useMovements'
+import { PageHeader, PageSection, EmptyState } from '@/components/design-system'
 import type { MovementType } from '@/types'
 
 type DialogMode = 'single' | 'bulk' | null
@@ -88,28 +89,24 @@ export default function MovementsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Mouvements</h1>
-          <p className="text-muted-foreground">Historique des entrées, sorties et transferts.</p>
-        </div>
-        {canCreate && (
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => setDialogMode('bulk')}
-            >
-              <ListPlus className="mr-2 h-4 w-4" />
-              En bulk
-            </Button>
-            <Button className="w-full sm:w-auto" onClick={() => setDialogMode('single')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouveau mouvement
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Mouvements"
+        description="Historique des entrées, sorties et transferts."
+        actions={
+          canCreate
+            ? [
+                <Button key="bulk" variant="outline" onClick={() => setDialogMode('bulk')}>
+                  <ListPlus className="mr-2 h-4 w-4" />
+                  En bulk
+                </Button>,
+                <Button key="new" onClick={() => setDialogMode('single')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouveau mouvement
+                </Button>,
+              ]
+            : undefined
+        }
+      />
 
       <Dialog open={dialogMode === 'single'} onOpenChange={(open) => !open && setDialogMode(null)}>
         <DialogContent>
@@ -175,29 +172,48 @@ export default function MovementsPage() {
       </Dialog>
 
       {!isLoading && !movementsError && movements.length > 0 && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <div className="space-y-2 sm:w-72">
-            <Label htmlFor="movement-contact-filter">Filtrer par client</Label>
-            <Select
-              id="movement-contact-filter"
-              value={contactFilter}
-              onChange={(e) => setContactFilter(e.target.value)}
-            >
-              <option value="all">Tous les clients</option>
-              <option value="none">Sans client</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+        <PageSection contentClassName="py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="space-y-2 sm:w-72">
+              <Label htmlFor="movement-contact-filter">Filtrer par client</Label>
+              <Select
+                id="movement-contact-filter"
+                value={contactFilter}
+                onChange={(e) => setContactFilter(e.target.value)}
+              >
+                <option value="all">Tous les clients</option>
+                <option value="none">Sans client</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
-        </div>
+        </PageSection>
       )}
 
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {movementsError && <p className="text-destructive">{movementsError.message}</p>}
-      {!isLoading && !movementsError && <MovementList movements={filteredMovements} />}
+      {!isLoading && !movementsError && movements.length > 0 && (
+        <MovementList movements={filteredMovements} />
+      )}
+      {!isLoading && !movementsError && movements.length === 0 && (
+        <EmptyState
+          icon={ArrowLeftRight}
+          title="Aucun mouvement"
+          description="Les entrées, sorties, transferts et ajustements apparaîtront ici."
+          action={
+            canCreate ? (
+              <Button onClick={() => setDialogMode('single')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau mouvement
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
       {hasNextPage && (
         <Button
           variant="outline"

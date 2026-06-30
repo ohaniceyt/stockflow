@@ -4,7 +4,6 @@ import {
   Box,
   Calculator,
   Clock,
-  FileText,
   Globe,
   HelpCircle,
   Lock,
@@ -31,6 +30,8 @@ import { ResourceHub } from '../components/ResourceHub'
 import { FaqSection } from '../components/FaqSection'
 import { FinalCta } from '../components/FinalCta'
 import { MarketingFooter } from '../components/MarketingFooter'
+import { TestimonialsSection } from '../components/TestimonialsSection'
+import { usePricingCurrency } from '../hooks/usePricingCurrency'
 
 const features = [
   {
@@ -56,12 +57,6 @@ const features = [
     title: 'Caisse intégrée',
     description:
       'Ventes rapides, impression de reçus, paiements multiples (cash, carte, mobile money) et annulations contrôlées.',
-  },
-  {
-    icon: FileText,
-    title: 'Facturation professionnelle',
-    description:
-      'Devis, factures, bons de livraison, rappels auto et conversion devis → facture avec numérotation personnalisée.',
   },
   {
     icon: WifiOff,
@@ -122,8 +117,7 @@ const workflow = [
   {
     step: '3',
     title: 'Gérez et vendez',
-    description:
-      'Enregistrez les mouvements, vendez en caisse, éditez des factures et suivez votre activité.',
+    description: 'Enregistrez les mouvements, vendez en caisse et suivez votre activité.',
   },
 ]
 
@@ -219,8 +213,7 @@ const resources = [
   {
     icon: Video,
     title: 'Tutoriels vidéo',
-    description:
-      'Courtes vidéos pratiques pour maîtriser la caisse, la facturation et les rapports.',
+    description: 'Courtes vidéos pratiques pour maîtriser la caisse et les rapports.',
     href: '#',
   },
   {
@@ -238,6 +231,8 @@ const resources = [
 ]
 
 export default function LandingPage() {
+  const { currency, currencies, setCurrency, format } = usePricingCurrency()
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBanner />
@@ -283,23 +278,6 @@ export default function LandingPage() {
           linkLabel="Découvrir la caisse"
         />
 
-        <FeatureBlock
-          icon={FileText}
-          eyebrow="Facturation"
-          title="Créez des factures professionnelles en quelques clics"
-          description="Passez du devis à la facture, suivez les paiements et envoyez des rappels automatiques à vos clients."
-          bullets={[
-            'Convertissez vos devis en factures en un clic',
-            'Personnalisez la numérotation et l’apparence des documents',
-            'Automatisez les relances pour les paiements en retard',
-            'Suivez vos impayés dans un tableau de bord dédié',
-          ]}
-          image="/features/invoicing-preview.png"
-          imageAlt="Aperçu de la facturation"
-          link="/features/invoicing"
-          linkLabel="Découvrir la facturation"
-        />
-
         <FeatureGrid
           title="Tout ce qu’il faut pour gérer votre activité"
           subtitle="Des fonctionnalités pensées ensemble pour fluidifier votre quotidien de bout en bout."
@@ -330,13 +308,16 @@ export default function LandingPage() {
 
         <MidBanner />
 
+        <TestimonialsSection />
+
         <PricingSection
+          currency={currency}
+          currencies={currencies}
+          onCurrencyChange={setCurrency}
+          format={format}
           tiers={pricingPlans.map((p) => ({
             name: p.name,
-            price:
-              p.priceMode === 'custom'
-                ? 'Sur mesure'
-                : `${(p.monthlyPrice / 100).toLocaleString('fr-FR')} €`,
+            price: p.priceMode === 'custom' ? 'Sur mesure' : format(p.monthlyPrice, 0),
             period: p.priceMode === 'custom' ? '' : '/mois',
             description: p.description,
             features: p.features,

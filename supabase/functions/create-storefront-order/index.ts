@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
 
 interface OrderItem {
   product_id: string
@@ -39,6 +40,18 @@ Deno.serve(async (req: Request) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
+
+    const clientIp = getClientIp(req)
+    const ipKey = clientIp ? { key: clientIp, type: 'ip' as const } : null
+    if (
+      ipKey &&
+      (await isRateLimited(adminClient, ipKey, { maxRequests: 10, windowMinutes: 15 }))
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Too many orders from this network. Try again later.' }),
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      )
+    }
 
     const payload: CreateStorefrontOrderPayload = await req.json()
     if (
@@ -196,6 +209,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const movementIds = (orderResult as { movement_ids: string[] }).movement_ids
+
+    if (ipKey) {
+      await recordRateLimitRequest(adminClient, ipKey)
+    }
 
     return new Response(
       JSON.stringify({

@@ -1,6 +1,7 @@
 import { format, isValid, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/design-system'
 import type { MovementType } from '@/types'
 import type { MovementWithDetails } from '../services/movementService'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
@@ -96,9 +97,10 @@ export function MovementList({ movements }: MovementListProps) {
   ]
 
   const empty = (
-    <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-      Aucun mouvement enregistré.
-    </div>
+    <EmptyState
+      title="Aucun mouvement"
+      description="Les entrées, sorties, transferts et ajustements apparaîtront ici."
+    />
   )
 
   return (

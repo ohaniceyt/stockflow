@@ -1,7 +1,5 @@
 import type { Page } from '@playwright/test'
 
-const SESSION_KEY = 'stockflow-session'
-
 export interface MockSession {
   user: {
     id: string
@@ -39,18 +37,12 @@ export interface MockSession {
     hasStorefrontEnabled: boolean
     hasApiEnabled: boolean
     storefrontLocationId: string | null
-    hasInvoicingEnabled: boolean
     hasTaxEnabled: boolean
     taxName: string | null
     taxRate: number | null
     taxId: string | null
-    invoicePrefix: string | null
-    quotePrefix: string | null
-    deliveryNotePrefix: string | null
     receiptPrefix: string | null
     legalMentions: string | null
-    autoReminderEnabled: boolean
-    autoReminderDays: number | null
     createdAt: string
     updatedAt: string
   }
@@ -92,18 +84,12 @@ export const DEFAULT_MOCK_SESSION: MockSession = {
     hasStorefrontEnabled: false,
     hasApiEnabled: true,
     storefrontLocationId: null,
-    hasInvoicingEnabled: true,
     hasTaxEnabled: false,
     taxName: null,
     taxRate: null,
     taxId: null,
-    invoicePrefix: 'FAC',
-    quotePrefix: 'DEV',
-    deliveryNotePrefix: 'BL',
     receiptPrefix: 'REC',
     legalMentions: null,
-    autoReminderEnabled: true,
-    autoReminderDays: 7,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -111,7 +97,8 @@ export const DEFAULT_MOCK_SESSION: MockSession = {
 
 export async function injectMockSession(page: Page, session: MockSession = DEFAULT_MOCK_SESSION) {
   await page.addInitScript((payload) => {
-    const SESSION_KEY = 'stockflow-session'
+    const APP_SESSION_KEY = 'stockflow-session'
+    const SUPABASE_SESSION_KEY = 'sf-auth-session'
     const accessToken = 'e2e-access-token'
     const refreshToken = 'e2e-refresh-token'
     const expiresAt = Math.floor(Date.now() / 1000) + 3600
@@ -145,11 +132,20 @@ export async function injectMockSession(page: Page, session: MockSession = DEFAU
       },
     })
 
+    // The app stores its enriched session in localStorage and the Supabase session in sessionStorage.
+    window.localStorage.setItem(APP_SESSION_KEY, stockflowSession)
+    window.sessionStorage.setItem(SUPABASE_SESSION_KEY, supabaseSession)
+
+    // Also intercept storage reads so any other key conventions still resolve.
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalGetItem = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
-      if (key === SESSION_KEY) return stockflowSession
-      if (key.endsWith('-auth-token') || key === 'supabase.auth.token') {
+      if (key === APP_SESSION_KEY) return stockflowSession
+      if (
+        key === SUPABASE_SESSION_KEY ||
+        key.endsWith('-auth-token') ||
+        key === 'supabase.auth.token'
+      ) {
         return supabaseSession
       }
       return originalGetItem.call(this, key)
@@ -159,6 +155,7 @@ export async function injectMockSession(page: Page, session: MockSession = DEFAU
 
 export async function clearMockSession(page: Page) {
   await page.addInitScript(() => {
-    window.localStorage.removeItem(SESSION_KEY)
+    window.localStorage.removeItem('stockflow-session')
+    window.sessionStorage.removeItem('sf-auth-session')
   })
 }

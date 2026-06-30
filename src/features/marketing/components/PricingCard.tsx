@@ -72,11 +72,7 @@ export function PricingCard({
         ))}
       </ul>
 
-      <MarketingButton
-        to={href}
-        variant={highlighted ? 'default' : 'outline'}
-        className="w-full"
-      >
+      <MarketingButton to={href} variant={highlighted ? 'default' : 'outline'} className="w-full">
         {cta}
       </MarketingButton>
     </div>

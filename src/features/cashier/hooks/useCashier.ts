@@ -18,6 +18,7 @@ import {
   filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
+import { useToast } from '@/hooks/useToast'
 import type { Product, ReceiptWithItems } from '@/types'
 import type { CartItem } from '../pages/CashierPage'
 
@@ -35,6 +36,7 @@ export function useCashier(scannerContainerId: string) {
   const { data: customers } = useContacts('CUSTOMER')
   const queryClient = useQueryClient()
   const { data: movements, isLoading: movementsLoading } = useMovements()
+  const { toast } = useToast()
   const openSessionMutation = useOpenCashierSession()
   const closeSessionMutation = useCloseCashierSession()
 
@@ -273,8 +275,17 @@ export function useCashier(scannerContainerId: string) {
       setCustomerId('walk-in')
       setAmountPaid('')
       setSuccess(true)
-    } catch {
-      // errors are surfaced by toast/query; keep UI state intact
+      toast({
+        variant: 'success',
+        title: 'Vente enregistrée',
+        description: 'Le reçu a été généré.',
+      })
+    } catch (err: unknown) {
+      toast({
+        variant: 'error',
+        title: 'Échec de la vente',
+        description: err instanceof Error ? err.message : 'Une erreur est survenue.',
+      })
     } finally {
       setIsCheckingOut(false)
     }
@@ -314,12 +325,23 @@ export function useCashier(scannerContainerId: string) {
     const sale = sessionSales.find((s) => s.id === movementId)
     if (!sale) return
     if (!confirm('Annuler cette vente ?')) return
-    void cancelSale(
-      sale.referenceId ? { receiptId: sale.referenceId } : { movementId: sale.id }
-    ).then(() => {
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 2000)
-    })
+    void cancelSale(sale.referenceId ? { receiptId: sale.referenceId } : { movementId: sale.id })
+      .then(() => {
+        toast({
+          variant: 'success',
+          title: 'Vente annulée',
+          description: `La vente ${sale.referenceId ?? sale.id} a été annulée.`,
+        })
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 2000)
+      })
+      .catch((err: unknown) => {
+        toast({
+          variant: 'error',
+          title: "Échec de l'annulation",
+          description: err instanceof Error ? err.message : 'Une erreur est survenue.',
+        })
+      })
   }
 
   const isLoading =

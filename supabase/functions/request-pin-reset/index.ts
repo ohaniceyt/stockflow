@@ -1,6 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
+import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface RequestPinResetPayload {
   email: string
@@ -37,10 +40,10 @@ function buildPinResetEmailHtml(link: string, _appUrl: string): string {
             Vous avez demandé la réinitialisation de votre code PIN. Cliquez sur le bouton ci-dessous pour vous connecter en toute sécurité et définir un nouveau PIN.
           </p>
           <p>
-            <a class="button" href="${link}" target="_blank">Réinitialiser mon PIN</a>
+            <a class="button" href="${escapeHtmlAttribute(link)}" target="_blank">Réinitialiser mon PIN</a>
           </p>
           <p class="link">
-            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${link}
+            Si le bouton ne fonctionne pas, copiez-collez ce lien : <br />${escapeHtml(link)}
           </p>
           <p class="footer">
             StockFlow vNext — Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
@@ -99,10 +102,10 @@ async function recordRequest(
 async function findActiveMembership(
   client: ReturnType<typeof createClient>,
   email: string
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; org_id: string } | null> {
   const { data, error } = await client
     .from('organization_memberships')
-    .select('id')
+    .select('id, organization_id')
     .eq('users.email', email.toLowerCase())
     .eq('is_active', true)
     .maybeSingle()
@@ -111,8 +114,8 @@ async function findActiveMembership(
     console.error('Failed to look up membership for pin reset:', error)
     return null
   }
-  if (!data || typeof data.id !== 'string') return null
-  return { id: data.id }
+  if (!data || typeof data.id !== 'string' || typeof data.organization_id !== 'string') return null
+  return { id: data.id, org_id: data.organization_id }
 }
 
 Deno.serve(async (req: Request) => {
@@ -123,14 +126,41 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       throw new Error('Missing Supabase env vars')
     }
 
+    // This endpoint is no longer public: only an authenticated user may request
+    // a PIN reset for their own account.
+    const token = getBearerToken(req)
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const claims = await verifyToken(supabaseUrl, anonKey, token)
+    if (!claims?.sub || !claims.email) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
     const { email }: RequestPinResetPayload = await req.json()
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const normalizedEmail = email?.trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (normalizedEmail !== claims.email.toLowerCase()) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
@@ -151,7 +181,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Rate-limit by email.
-    const emailRequests = await countRecentRequests(adminClient, 'email', email)
+    const emailRequests = await countRecentRequests(adminClient, 'email', normalizedEmail)
     if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
       return new Response(
         JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
@@ -161,7 +191,7 @@ Deno.serve(async (req: Request) => {
 
     // Only proceed for active users. We still return a generic success
     // response so we do not leak whether the email exists.
-    const membership = await findActiveMembership(adminClient, email)
+    const membership = await findActiveMembership(adminClient, normalizedEmail)
     if (!membership) {
       return new Response(
         JSON.stringify({
@@ -188,7 +218,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
-      email,
+      email: normalizedEmail,
       options: { redirectTo },
     })
 
@@ -202,13 +232,23 @@ Deno.serve(async (req: Request) => {
     const magicLink = linkData.properties.action_link
 
     const { id } = await sendEmail({
-      to: email,
+      to: normalizedEmail,
       subject: 'Réinitialisation de votre code PIN StockFlow',
       html: buildPinResetEmailHtml(magicLink, appUrl),
       text: `Vous avez demandé la réinitialisation de votre code PIN. Cliquez sur ce lien pour vous connecter et définir un nouveau PIN : ${magicLink}`,
     })
 
-    await recordRequest(adminClient, email, clientIp)
+    await Promise.all([
+      recordRequest(adminClient, email, clientIp),
+      logActivity(adminClient, {
+        org_id: membership.org_id,
+        actor_id: claims.sub,
+        action: 'pin_reset_requested',
+        entity_type: 'organization_membership',
+        entity_id: membership.id,
+        metadata: { email: normalizedEmail, ip_address: clientIp ?? null },
+      }),
+    ])
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,

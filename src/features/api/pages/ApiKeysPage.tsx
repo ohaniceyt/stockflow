@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Key, Plus, Trash2 } from 'lucide-react'
+import { Copy, Key, Plus, Trash2, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,7 @@ import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from '../hooks/useApiKeys'
 import { SettingsTabs } from '@/features/settings/components/SettingsTabs'
+import { PageHeader, PageSection, EmptyState } from '@/components/design-system'
 
 const AVAILABLE_SCOPES = [
   { value: 'read:products', label: 'Lire les produits' },
@@ -58,53 +59,38 @@ export default function ApiKeysPage() {
   if (!canManage) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Paramètres</h1>
-          <p className="text-muted-foreground">Gérez les clés API de votre organisation.</p>
-        </div>
+        <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
         <SettingsTabs />
-        <p className="text-muted-foreground">
-          L'API publique n'est pas activée pour cette organisation.
-        </p>
+        <EmptyState
+          icon={ShieldCheck}
+          title="API non activée"
+          description="L'API publique n'est pas activée pour cette organisation."
+        />
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">Gérez les clés API de votre organisation.</p>
-      </div>
+      <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
 
       <SettingsTabs />
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Key className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold">Clés API</h2>
-            <p className="text-sm text-muted-foreground">
-              Connectez votre boutique externe à StockFlow.
-            </p>
-          </div>
-        </div>
-
+      <PageSection title="Clés API" description="Connectez votre boutique externe à StockFlow.">
         {createdKey && (
-          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:bg-green-950">
-            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-800">
               Copiez cette clé maintenant, elle ne sera plus affichée :
             </p>
             <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 rounded bg-background px-2 py-1 text-sm break-all">
+              <code className="flex-1 break-all rounded bg-background px-2 py-1 text-sm">
                 {createdKey}
               </code>
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
+                className="h-10 w-10 shrink-0"
                 onClick={() => copyToClipboard(createdKey)}
               >
                 <Copy className="h-4 w-4" />
@@ -122,8 +108,8 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        <div className="mb-6 space-y-4 rounded-lg border p-4">
-          <div>
+        <div className="mb-6 space-y-4 rounded-lg border bg-muted/30 p-4">
+          <div className="space-y-2">
             <Label htmlFor="key-name">Nom de la clé</Label>
             <Input
               id="key-name"
@@ -133,11 +119,11 @@ export default function ApiKeysPage() {
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <span className="text-sm font-medium">Permissions</span>
-            <div className="mt-2 space-y-2">
+            <div className="space-y-2">
               {AVAILABLE_SCOPES.map((scope) => (
-                <label key={scope.value} className="flex items-center gap-2">
+                <label key={scope.value} className="flex min-h-[44px] items-center gap-3">
                   <input
                     type="checkbox"
                     checked={selectedScopes.includes(scope.value)}
@@ -155,14 +141,14 @@ export default function ApiKeysPage() {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <span className="text-sm font-medium">Emplacements autorisés</span>
             <p className="text-sm text-muted-foreground">
               Laissez vide pour autoriser tous les emplacements.
             </p>
-            <div className="mt-2 space-y-2">
+            <div className="space-y-2">
               {locations?.map((location) => (
-                <label key={location.id} className="flex items-center gap-2">
+                <label key={location.id} className="flex min-h-[44px] items-center gap-3">
                   <input
                     type="checkbox"
                     checked={selectedLocations.includes(location.id)}
@@ -195,11 +181,15 @@ export default function ApiKeysPage() {
         ) : !apiKeys ? (
           <p className="text-destructive">Erreur de chargement.</p>
         ) : apiKeys.length === 0 ? (
-          <p className="text-muted-foreground">Aucune clé API active.</p>
+          <EmptyState
+            icon={Key}
+            title="Aucune clé active"
+            description="Créez une clé API pour connecter une boutique externe."
+          />
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y rounded-xl border">
             {apiKeys.map((key) => (
-              <li key={key.id} className="flex items-center justify-between rounded-lg border p-3">
+              <li key={key.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="font-medium">{key.name}</p>
                   <p className="text-sm text-muted-foreground">Scopes: {key.scopes.join(', ')}</p>
@@ -216,7 +206,7 @@ export default function ApiKeysPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-destructive"
+                  className="h-10 w-10 shrink-0 text-destructive"
                   disabled={revoke.isPending}
                   onClick={() => {
                     if (confirm('Révoquer cette clé ?')) {
@@ -230,11 +220,13 @@ export default function ApiKeysPage() {
             ))}
           </ul>
         )}
-      </div>
+      </PageSection>
 
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <h2 className="font-semibold">Documentation rapide</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <PageSection
+        title="Documentation rapide"
+        description="Endpoints et header requis pour l'intégration."
+      >
+        <p className="text-sm text-muted-foreground">
           Endpoint de base :{' '}
           <code className="rounded bg-muted px-1 py-0.5">{window.location.origin}/api/v1</code>
         </p>
@@ -253,7 +245,7 @@ export default function ApiKeysPage() {
             <code>POST /api/v1/orders</code> — créer une commande
           </li>
         </ul>
-      </div>
+      </PageSection>
     </div>
   )
 }

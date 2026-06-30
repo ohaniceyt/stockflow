@@ -7,7 +7,12 @@ vi.mock('@/services/supabase', () => ({
   },
 }))
 
-import { createReceipt, getReceiptWithOrg } from '@/features/invoicing/services/receiptService'
+vi.mock('@/features/cashier/services/cashierService', () => ({
+  completeSale: vi.fn(),
+}))
+
+import { createReceipt, getReceiptWithOrg } from '@/features/cashier/services/receiptService'
+import { completeSale } from '@/features/cashier/services/cashierService'
 import type { Database } from '@/types/database'
 
 type ReceiptRow = Database['public']['Tables']['receipts']['Row']
@@ -88,33 +93,13 @@ function buildOrgRow(): Database['public']['Tables']['organizations']['Row'] {
 }
 
 describe('receiptService integration', () => {
-  it('creates a receipt and maps payment method correctly', async () => {
-    const { supabase } = await import('@/services/supabase')
-
-    const rpcMock = vi.fn().mockResolvedValue({ data: 'REC0001', error: null })
-    ;(supabase.rpc as ReturnType<typeof vi.fn>).mockImplementation(rpcMock)
-
-    const insertMock = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({ data: buildReceiptRow(), error: null }),
-      }),
-    })
-
-    ;(supabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
-      if (table === 'receipts') {
-        return { insert: insertMock }
-      }
-      if (table === 'receipt_items') {
-        return {
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockResolvedValue({
-              data: [buildReceiptItemRow()],
-              error: null,
-            }),
-          }),
-        }
-      }
-      return {}
+  it('delegates receipt creation to the server-side completeSale path', async () => {
+    const completeSaleMock = completeSale as unknown as ReturnType<typeof vi.fn>
+    completeSaleMock.mockResolvedValue({
+      id: 'rec-1',
+      paymentMethod: 'mobile_money',
+      total: 11800,
+      items: [buildReceiptItemRow()],
     })
 
     const result = await createReceipt({
@@ -142,14 +127,34 @@ describe('receiptService integration', () => {
       ],
     })
 
+    expect(completeSaleMock).toHaveBeenCalledWith({
+      locationId: 'loc-1',
+      cashierSessionId: 'session-1',
+      contactId: undefined,
+      paymentMethod: 'mobile_money',
+      currency: 'XOF',
+      prefix: undefined,
+      amountPaid: 12000,
+      changeDue: 200,
+      total: 11800,
+      subtotal: 10000,
+      taxAmount: 1800,
+      notes: undefined,
+      items: [
+        {
+          productId: 'prod-1',
+          productName: 'Piment',
+          quantity: 5,
+          unitPrice: 2000,
+          discountAmount: 0,
+          taxAmount: 1800,
+          total: 10000,
+        },
+      ],
+    })
     expect(result.paymentMethod).toBe('mobile_money')
     expect(result.total).toBe(11800)
     expect(result.items).toHaveLength(1)
-    expect(rpcMock).toHaveBeenCalledWith('next_document_number', {
-      p_org_id: 'org-1',
-      p_document_type: 'receipt',
-      p_prefix: 'REC',
-    })
   })
 
   it('maps a receipt row and coerces nullable operator / payment defaults', async () => {

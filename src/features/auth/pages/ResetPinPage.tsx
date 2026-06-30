@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/services/supabase'
 import { useAuth } from '@/features/auth/context/AuthContext'
+import { StatusBadge } from '@/components/design-system'
 
 export default function ResetPinPage() {
   const navigate = useNavigate()
@@ -71,7 +72,7 @@ export default function ResetPinPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <div className="w-full max-w-md rounded-2xl border bg-card p-8 shadow-xl text-center">
-          <p className="text-muted-foreground">Vérification de votre identité…</p>
+          <StatusBadge variant="info">Vérification de votre identité…</StatusBadge>
         </div>
       </div>
     )
@@ -93,6 +94,12 @@ export default function ResetPinPage() {
             remplace pas votre mot de passe StockFlow.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4">
+            <StatusBadge variant="danger">{error}</StatusBadge>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -124,8 +131,6 @@ export default function ResetPinPage() {
               required
             />
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Enregistrement…' : 'Enregistrer le nouveau PIN'}

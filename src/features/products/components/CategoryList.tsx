@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, FolderOpen } from 'lucide-react'
 import type { Category } from '@/types'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
+import { EmptyState } from '@/components/design-system'
 
 interface CategoryListProps {
   categories: Category[]
@@ -75,18 +76,18 @@ export function CategoryList({
     },
   ]
 
-  const empty = (
-    <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-      Aucune catégorie. Créez votre première catégorie pour commencer.
-    </div>
-  )
-
   return (
     <ResponsiveTable
       data={categories}
       columns={columns}
       keyExtractor={(category) => category.id}
-      empty={empty}
+      empty={
+        <EmptyState
+          icon={FolderOpen}
+          title="Aucune catégorie"
+          description="Créez votre première catégorie pour classer vos produits."
+        />
+      }
       mobileCardTitle={(category) => <span>{category.name}</span>}
     />
   )

@@ -7,6 +7,23 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
+    <script>
+      ;(function () {
+        try {
+          const stored = localStorage.getItem('stockflow-theme')
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          const isDark = stored === 'dark' || (stored !== 'light' && systemDark)
+          document.documentElement.classList.toggle('dark', isDark)
+        } catch (e) {}
+      })()
+    </script>
+    <link
+      rel="preload"
+      as="image"
+      href="/dashboard-preview-1600.webp"
+      type="image/webp"
+      media="(min-width: 1024px)"
+    />
     <meta
       name="description"
       content="StockFlow — Gestion de stock, caisse et facturation moderne et offline-first"
