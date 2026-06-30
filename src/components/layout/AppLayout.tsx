@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
+import { useWebVitals } from '@/hooks/useWebVitals'
 import { SudoBanner } from '@/features/back-office/components/SudoBanner'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -12,6 +13,7 @@ import { SkipLink } from '@/components/SkipLink'
 export function AppLayout() {
   const { session } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  useWebVitals()
 
   if (!session) {
     return null
