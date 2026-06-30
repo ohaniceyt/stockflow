@@ -27,8 +27,8 @@ interface LandingAppProps {
 }
 
 export default function LandingApp({ initialPath }: LandingAppProps) {
-  const [path, setPath] = useState(() =>
-    initialPath ?? (typeof window !== 'undefined' ? window.location.pathname : '/')
+  const [path, setPath] = useState(
+    () => initialPath ?? (typeof window !== 'undefined' ? window.location.pathname : '/')
   )
 
   useEffect(() => {

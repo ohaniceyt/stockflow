@@ -4,8 +4,8 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Politique de confidentialité" lastUpdated="23 juin 2026">
       <p>
-        StockFlow s’engage à protéger vos données personnelles et à respecter le Règlement
-        Général sur la Protection des Données (RGPD).
+        StockFlow s’engage à protéger vos données personnelles et à respecter le Règlement Général
+        sur la Protection des Données (RGPD).
       </p>
 
       <h2>1. Responsable du traitement</h2>
@@ -32,9 +32,8 @@ export default function PrivacyPage() {
 
       <h2>4. Base légale</h2>
       <p>
-        Les traitements reposent sur l’exécution du contrat, nos obligations légales, notre
-        intérêt légitime en matière de sécurité, et, le cas échéant, sur votre consentement
-        explicite.
+        Les traitements reposent sur l’exécution du contrat, nos obligations légales, notre intérêt
+        légitime en matière de sécurité, et, le cas échéant, sur votre consentement explicite.
       </p>
 
       <h2>5. Conservation</h2>
@@ -58,9 +57,9 @@ export default function PrivacyPage() {
 
       <h2>8. Sécurité</h2>
       <p>
-        Nous mettons en œuvre des mesures techniques et organisationnelles : chiffrement en
-        transit (TLS), chiffrement au repos, authentification sécurisée, contrôles d’accès et
-        journalisation des actions sensibles.
+        Nous mettons en œuvre des mesures techniques et organisationnelles : chiffrement en transit
+        (TLS), chiffrement au repos, authentification sécurisée, contrôles d’accès et journalisation
+        des actions sensibles.
       </p>
     </LegalPage>
   )

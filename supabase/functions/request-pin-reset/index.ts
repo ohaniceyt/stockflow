@@ -3,6 +3,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface RequestPinResetPayload {
   email: string
@@ -101,10 +102,10 @@ async function recordRequest(
 async function findActiveMembership(
   client: ReturnType<typeof createClient>,
   email: string
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; org_id: string } | null> {
   const { data, error } = await client
     .from('organization_memberships')
-    .select('id')
+    .select('id, organization_id')
     .eq('users.email', email.toLowerCase())
     .eq('is_active', true)
     .maybeSingle()
@@ -113,8 +114,8 @@ async function findActiveMembership(
     console.error('Failed to look up membership for pin reset:', error)
     return null
   }
-  if (!data || typeof data.id !== 'string') return null
-  return { id: data.id }
+  if (!data || typeof data.id !== 'string' || typeof data.organization_id !== 'string') return null
+  return { id: data.id, org_id: data.organization_id }
 }
 
 Deno.serve(async (req: Request) => {
@@ -237,7 +238,17 @@ Deno.serve(async (req: Request) => {
       text: `Vous avez demandé la réinitialisation de votre code PIN. Cliquez sur ce lien pour vous connecter et définir un nouveau PIN : ${magicLink}`,
     })
 
-    await recordRequest(adminClient, email, clientIp)
+    await Promise.all([
+      recordRequest(adminClient, email, clientIp),
+      logActivity(adminClient, {
+        org_id: membership.org_id,
+        actor_id: claims.sub,
+        action: 'pin_reset_requested',
+        entity_type: 'organization_membership',
+        entity_id: membership.id,
+        metadata: { email: normalizedEmail, ip_address: clientIp ?? null },
+      }),
+    ])
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,

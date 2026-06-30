@@ -9,8 +9,7 @@ const variants: Record<StatusBadgeVariant, string> = {
     'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900',
   danger:
     'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-900',
-  info:
-    'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-900',
+  info: 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-900',
   neutral: 'bg-muted text-foreground border-border',
 }
 

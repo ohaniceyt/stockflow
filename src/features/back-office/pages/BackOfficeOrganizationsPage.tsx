@@ -77,10 +77,7 @@ export default function BackOfficeOrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Organisations"
-        description="Gérer et surveiller les organisations."
-      />
+      <PageHeader title="Organisations" description="Gérer et surveiller les organisations." />
 
       <PageSection>
         <div className="flex flex-col gap-3 sm:flex-row">

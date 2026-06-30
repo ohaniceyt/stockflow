@@ -23,8 +23,8 @@ export default function TermsPage() {
 
       <h2>3. Abonnement et paiement</h2>
       <p>
-        L’accès à certaines fonctionnalités est soumis à un abonnement. Les tarifs sont indiqués
-        sur la page Tarifs. Les paiements sont dus à l’avance et non remboursables sauf exception
+        L’accès à certaines fonctionnalités est soumis à un abonnement. Les tarifs sont indiqués sur
+        la page Tarifs. Les paiements sont dus à l’avance et non remboursables sauf exception
         légale.
       </p>
 
@@ -43,8 +43,8 @@ export default function TermsPage() {
 
       <h2>6. Responsabilité de StockFlow</h2>
       <p>
-        StockFlow s’efforce d’assurer la disponibilité et la sécurité du service. Notre responsabilité
-        est limitée aux dommages directs et prévisibles, hors cas de force majeure.
+        StockFlow s’efforce d’assurer la disponibilité et la sécurité du service. Notre
+        responsabilité est limitée aux dommages directs et prévisibles, hors cas de force majeure.
       </p>
 
       <h2>7. Résiliation</h2>

@@ -30,6 +30,8 @@ import { ResourceHub } from '../components/ResourceHub'
 import { FaqSection } from '../components/FaqSection'
 import { FinalCta } from '../components/FinalCta'
 import { MarketingFooter } from '../components/MarketingFooter'
+import { TestimonialsSection } from '../components/TestimonialsSection'
+import { usePricingCurrency } from '../hooks/usePricingCurrency'
 
 const features = [
   {
@@ -115,8 +117,7 @@ const workflow = [
   {
     step: '3',
     title: 'Gérez et vendez',
-    description:
-      'Enregistrez les mouvements, vendez en caisse et suivez votre activité.'
+    description: 'Enregistrez les mouvements, vendez en caisse et suivez votre activité.',
   },
 ]
 
@@ -212,8 +213,7 @@ const resources = [
   {
     icon: Video,
     title: 'Tutoriels vidéo',
-    description:
-      'Courtes vidéos pratiques pour maîtriser la caisse et les rapports.',
+    description: 'Courtes vidéos pratiques pour maîtriser la caisse et les rapports.',
     href: '#',
   },
   {
@@ -231,6 +231,8 @@ const resources = [
 ]
 
 export default function LandingPage() {
+  const { currency, currencies, setCurrency, format } = usePricingCurrency()
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBanner />
@@ -306,13 +308,16 @@ export default function LandingPage() {
 
         <MidBanner />
 
+        <TestimonialsSection />
+
         <PricingSection
+          currency={currency}
+          currencies={currencies}
+          onCurrencyChange={setCurrency}
+          format={format}
           tiers={pricingPlans.map((p) => ({
             name: p.name,
-            price:
-              p.priceMode === 'custom'
-                ? 'Sur mesure'
-                : `${(p.monthlyPrice / 100).toLocaleString('fr-FR')} €`,
+            price: p.priceMode === 'custom' ? 'Sur mesure' : format(p.monthlyPrice, 0),
             period: p.priceMode === 'custom' ? '' : '/mois',
             description: p.description,
             features: p.features,

@@ -63,7 +63,7 @@ function buildPreloadLinks(markup: string): string {
   // (e.g. the hero screenshot). Browsers pick the right srcset candidate.
   for (const { srcset, sizes } of extractEagerResponsivePreloads(markup)) {
     lines.push(
-      `  <link rel="preload" as="image" type="image/webp" imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`,
+      `  <link rel="preload" as="image" type="image/webp" imagesrcset="${srcset}" imagesizes="${sizes}" fetchpriority="high">`
     )
   }
 
@@ -85,10 +85,7 @@ for (const route of routes) {
     .replace(new RegExp('<\\/body>'), `${demoScript}</body>`)
     .replace(new RegExp('<\\/head>'), `${preloadLinks}\n</head>`)
 
-  const outPath =
-    route === '/'
-      ? indexPath
-      : path.join(distDir, `${route}.html`)
+  const outPath = route === '/' ? indexPath : path.join(distDir, `${route}.html`)
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true })
   fs.writeFileSync(outPath, page)

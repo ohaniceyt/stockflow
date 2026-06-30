@@ -145,4 +145,3 @@ export async function getReceiptWithOrg(
     org: mapOrganizationRow(org),
   }
 }
-

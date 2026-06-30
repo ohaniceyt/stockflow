@@ -4,9 +4,10 @@ import { MarketingButton } from './MarketingButton'
 import HeroDemoDialog from './HeroDemoDialog'
 
 const valueProps = [
-  'Gérez le stock multi-emplacements',
-  'Encaissez en un clic',
-  'Fonctionne hors ligne',
+  'Inventaire multi-emplacements en temps réel',
+  'Caisse et reçus en quelques secondes',
+  'Mode hors ligne et synchro automatique',
+  'RGPD-ready et sécurisé',
 ]
 
 export function HeroSection() {
@@ -27,8 +28,8 @@ export function HeroSection() {
               Vendez plus, <span className="text-primary">gérez mieux</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              StockFlow centralise votre inventaire, votre caisse et vos analyses en
-              une seule app rapide, offline-first et sécurisée.
+              StockFlow centralise votre inventaire, votre caisse et vos analyses en une seule app
+              rapide, offline-first et sécurisée.
             </p>
             <ul className="mt-8 space-y-3">
               {valueProps.map((prop) => (

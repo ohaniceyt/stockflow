@@ -19,23 +19,23 @@ Ce dossier centralise les composants UI réutilisables et la fondation visuelle 
 
 ## Map de migration des utilitaires dépréciés
 
-| Utilitaire déprécié | Remplacement |
-|---------------------|--------------|
-| `.btn-o` | `<Button variant="outline" />` |
-| `.btn-p` | `<Button />` (default) |
-| `.btn-sm` | `<Button size="sm" />` |
-| `.btn-ic` | `<Button size="icon" />` |
-| `.bd-g` | `<StatusBadge variant="success" />` |
-| `.bd-y` | `<StatusBadge variant="warning" />` |
-| `.bd-r` | `<StatusBadge variant="danger" />` |
-| `.card` | `rounded-xl border bg-card p-5 shadow-sm` ou `<PageSection>` |
-| `.sc`, `.sk` | `<DataCard>` |
-| `.sg` | `grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4` + `<DataCard>` |
-| `.card-t` | `<PageSection title="...">` ou `text-sm font-semibold uppercase tracking-wide text-muted-foreground` |
-| `.ca`, `.cr`, `.cy` | Couleurs Tailwind `bg-*-100 text-*-700` via `StatusBadge` |
-| `.dash-empty` | `<EmptyState>` |
-| `.ov` / `.ov-panel` | Composants shadcn `Dialog` |
-| `--surface`, `--surface-2` | `bg-card`, `bg-muted` |
-| `--text`, `--text-faint`, `--text-h` | `text-foreground`, `text-muted-foreground`, `text-card-foreground` |
-| `--r-md` | `rounded-xl` / `--radius-lg` |
-| `--shadow-xs` | `shadow-sm` |
+| Utilitaire déprécié                  | Remplacement                                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `.btn-o`                             | `<Button variant="outline" />`                                                                       |
+| `.btn-p`                             | `<Button />` (default)                                                                               |
+| `.btn-sm`                            | `<Button size="sm" />`                                                                               |
+| `.btn-ic`                            | `<Button size="icon" />`                                                                             |
+| `.bd-g`                              | `<StatusBadge variant="success" />`                                                                  |
+| `.bd-y`                              | `<StatusBadge variant="warning" />`                                                                  |
+| `.bd-r`                              | `<StatusBadge variant="danger" />`                                                                   |
+| `.card`                              | `rounded-xl border bg-card p-5 shadow-sm` ou `<PageSection>`                                         |
+| `.sc`, `.sk`                         | `<DataCard>`                                                                                         |
+| `.sg`                                | `grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4` + `<DataCard>`                                |
+| `.card-t`                            | `<PageSection title="...">` ou `text-sm font-semibold uppercase tracking-wide text-muted-foreground` |
+| `.ca`, `.cr`, `.cy`                  | Couleurs Tailwind `bg-*-100 text-*-700` via `StatusBadge`                                            |
+| `.dash-empty`                        | `<EmptyState>`                                                                                       |
+| `.ov` / `.ov-panel`                  | Composants shadcn `Dialog`                                                                           |
+| `--surface`, `--surface-2`           | `bg-card`, `bg-muted`                                                                                |
+| `--text`, `--text-faint`, `--text-h` | `text-foreground`, `text-muted-foreground`, `text-card-foreground`                                   |
+| `--r-md`                             | `rounded-xl` / `--radius-lg`                                                                         |
+| `--shadow-xs`                        | `shadow-sm`                                                                                          |

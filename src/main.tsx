@@ -20,6 +20,20 @@ const queryClient = new QueryClient({
   },
 })
 
+// Register the service worker for PWA offline support.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered:', registration.scope)
+      })
+      .catch((error: unknown) => {
+        console.error('SW registration failed:', error)
+      })
+  })
+}
+
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   throw new Error('Root element not found')

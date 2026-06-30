@@ -52,7 +52,9 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
       </div>
 
       {topProducts.length === 0 ? (
-        <p className="py-8 text-center text-base text-muted-foreground">Aucune vente enregistrée.</p>
+        <p className="py-8 text-center text-base text-muted-foreground">
+          Aucune vente enregistrée.
+        </p>
       ) : (
         <ul className="space-y-3">
           {topProducts.map((product, index) => {

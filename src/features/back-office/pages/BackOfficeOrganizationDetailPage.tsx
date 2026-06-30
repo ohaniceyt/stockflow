@@ -129,8 +129,8 @@ export default function BackOfficeOrganizationDetailPage() {
                   <Button
                     variant="outline"
                     onClick={() =>
-                      void enterSudo({ type: 'organization', id: org.id, name: org.name }).then(() =>
-                        navigate('/dashboard')
+                      void enterSudo({ type: 'organization', id: org.id, name: org.name }).then(
+                        () => navigate('/dashboard')
                       )
                     }
                   >
@@ -150,9 +150,24 @@ export default function BackOfficeOrganizationDetailPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <DataCard label="Utilisateurs" value={org.users_count ?? 0} icon={Users} status="neutral" />
-              <DataCard label="Produits" value={org.products_count ?? 0} icon={Package} status="neutral" />
-              <DataCard label="Emplacements" value={org.locations_count ?? 0} icon={MapPin} status="neutral" />
+              <DataCard
+                label="Utilisateurs"
+                value={org.users_count ?? 0}
+                icon={Users}
+                status="neutral"
+              />
+              <DataCard
+                label="Produits"
+                value={org.products_count ?? 0}
+                icon={Package}
+                status="neutral"
+              />
+              <DataCard
+                label="Emplacements"
+                value={org.locations_count ?? 0}
+                icon={MapPin}
+                status="neutral"
+              />
               <DataCard
                 label="Plan"
                 value={subscription?.plan_id ?? '—'}

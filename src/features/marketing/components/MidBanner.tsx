@@ -11,8 +11,7 @@ export function MidBanner() {
               Passez à la vitesse supérieure dès aujourd’hui
             </h2>
             <p className="mt-4 text-lg text-primary-foreground">
-              Rejoignez des centaines de PME qui gèrent leur stock et leurs ventes
-              avec StockFlow.
+              Rejoignez des centaines de PME qui gèrent leur stock et leurs ventes avec StockFlow.
             </p>
           </div>
           <MarketingButton to="/signup" size="lg" variant="secondary" className="gap-2">

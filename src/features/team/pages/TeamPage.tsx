@@ -119,9 +119,7 @@ export default function TeamPage() {
         }
       />
 
-      {toggleError && (
-        <StatusBadge variant="danger">{toggleError}</StatusBadge>
-      )}
+      {toggleError && <StatusBadge variant="danger">{toggleError}</StatusBadge>}
 
       {myInvitations && myInvitations.length > 0 && (
         <PageSection title="Invitations reçues">
@@ -167,9 +165,7 @@ export default function TeamPage() {
         </PageSection>
       )}
 
-      {switchError && (
-        <StatusBadge variant="danger">{switchError}</StatusBadge>
-      )}
+      {switchError && <StatusBadge variant="danger">{switchError}</StatusBadge>}
 
       {myOrganizations && myOrganizations.length > 1 && (
         <PageSection title="Mes organisations">

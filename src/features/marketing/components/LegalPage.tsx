@@ -16,7 +16,9 @@ export function LegalPage({ title, lastUpdated, children }: LegalPageProps) {
         <article className="mx-auto max-w-3xl">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{title}</h1>
           {lastUpdated ? (
-            <p className="mt-2 text-sm text-muted-foreground">Dernière mise à jour : {lastUpdated}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Dernière mise à jour : {lastUpdated}
+            </p>
           ) : null}
 
           <div className="prose prose-sm prose-slate mt-8 max-w-none dark:prose-invert">

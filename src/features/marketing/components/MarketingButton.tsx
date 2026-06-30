@@ -49,7 +49,13 @@ export function MarketingButton({
   const destination = to ?? href
   if (destination) {
     return (
-      <MarketingLink to={destination} className={classes} onClick={onClick} id={id} aria-label={ariaLabel}>
+      <MarketingLink
+        to={destination}
+        className={classes}
+        onClick={onClick}
+        id={id}
+        aria-label={ariaLabel}
+      >
         {children}
       </MarketingLink>
     )

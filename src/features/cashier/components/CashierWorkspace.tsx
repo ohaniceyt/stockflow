@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { EmptyState, StatusBadge } from '@/components/design-system'
 import { useCashier } from '../hooks/useCashier'
+import { useFirstSale } from '../hooks/useFirstSale'
+import { FirstSaleWizard } from './FirstSaleWizard'
 import { CashierHeader } from './CashierHeader'
 import { ProductCatalog } from './ProductCatalog'
 import { CartPanel } from './CartPanel'
@@ -42,7 +44,9 @@ export function CashierWorkspace({
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState('products')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [wizardDismissed, setWizardDismissed] = useState(false)
   const scannerContainerId = useMemo(() => `cashier-workspace-scanner-${crypto.randomUUID()}`, [])
+  const { isFirstSale, isLoading: firstSaleLoading } = useFirstSale()
 
   const {
     session,
@@ -200,6 +204,12 @@ export function CashierWorkspace({
           )}
         </div>
       </header>
+
+      {!firstSaleLoading && isFirstSale && !wizardDismissed && (
+        <div className="mx-4 mt-4">
+          <FirstSaleWizard onDismiss={() => setWizardDismissed(true)} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 border-b bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">

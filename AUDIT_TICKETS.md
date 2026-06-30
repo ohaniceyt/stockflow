@@ -18,6 +18,7 @@
 ## Phase 1 — Sécurité & conformité (0-2 semaines)
 
 ### SF-001 — Roter les clés Supabase et retirer `.env` / `.env.local` de l'historique git
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / DevOps
@@ -37,6 +38,7 @@
 ---
 
 ### SF-002 — Corriger les failles XSS dans tous les templates email
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend
@@ -54,6 +56,7 @@
 ---
 
 ### SF-003 — Recalculer les totaux de vente côté serveur dans `complete_sale`
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend / Financial
@@ -72,6 +75,7 @@
 ---
 
 ### SF-004 — Corriger la vérification du mot de passe dans le challenge platform-admin
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend
@@ -90,6 +94,7 @@
 ---
 
 ### SF-005 — Protéger l'Edge Function `request-pin-reset`
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend / Auth
@@ -108,6 +113,7 @@
 ---
 
 ### SF-006 — Restreindre ou supprimer `lookup-user-by-email`
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend
@@ -125,6 +131,7 @@
 ---
 
 ### SF-007 — Publier les pages légales `/privacy`, `/terms`, `/cookies`
+
 - **Priorité**: P0
 - **Sévérité**: HAUT
 - **Domaine**: Compliance / Frontend
@@ -143,6 +150,7 @@
 ---
 
 ### SF-008 — Rendre `send-auto-reminders` fail-closed
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend
@@ -160,6 +168,7 @@
 ---
 
 ### SF-009 — Supprimer ou isoler le seed démo dangereux
+
 - **Priorité**: P0
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Backend
@@ -179,6 +188,7 @@
 ## Phase 2 — Architecture & fiabilité (2-6 semaines)
 
 ### SF-010 — Retirer les tokens du `localStorage`
+
 - **Priorité**: P1
 - **Sévérité**: CRITIQUE
 - **Domaine**: Security / Frontend
@@ -197,6 +207,7 @@
 ---
 
 ### SF-011 — Ajouter du rate-limit sur signup et API gateway
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / Backend
@@ -214,6 +225,7 @@
 ---
 
 ### SF-012 — Ajouter du rate-limit sur `create-storefront-order`
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / Backend
@@ -230,6 +242,7 @@
 ---
 
 ### SF-013 — Écrire dans `activity_logs` et `login_attempts`
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / Compliance / Backend
@@ -247,6 +260,7 @@
 ---
 
 ### SF-014 — Corriger l'ordre des migrations Supabase
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Backend / DevOps
@@ -264,6 +278,7 @@
 ---
 
 ### SF-015 — Ajouter CSP et security headers
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / DevOps
@@ -280,6 +295,7 @@
 ---
 
 ### SF-016 — Implémenter un Error Boundary global
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Frontend / UX
@@ -297,6 +313,7 @@
 ---
 
 ### SF-017 — Implémenter le service worker PWA
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Frontend / Mobile
@@ -314,6 +331,7 @@
 ---
 
 ### SF-018 — Ajouter des icônes PNG au manifest PWA
+
 - **Priorité**: P1
 - **Sévérité**: MOYEN
 - **Domaine**: Frontend / Mobile
@@ -330,6 +348,7 @@
 ---
 
 ### SF-019 — Restreindre le service-role aux opérations impossibles en RLS
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / Backend
@@ -347,6 +366,7 @@
 ---
 
 ### SF-020 — Renforcer les policies RLS trop permissives
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / Backend
@@ -366,6 +386,7 @@
 ## Phase 3 — UX & croissance (6-10 semaines)
 
 ### SF-021 — Créer un wizard first-sale post-onboarding
+
 - **Priorité**: P2
 - **Sévérité**: HAUT
 - **Domaine**: UX / Frontend
@@ -383,6 +404,7 @@
 ---
 
 ### SF-022 — Implémenter un système de toast/notification global
+
 - **Priorité**: P2
 - **Sévérité**: HAUT
 - **Domaine**: UX / Frontend
@@ -400,6 +422,7 @@
 ---
 
 ### SF-023 — Activer la caisse par défaut ou permettre l'activation depuis la page Caisse
+
 - **Priorité**: P2
 - **Sévérité**: HAUT
 - **Domaine**: UX / Frontend / Backend
@@ -416,6 +439,7 @@
 ---
 
 ### SF-024 — Corriger le mismatch SettingsTabs / Store
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: UX / Frontend
@@ -432,6 +456,7 @@
 ---
 
 ### SF-025 — Améliorer l'accessibilité du menu marketing
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: Accessibility / Frontend
@@ -449,6 +474,7 @@
 ---
 
 ### SF-026 — Remplacer les témoignages fictifs par des vrais cas clients
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: UX / Marketing
@@ -465,6 +491,7 @@
 ---
 
 ### SF-027 — Uniformiser le copywriting FR/EN
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: UX / Frontend
@@ -482,6 +509,7 @@
 ---
 
 ### SF-028 — Ajuster les tarifs et devise pour le marché cible
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: UX / Marketing / Product
@@ -500,6 +528,7 @@
 ## Phase 4 — Opérations & qualité (10-14 semaines)
 
 ### SF-029 — Bloquer le déploiement si les tests E2E échouent
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: DevOps / QA
@@ -516,6 +545,7 @@
 ---
 
 ### SF-030 — Ajouter Sentry et error tracking
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: DevOps / Frontend / Backend
@@ -533,6 +563,7 @@
 ---
 
 ### SF-031 — Ajouter un health check et des logs structurés
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: DevOps / Backend
@@ -549,6 +580,7 @@
 ---
 
 ### SF-032 — Ajouter le monitoring Web Vitals (RUM)
+
 - **Priorité**: P1
 - **Sévérité**: MOYEN
 - **Domaine**: DevOps / Frontend
@@ -565,6 +597,7 @@
 ---
 
 ### SF-033 — Augmenter la couverture de tests
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: QA / Frontend / Backend
@@ -583,6 +616,7 @@
 ---
 
 ### SF-034 — Résoudre les vulnérabilités `npm audit`
+
 - **Priorité**: P1
 - **Sévérité**: HAUT
 - **Domaine**: Security / DevOps
@@ -600,6 +634,7 @@
 ---
 
 ### SF-035 — Configurer Dependabot / Renovate
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: DevOps
@@ -616,6 +651,7 @@
 ---
 
 ### SF-036 — Configurer Husky + lint-staged
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: DevOps / Frontend
@@ -632,6 +668,7 @@
 ---
 
 ### SF-037 — Mettre en place un environnement de staging
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: DevOps
@@ -649,6 +686,7 @@
 ---
 
 ### SF-038 — Ajouter un `.nvmrc`
+
 - **Priorité**: P3
 - **Sévérité**: FAIBLE
 - **Domaine**: DevOps / DX
@@ -664,6 +702,7 @@
 ---
 
 ### SF-039 — Améliorer la documentation développeur
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: DX / Documentation
@@ -683,6 +722,7 @@
 ## Tickets transverses / Dette technique
 
 ### SF-040 — Refactoriser `AuthContext` monolithique
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: Frontend / Architecture
@@ -700,6 +740,7 @@
 ---
 
 ### SF-041 — Nettoyer les utilitaires CSS legacy
+
 - **Priorité**: P3
 - **Sévérité**: FAIBLE
 - **Domaine**: Frontend / Design System
@@ -716,6 +757,7 @@
 ---
 
 ### SF-042 — Activer ou supprimer AppLock
+
 - **Priorité**: P2
 - **Sévérité**: HAUT
 - **Domaine**: Security / Frontend
@@ -732,6 +774,7 @@
 ---
 
 ### SF-043 — Améliorer le offline sync (background sync + conflict resolution)
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: Frontend / Mobile
@@ -748,6 +791,7 @@
 ---
 
 ### SF-044 — Améliorer le bundle et réduire le chunk Excel 930 KB
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: Performance / Frontend
@@ -764,6 +808,7 @@
 ---
 
 ### SF-045 — Considérer la résidence des données / région africaine Supabase
+
 - **Priorité**: P2
 - **Sévérité**: MOYEN
 - **Domaine**: Compliance / DevOps
@@ -781,12 +826,12 @@
 
 ## Résumé exécutif
 
-| Phase | Période | Nb tickets | Focus |
-|-------|---------|------------|-------|
-| Phase 1 | 0-2 semaines | 9 | Sécurité, conformité, secrets, corrections critiques |
-| Phase 2 | 2-6 semaines | 10 | Architecture, fiabilité, auth, PWA, RLS |
-| Phase 3 | 6-10 semaines | 8 | UX, onboarding, notifications, accessibilité |
-| Phase 4 | 10-14 semaines | 11+ | Tests, monitoring, DevOps, dette technique |
+| Phase   | Période        | Nb tickets | Focus                                                |
+| ------- | -------------- | ---------- | ---------------------------------------------------- |
+| Phase 1 | 0-2 semaines   | 9          | Sécurité, conformité, secrets, corrections critiques |
+| Phase 2 | 2-6 semaines   | 10         | Architecture, fiabilité, auth, PWA, RLS              |
+| Phase 3 | 6-10 semaines  | 8          | UX, onboarding, notifications, accessibilité         |
+| Phase 4 | 10-14 semaines | 11+        | Tests, monitoring, DevOps, dette technique           |
 
 ---
 

@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ToastProvider } from '@/components/ui/toast'
 const AppLayout = lazy(() =>
   import('@/components/layout/AppLayout').then((mod) => ({ default: mod.AppLayout }))
 )
@@ -64,176 +66,183 @@ const fallback = <div className="p-8">Chargement...</div>
 
 function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={fallback}>
-        <Routes>
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/back-office" element={<BackOfficeLoginPage />} />
-          <Route path="/auth/verification" element={<AuthVerificationPage />} />
-          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/auth/reset-pin" element={<ResetPinPage />} />
-          <Route path="/invite" element={<InvitePage />} />
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <Suspense fallback={fallback}>
+            <Routes>
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/back-office" element={<BackOfficeLoginPage />} />
+              <Route path="/auth/verification" element={<AuthVerificationPage />} />
+              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/auth/reset-pin" element={<ResetPinPage />} />
+              <Route path="/invite" element={<InvitePage />} />
 
-          <Route
-            path="/change-pin"
-            element={
-              <RequireAuth>
-                <ChangePinPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/set-pin"
-            element={
-              <RequireAuth>
-                <SetPinPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/onboarding"
-            element={
-              <RequireAuth roles={['super_admin', 'admin']}>
-                <OnboardingPage />
-              </RequireAuth>
-            }
-          />
+              <Route
+                path="/change-pin"
+                element={
+                  <RequireAuth>
+                    <ChangePinPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/set-pin"
+                element={
+                  <RequireAuth>
+                    <SetPinPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/onboarding"
+                element={
+                  <RequireAuth roles={['super_admin', 'admin']}>
+                    <OnboardingPage />
+                  </RequireAuth>
+                }
+              />
 
-          <Route
-            element={
-              <RequireAuth>
-                <AppLayout />
-              </RequireAuth>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/stock" element={<StockPage />} />
-            <Route path="/movements" element={<MovementsPage />} />
-            <Route
-              path="/inventory"
-              element={
-                <RequireAuth roles={['super_admin', 'admin', 'operator']}>
-                  <InventoryPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/products"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <ProductsPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/settings/team"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <TeamPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="/team" element={<Navigate to="/settings/team" replace />} />
-            <Route
-              path="/locations"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <LocationsPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/suppliers"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <SuppliersPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <CustomersPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/recap" element={<Navigate to="/analytics" replace />} />
-            <Route
-              path="/cashier"
-              element={
-                <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
-                  <CashierPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="/settings/profile" element={<ProfilePage />} />
-            <Route
-              path="/settings/organization"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <OrganizationSettingsPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/settings/api"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <ApiKeysPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/settings/storefront"
-              element={
-                <RequireAuth roles={['super_admin', 'admin']}>
-                  <OrganizationSettingsPage />
-                </RequireAuth>
-              }
-            />
-            <Route path="/settings/subscription" element={<SubscriptionPage />} />
-            <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
-          </Route>
+              <Route
+                element={
+                  <RequireAuth>
+                    <AppLayout />
+                  </RequireAuth>
+                }
+              >
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/stock" element={<StockPage />} />
+                <Route path="/movements" element={<MovementsPage />} />
+                <Route
+                  path="/inventory"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin', 'operator']}>
+                      <InventoryPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/products"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <ProductsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings/team"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <TeamPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/team" element={<Navigate to="/settings/team" replace />} />
+                <Route
+                  path="/locations"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <LocationsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/suppliers"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <SuppliersPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/customers"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <CustomersPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/recap" element={<Navigate to="/analytics" replace />} />
+                <Route
+                  path="/cashier"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
+                      <CashierPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/settings/profile" element={<ProfilePage />} />
+                <Route
+                  path="/settings/organization"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <OrganizationSettingsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings/api"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <ApiKeysPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings/storefront"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <OrganizationSettingsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route path="/settings/subscription" element={<SubscriptionPage />} />
+                <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
+              </Route>
 
-          <Route
-            path="/caisse-pos"
-            element={
-              <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
-                <CashierPosPage />
-              </RequireAuth>
-            }
-          />
+              <Route
+                path="/caisse-pos"
+                element={
+                  <RequireAuth roles={['super_admin', 'admin', 'operator', 'cashier']}>
+                    <CashierPosPage />
+                  </RequireAuth>
+                }
+              />
 
-          <Route
-            element={
-              <RequirePlatformAdmin>
-                <BackOfficeLayout />
-              </RequirePlatformAdmin>
-            }
-          >
-            <Route path="/back-office" element={<BackOfficeOverviewPage />} />
-            <Route path="/back-office/organizations" element={<BackOfficeOrganizationsPage />} />
-            <Route
-              path="/back-office/organizations/:orgId"
-              element={<BackOfficeOrganizationDetailPage />}
-            />
-            <Route path="/back-office/users" element={<BackOfficeUsersPage />} />
-            <Route path="/back-office/users/:userId" element={<BackOfficeUserDetailPage />} />
-            <Route path="/back-office/audit-logs" element={<BackOfficeAuditLogsPage />} />
-          </Route>
+              <Route
+                element={
+                  <RequirePlatformAdmin>
+                    <BackOfficeLayout />
+                  </RequirePlatformAdmin>
+                }
+              >
+                <Route path="/back-office" element={<BackOfficeOverviewPage />} />
+                <Route
+                  path="/back-office/organizations"
+                  element={<BackOfficeOrganizationsPage />}
+                />
+                <Route
+                  path="/back-office/organizations/:orgId"
+                  element={<BackOfficeOrganizationDetailPage />}
+                />
+                <Route path="/back-office/users" element={<BackOfficeUsersPage />} />
+                <Route path="/back-office/users/:userId" element={<BackOfficeUserDetailPage />} />
+                <Route path="/back-office/audit-logs" element={<BackOfficeAuditLogsPage />} />
+              </Route>
 
-          <Route path="/store/:orgSlug" element={<StorefrontPage />} />
+              <Route path="/store/:orgSlug" element={<StorefrontPage />} />
 
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Suspense>
-      <AppLock />
-    </AuthProvider>
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
+          <AppLock />
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 }
 
