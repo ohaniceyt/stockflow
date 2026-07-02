@@ -61,7 +61,7 @@ export function ProductBalanceTable({ movements, products }: ProductBalanceTable
       cell: (item) => {
         const sign = item.balance > 0 ? '+' : item.balance < 0 ? '' : ''
         return (
-          <span className={item.balance >= 0 ? 'text-[var(--emerald)]' : 'text-[var(--rose)]'}>
+          <span className={item.balance >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
             {sign}
             {item.balance.toLocaleString()} {item.unit}
           </span>
@@ -71,15 +71,17 @@ export function ProductBalanceTable({ movements, products }: ProductBalanceTable
   ]
 
   const empty = (
-    <div className="dash-empty rounded-xl border bg-card p-8 text-center">
+    <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
       Aucun mouvement dans la période.
     </div>
   )
 
   return (
-    <div className="card overflow-hidden">
-      <div className="border-b px-4 py-3">
-        <h3 className="card-t mb-0">Solde par produit</h3>
+    <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Solde par produit
+        </h3>
       </div>
       <ResponsiveTable
         data={rows}

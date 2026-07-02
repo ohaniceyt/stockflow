@@ -212,7 +212,7 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
               variant={periodMode === p.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => setPeriodMode(p.key)}
-              className={periodMode === p.key ? 'page-on tab-on' : ''}
+              className="data-[state=selected]:bg-primary data-[state=selected]:text-primary-foreground"
             >
               {p.label}
             </Button>
@@ -220,26 +220,33 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
         </div>
 
         {periodMode === 'custom' && (
-          <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-end">
-            <div className="space-y-2 sm:flex-1">
-              <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-start`}>Du</Label>
-              <Input
-                id={`${embedded ? 'dashboard-' : ''}analytics-start`}
-                type="date"
-                value={startDate}
-                onChange={(e) => handleStartChange(e.target.value)}
-              />
+          <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Période personnalisée
+              </h3>
             </div>
-            <div className="space-y-2 sm:flex-1">
-              <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-end`}>Au</Label>
-              <Input
-                id={`${embedded ? 'dashboard-' : ''}analytics-end`}
-                type="date"
-                value={endDate}
-                onChange={(e) => handleEndChange(e.target.value)}
-              />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="space-y-2 sm:flex-1">
+                <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-start`}>Du</Label>
+                <Input
+                  id={`${embedded ? 'dashboard-' : ''}analytics-start`}
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleStartChange(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:flex-1">
+                <Label htmlFor={`${embedded ? 'dashboard-' : ''}analytics-end`}>Au</Label>
+                <Input
+                  id={`${embedded ? 'dashboard-' : ''}analytics-end`}
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleEndChange(e.target.value)}
+                />
+              </div>
             </div>
-            {dateError && <p className="text-sm text-destructive">{dateError}</p>}
+            {dateError && <p className="mt-3 text-sm text-destructive">{dateError}</p>}
           </div>
         )}
       </div>

@@ -35,8 +35,10 @@ export function RecapChart({ movements, startDate, endDate }: RecapChartProps) {
   const hasData = movements.length > 0
 
   return (
-    <div className="card p-4">
-      <h3 className="card-t">Flux entrées / sorties</h3>
+    <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Flux entrées / sorties
+      </h3>
       <div className="h-72">
         {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -50,7 +52,7 @@ export function RecapChart({ movements, startDate, endDate }: RecapChartProps) {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="dash-empty flex h-full items-center justify-center">
+          <div className="flex h-full items-center justify-center text-base text-muted-foreground">
             Aucune donnée pour la période sélectionnée.
           </div>
         )}

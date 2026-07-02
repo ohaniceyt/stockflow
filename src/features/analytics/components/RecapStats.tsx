@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import {
   ArrowLeftRight,
   Warehouse,
@@ -137,29 +138,32 @@ export function RecapStats({
 
   return (
     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => (
-        <div
-          key={card.label}
-          className="sc"
-          data-testid={card.label === 'MOUVEMENTS' ? 'recap-movements-card' : undefined}
-        >
-          <div className={`sc-bar ${card.barColor}`} />
-          <div className="flex items-start justify-between">
-            <div className="min-w-0">
-              <p className="text-sm text-[var(--text-faint)] truncate">{card.label}</p>
-              <p className="mt-1 text-2xl font-bold text-[var(--text-h)] truncate">
-                {card.isMoney ? card.value : card.value.toLocaleString()}
-              </p>
-              {'sub' in card && card.sub && (
-                <p className="mt-1 text-sm text-[var(--text-faint)] truncate">{card.sub}</p>
-              )}
+      {cards.map((card) => {
+        const Icon = card.icon
+        return (
+          <div
+            key={card.label}
+            className="relative flex flex-col overflow-hidden rounded-xl border bg-card p-5 shadow-sm"
+            data-testid={card.label === 'MOUVEMENTS' ? 'recap-movements-card' : undefined}
+          >
+            <span className={`absolute left-0 right-0 top-0 h-1 ${card.barColor}`} />
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                {card.label}
+              </span>
+              <span className={cn('rounded-lg p-1.5', card.iconBg, card.iconColor)}>
+                <Icon className="h-4 w-4" />
+              </span>
             </div>
-            <div className={`rounded-lg ${card.iconBg} p-2 shrink-0`}>
-              <card.icon className={`h-5 w-5 ${card.iconColor}`} />
-            </div>
+            <p className="text-2xl font-bold text-foreground sm:text-3xl truncate">
+              {card.isMoney ? card.value : card.value.toLocaleString()}
+            </p>
+            {'sub' in card && card.sub && (
+              <p className="mt-1 text-sm text-muted-foreground truncate">{card.sub}</p>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

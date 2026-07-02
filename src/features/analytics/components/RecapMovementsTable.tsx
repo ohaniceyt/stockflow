@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import { StatusBadge, type StatusBadgeVariant } from '@/components/design-system'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
 
 interface RecapMovementsTableProps {
@@ -35,14 +36,18 @@ export function RecapMovementsTable({ movements }: RecapMovementsTableProps) {
           ADJUSTMENT: 'Ajustement',
           TRANSFER: 'Transfert',
         }
-        const colors: Record<string, string> = {
-          IN: 'bd-g',
-          OUT: 'bd-r',
-          INVENTORY: 'bd-y',
-          ADJUSTMENT: 'bd-y',
-          TRANSFER: 'bd-y',
+        const variants: Record<string, StatusBadgeVariant> = {
+          IN: 'success',
+          OUT: 'danger',
+          INVENTORY: 'warning',
+          ADJUSTMENT: 'warning',
+          TRANSFER: 'warning',
         }
-        return <span className={colors[item.type] ?? 'bd-y'}>{labels[item.type] ?? item.type}</span>
+        return (
+          <StatusBadge variant={variants[item.type] ?? 'neutral'}>
+            {labels[item.type] ?? item.type}
+          </StatusBadge>
+        )
       },
     },
     {
@@ -53,15 +58,17 @@ export function RecapMovementsTable({ movements }: RecapMovementsTableProps) {
   ]
 
   const empty = (
-    <div className="dash-empty rounded-xl border bg-card p-8 text-center">
+    <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
       Aucun mouvement dans la période.
     </div>
   )
 
   return (
-    <div className="card overflow-hidden">
-      <div className="border-b px-4 py-3">
-        <h3 className="card-t mb-0">Détail des mouvements</h3>
+    <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Détail des mouvements
+        </h3>
       </div>
       <ResponsiveTable
         data={sortedMovements}
