@@ -86,27 +86,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const SESSION_KEY = 'stockflow-session'
 const SUDO_TARGET_KEY = 'stockflow-sudo-target'
 
+// Tokens (access_token / refresh_token) are intentionally NOT loaded from
+// localStorage. They live in the Supabase client storage (sessionStorage) and
+// in React state only. This mitigates XSS-to-token-theft persistence while
+// keeping the session usable across reloads.
 function loadSession(): AuthSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as AuthSession
-    if (parsed.expiresAt && parsed.expiresAt * 1000 < Date.now()) {
-      localStorage.removeItem(SESSION_KEY)
-      return null
-    }
-    return parsed
-  } catch {
-    return null
-  }
+  return null
 }
 
 function loadSudoTarget(): SudoTarget | null {
   try {
-    const raw = localStorage.getItem(SUDO_TARGET_KEY)
+    const raw = sessionStorage.getItem(SUDO_TARGET_KEY)
     if (!raw) return null
     return JSON.parse(raw) as SudoTarget
   } catch {
@@ -283,11 +275,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lastInitializedToken = useRef<string | null>(null)
 
   const persistSession = useCallback((next: AuthSession | null) => {
-    if (next) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(next))
-    } else {
-      localStorage.removeItem(SESSION_KEY)
-    }
+    // Never persist tokens to localStorage. Supabase client already holds the
+    // session in its configured storage (sessionStorage); the custom React state
+    // holds the in-memory copy only.
     setSession(next)
   }, [])
 
@@ -298,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLocked(false)
     try {
       sessionStorage.removeItem('stockflow-app-locked')
+      sessionStorage.removeItem(SUDO_TARGET_KEY)
     } catch {
       // ignore
     }
@@ -648,7 +639,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = (await response.json()) as { sudoTarget?: SudoTarget }
       const sudoTarget = data.sudoTarget ?? target
-      localStorage.setItem(SUDO_TARGET_KEY, JSON.stringify(sudoTarget))
+      try {
+        sessionStorage.setItem(SUDO_TARGET_KEY, JSON.stringify(sudoTarget))
+      } catch {
+        // ignore
+      }
       persistSession({ ...session, sudoTarget })
     },
     [session, persistSession]
@@ -675,7 +670,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    localStorage.removeItem(SUDO_TARGET_KEY)
+    try {
+      sessionStorage.removeItem(SUDO_TARGET_KEY)
+    } catch {
+      // ignore
+    }
     persistSession({ ...session, sudoTarget: null })
   }, [session, persistSession])
 

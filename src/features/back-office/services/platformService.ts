@@ -1,4 +1,4 @@
-import { supabaseKey } from '@/services/supabase'
+import { supabase, supabaseKey } from '@/services/supabase'
 import type { SudoTarget } from '@/types'
 import type {
   ActivityLogRow,
@@ -12,22 +12,17 @@ import type {
 
 const SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL)
 
-function getAccessToken(): string | null {
-  try {
-    const raw = localStorage.getItem('stockflow-session')
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as { accessToken?: string }
-    return parsed.accessToken ?? null
-  } catch {
-    return null
-  }
+async function getAccessToken(): Promise<string | null> {
+  const { data, error } = await supabase.auth.getSession()
+  if (error || !data.session) return null
+  return data.session.access_token
 }
 
 async function platformFetch(
   path: string,
   options?: RequestInit
 ): Promise<Record<string, unknown>> {
-  const token = getAccessToken()
+  const token = await getAccessToken()
   if (!token) {
     throw new Error('Not authenticated')
   }
