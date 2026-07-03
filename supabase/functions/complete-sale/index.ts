@@ -29,7 +29,7 @@ interface CompleteSaleItem {
   unit_price: number
   discount_amount?: number
   tax_amount?: number
-  total: number
+  total?: number
 }
 
 interface CompleteSalePayload {
@@ -42,6 +42,94 @@ interface CompleteSalePayload {
   amount_paid: number
   notes?: string | null
   items: CompleteSaleItem[]
+}
+
+type PriceValidationResult =
+  | {
+      ok: true
+      validatedItems: CompleteSaleItem[]
+    }
+  | {
+      ok: false
+      reason: string
+      mismatches: Array<{
+        product_id: string
+        product_name: string
+        expected: number
+        received: number
+      }>
+    }
+
+const PRICE_EPSILON = 0.005
+
+function withinPriceTolerance(a: number, b: number): boolean {
+  return Math.abs(a - b) <= PRICE_EPSILON
+}
+
+async function validateItemPrices(
+  adminClient: ReturnType<typeof createClient>,
+  orgId: string,
+  items: CompleteSaleItem[]
+): Promise<PriceValidationResult> {
+  const productIds = items.map((item) => item.product_id).filter(Boolean)
+  if (productIds.length === 0) {
+    return { ok: false, reason: 'No products in cart', mismatches: [] }
+  }
+
+  const { data: products, error } = await adminClient
+    .from('products')
+    .select('id, name, selling_price')
+    .eq('org_id', orgId)
+    .eq('is_active', true)
+    .in('id', productIds)
+
+  if (error) {
+    return { ok: false, reason: 'Failed to load product prices', mismatches: [] }
+  }
+
+  const priceMap = new Map<string, number>()
+  const nameMap = new Map<string, string>()
+  for (const product of products ?? []) {
+    priceMap.set(product.id, Number(product.selling_price))
+    nameMap.set(product.id, product.name)
+  }
+
+  const mismatches: PriceValidationResult['mismatches'] = []
+  const validatedItems: CompleteSaleItem[] = []
+
+  for (const item of items) {
+    const trustedPrice = priceMap.get(item.product_id)
+    if (trustedPrice === undefined) {
+      mismatches.push({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        expected: 0,
+        received: item.unit_price,
+      })
+      continue
+    }
+
+    if (!withinPriceTolerance(item.unit_price, trustedPrice)) {
+      mismatches.push({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        expected: trustedPrice,
+        received: item.unit_price,
+      })
+    }
+
+    validatedItems.push({
+      ...item,
+      unit_price: trustedPrice,
+      product_name: nameMap.get(item.product_id) ?? item.product_name,
+    })
+  }
+
+  if (mismatches.length > 0) {
+    return { ok: false, reason: 'Price mismatch detected', mismatches }
+  }
+
+  return { ok: true, validatedItems }
 }
 
 Deno.serve(async (req: Request) => {
@@ -143,6 +231,37 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    const validation = await validateItemPrices(adminClient, operator.org_id, payload.items)
+    if (!validation.ok) {
+      await logActivity(adminClient, {
+        org_id: operator.org_id,
+        actor_id: claims.sub,
+        action: 'sale_fraud_attempt',
+        target_type: 'receipt',
+        target_id: null,
+        details: {
+          reason: validation.reason,
+          mismatches: validation.mismatches,
+          amount_paid: payload.amount_paid,
+          currency: payload.currency,
+          payment_method: payload.payment_method,
+          ip_address: req.headers.get('x-forwarded-for') ?? null,
+        },
+        ip_address: req.headers.get('x-forwarded-for') ?? null,
+      })
+
+      return new Response(
+        JSON.stringify({
+          error: 'Prix du panier non conforme aux tarifs enregistrés',
+          details: validation.mismatches,
+        }),
+        {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     const userClient = createClient(supabaseUrl, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       global: { headers: { Authorization: `Bearer ${token}` } },
@@ -158,7 +277,7 @@ Deno.serve(async (req: Request) => {
       p_currency: payload.currency,
       p_prefix: payload.prefix ?? null,
       p_notes: payload.notes ?? null,
-      p_items: payload.items,
+      p_items: validation.validatedItems,
     })
 
     if (saleError || !saleData || typeof saleData !== 'object' || !('receipt_id' in saleData)) {
@@ -177,13 +296,16 @@ Deno.serve(async (req: Request) => {
       org_id: operator.org_id,
       actor_id: claims.sub,
       action: 'sale_completed',
-      entity_type: 'receipt',
-      entity_id: receiptId,
-      metadata: {
+      target_type: 'receipt',
+      target_id: receiptId,
+      details: {
         amount_paid: payload.amount_paid,
         currency: payload.currency,
         item_count: payload.items.length,
         payment_method: payload.payment_method,
+        subtotal: (saleData as { subtotal?: number }).subtotal ?? null,
+        tax_amount: (saleData as { tax_amount?: number }).tax_amount ?? null,
+        total: (saleData as { total?: number }).total ?? null,
       },
     })
 
