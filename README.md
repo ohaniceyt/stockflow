@@ -158,6 +158,20 @@ npm run build         # Build Vite
 
 ---
 
+## Hébergement et données (data residency)
+
+| Composant                                      | Fournisseur | Région actuelle                      |
+| ---------------------------------------------- | ----------- | ------------------------------------ |
+| Base de données, Auth, Storage, Edge Functions | Supabase    | `eu-central-1` (Francfort, DE)       |
+| Frontend + Edge CDN                            | Vercel      | Global (origine/builds USA — `iad1`) |
+| Emails transactionnels                         | Resend      | USA                                  |
+
+La documentation juridique est accessible sur `/data-residency` ; les détails complets de l'audit sont dans [`DATA_RESIDENCY_AUDIT.md`](./DATA_RESIDENCY_AUDIT.md).
+
+> La région principale de stockage des données métier est **Europe (Francfort)**. Aucune région africaine n'est utilisée aujourd'hui ; une migration est à étudier dès qu'une région africaine Supabase est disponible pour le projet.
+
+---
+
 ## Checklist production
 
 - [ ] `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont renseignés dans Vercel (production + preview) sans espace parasite.

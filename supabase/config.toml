@@ -38,7 +38,6 @@ enabled = true
 site_url = "https://stockflow.grandigix.com/"
 additional_redirect_urls = [
   "https://stockflow-*.vercel.app/**",
-  "https://stockflow-ruby.vercel.app/*",
   "https://stockflow.grandigix.com",
   "https://stockflow.grandigix.com/**",
   "https://stockflow.grandigix.com/login",

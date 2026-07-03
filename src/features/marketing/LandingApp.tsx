@@ -7,6 +7,7 @@ import OfflineFeaturePage from './pages/OfflineFeaturePage'
 import AnalyticsFeaturePage from './pages/AnalyticsFeaturePage'
 import PricingPage from './pages/PricingPage'
 import PrivacyPage from './pages/PrivacyPage'
+import DataResidencyPage from './pages/DataResidencyPage'
 import TermsPage from './pages/TermsPage'
 import CookiesPage from './pages/CookiesPage'
 
@@ -18,6 +19,7 @@ const routes: Record<string, ComponentType> = {
   '/features/analytics': AnalyticsFeaturePage,
   '/pricing': PricingPage,
   '/privacy': PrivacyPage,
+  '/data-residency': DataResidencyPage,
   '/terms': TermsPage,
   '/cookies': CookiesPage,
 }

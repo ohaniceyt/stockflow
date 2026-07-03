@@ -48,14 +48,39 @@ export default function PrivacyPage() {
         portabilité et d’opposition. Pour exercer vos droits, contactez-nous à l’adresse ci-dessus.
       </p>
 
-      <h2>7. Sous-traitants</h2>
+      <h2>7. Sous-traitants et localisation des données</h2>
+      <p>Nous utilisons les sous-traitants suivants pour héberger et transporter vos données :</p>
+      <ul>
+        <li>
+          <strong>Supabase</strong> — base de données PostgreSQL, authentification, stockage de
+          fichiers et Edge Functions. Région actuelle : <code>eu-central-1</code> (Francfort,
+          Allemagne).
+        </li>
+        <li>
+          <strong>Vercel</strong> — hébergement et CDN du frontend (assets statiques, pages
+          marketing et application). Le trafic est servi par le réseau Edge global de Vercel
+          (régions multiples, principalement américaines et européennes).
+        </li>
+        <li>
+          <strong>Resend</strong> — envoi d’e-mails transactionnels (région non configurable :
+          États-Unis).
+        </li>
+      </ul>
       <p>
-        Nous utilisons Supabase pour l’hébergement de la base de données et de l’authentification,
-        Vercel pour l’hébergement de l’application, et Resend pour l’envoi d’e-mails. Chaque
-        sous-traitant est sélectionné pour ses garanties de sécurité et de confidentialité.
+        Nous travaillons à rapprocher l’hébergement des données métier et d’authentification vers
+        une région africaine dès que Supabase en proposera une couvrant notre zone de déploiement.
+        Consultez <a href="/data-residency">Data Residency</a> pour le détail technique.
       </p>
 
-      <h2>8. Sécurité</h2>
+      <h2>8. Conservation et effacement</h2>
+      <p>
+        Les données de compte et d’activité sont conservées pendant la durée de votre abonnement,
+        puis archivées ou supprimées selon les obligations légales et fiscales applicables. Vous
+        pouvez demander l’effacement de vos données en nous contactant ; certaines données
+        comptables peuvent être conservées pendant la période légale requise.
+      </p>
+
+      <h2>9. Sécurité</h2>
       <p>
         Nous mettons en œuvre des mesures techniques et organisationnelles : chiffrement en transit
         (TLS), chiffrement au repos, authentification sécurisée, contrôles d’accès et journalisation
