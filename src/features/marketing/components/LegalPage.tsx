@@ -1,5 +1,6 @@
 import { MarketingHeader } from './MarketingHeader'
 import { MarketingFooter } from './MarketingFooter'
+import { CookieConsentBanner } from './CookieConsent'
 
 interface LegalPageProps {
   title: string
@@ -28,6 +29,7 @@ export function LegalPage({ title, lastUpdated, children }: LegalPageProps) {
       </main>
 
       <MarketingFooter />
+      <CookieConsentBanner />
     </div>
   )
 }

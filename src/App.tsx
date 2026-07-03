@@ -33,6 +33,7 @@ const CashierPage = lazy(() => import('@/features/cashier/pages/CashierPage'))
 const CashierPosPage = lazy(() => import('@/features/cashier/pages/CashierPosPage'))
 const SubscriptionPage = lazy(() => import('@/features/settings/pages/SubscriptionPage'))
 const ProfilePage = lazy(() => import('@/features/settings/pages/ProfilePage'))
+const DataPrivacyPage = lazy(() => import('@/features/settings/pages/DataPrivacyPage'))
 const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/OrganizationPage'))
 const ApiKeysPage = lazy(() => import('@/features/api/pages/ApiKeysPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
@@ -200,6 +201,7 @@ function App() {
                   }
                 />
                 <Route path="/settings/subscription" element={<SubscriptionPage />} />
+                <Route path="/settings/privacy" element={<DataPrivacyPage />} />
                 <Route path="/settings/*" element={<Navigate to="/settings/profile" replace />} />
               </Route>
 
