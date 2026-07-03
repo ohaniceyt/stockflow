@@ -6,6 +6,9 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getLogger } from './logger.ts'
+
+const logger = getLogger('rate-limit')
 
 export interface RateLimitWindow {
   maxRequests: number
@@ -44,7 +47,7 @@ export async function isRateLimited(
     .gte('created_at', rateLimitCutoff(window.windowMinutes))
 
   if (error) {
-    console.error('Rate-limit count failed:', error)
+    logger.error('rate_limit_count_failed', { key: key.key, type: key.type }, error)
     // Fail open on counting errors so the app keeps working, but log loudly.
     return false
   }
@@ -62,6 +65,6 @@ export async function recordRateLimitRequest(
     type: key.type,
   })
   if (error) {
-    console.error('Failed to record rate-limit request:', error)
+    logger.error('rate_limit_record_failed', { key: key.key, type: key.type }, error)
   }
 }

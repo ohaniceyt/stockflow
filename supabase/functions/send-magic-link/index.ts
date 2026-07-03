@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
+import { getLogger, getTraceId } from '../_shared/logger.ts'
 
 interface SendMagicLinkPayload {
   email: string
@@ -78,7 +79,8 @@ async function countRecentRequests(
     .gte('created_at', rateLimitCutoff())
 
   if (error) {
-    console.error('Failed to count magic link requests:', error)
+    const log = getLogger('send-magic-link')
+    log.error('magic_link_count_failed', { field, value }, error)
     return 0
   }
   return count ?? 0
@@ -94,7 +96,8 @@ async function recordRequest(
     ip_address: ipAddress,
   })
   if (error) {
-    console.error('Failed to record magic link request:', error)
+    const log = getLogger('send-magic-link')
+    log.error('magic_link_record_failed', { email, ip_address: ipAddress }, error)
   }
 }
 
@@ -109,7 +112,8 @@ async function isActiveUser(
     .eq('is_active', true)
 
   if (error) {
-    console.error('Failed to look up user:', error)
+    const log = getLogger('send-magic-link')
+    log.error('magic_link_user_lookup_failed', { email }, error)
     return false
   }
   return (count ?? 0) > 0
@@ -119,6 +123,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return corsResponse(req)
   }
+
+  const traceId = getTraceId(req)
+  const log = getLogger('send-magic-link', traceId)
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -144,6 +151,7 @@ Deno.serve(async (req: Request) => {
     // Rate-limit by IP to prevent enumeration / abuse.
     const ipRequests = await countRecentRequests(adminClient, 'ip_address', clientIp)
     if (ipRequests >= MAX_REQUESTS_PER_IP) {
+      log.warn('magic_link_rate_limited_ip', { ip_address: clientIp, count: ipRequests })
       return new Response(
         JSON.stringify({ error: 'Too many requests from this network. Try again later.' }),
         { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -153,6 +161,7 @@ Deno.serve(async (req: Request) => {
     // Rate-limit by email.
     const emailRequests = await countRecentRequests(adminClient, 'email', email)
     if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
+      log.warn('magic_link_rate_limited_email', { email, count: emailRequests })
       return new Response(
         JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
         { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -182,6 +191,7 @@ Deno.serve(async (req: Request) => {
     })
 
     if (linkError || !linkData.properties?.action_link) {
+      log.error('magic_link_generation_failed', { email }, linkError ?? undefined)
       return new Response(
         JSON.stringify({ error: linkError?.message ?? 'Could not generate magic link' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -200,12 +210,15 @@ Deno.serve(async (req: Request) => {
 
     await recordRequest(adminClient, email, clientIp)
 
+    log.info('magic_link_sent', { email, ip_address: clientIp, email_id: id })
+
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    log.error('magic_link_unhandled_error', {}, err instanceof Error ? err : new Error(message))
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },

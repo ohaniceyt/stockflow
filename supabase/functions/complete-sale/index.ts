@@ -4,6 +4,7 @@ import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { logActivity } from '../_shared/audit.ts'
+import { getLogger, getTraceId } from '../_shared/logger.ts'
 
 interface OrgFeatures {
   has_cashier_enabled: boolean
@@ -44,6 +45,13 @@ interface CompleteSalePayload {
   items: CompleteSaleItem[]
 }
 
+interface PriceMismatch {
+  product_id: string
+  product_name: string
+  expected: number
+  received: number
+}
+
 type PriceValidationResult =
   | {
       ok: true
@@ -52,12 +60,7 @@ type PriceValidationResult =
   | {
       ok: false
       reason: string
-      mismatches: Array<{
-        product_id: string
-        product_name: string
-        expected: number
-        received: number
-      }>
+      mismatches: PriceMismatch[]
     }
 
 const PRICE_EPSILON = 0.005
@@ -94,7 +97,7 @@ async function validateItemPrices(
     nameMap.set(product.id, product.name)
   }
 
-  const mismatches: PriceValidationResult['mismatches'] = []
+  const mismatches: PriceMismatch[] = []
   const validatedItems: CompleteSaleItem[] = []
 
   for (const item of items) {
@@ -136,6 +139,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return corsResponse(req)
   }
+
+  const traceId = getTraceId(req)
+  const log = getLogger('complete-sale', traceId)
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -233,6 +239,13 @@ Deno.serve(async (req: Request) => {
 
     const validation = await validateItemPrices(adminClient, operator.org_id, payload.items)
     if (!validation.ok) {
+      log.warn('sale_price_validation_failed', {
+        org_id: operator.org_id,
+        actor_id: claims.sub,
+        reason: validation.reason,
+        mismatch_count: validation.mismatches.length,
+      })
+
       await logActivity(adminClient, {
         org_id: operator.org_id,
         actor_id: claims.sub,
@@ -281,6 +294,11 @@ Deno.serve(async (req: Request) => {
     })
 
     if (saleError || !saleData || typeof saleData !== 'object' || !('receipt_id' in saleData)) {
+      log.error(
+        'sale_rpc_failed',
+        { org_id: operator.org_id, actor_id: claims.sub },
+        saleError ?? undefined
+      )
       return new Response(
         JSON.stringify({ error: saleError?.message ?? 'Failed to complete sale' }),
         {
@@ -291,6 +309,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const receiptId = (saleData as { receipt_id: string }).receipt_id
+    log.info('sale_completed', {
+      org_id: operator.org_id,
+      actor_id: claims.sub,
+      receipt_id: receiptId,
+      total: (saleData as { total?: number }).total ?? null,
+      item_count: payload.items.length,
+    })
 
     await logActivity(adminClient, {
       org_id: operator.org_id,
@@ -333,6 +358,7 @@ Deno.serve(async (req: Request) => {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    log.error('sale_unhandled_error', {}, err instanceof Error ? err : new Error(message))
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },

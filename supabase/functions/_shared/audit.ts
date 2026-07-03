@@ -7,6 +7,9 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getLogger } from './logger.ts'
+
+const logger = getLogger('audit')
 
 export interface ActivityLogInput {
   org_id?: string | null
@@ -38,7 +41,7 @@ export async function logActivity(
   })
 
   if (error) {
-    console.error('Failed to write activity log:', error)
+    logger.error('activity_log_write_failed', { org_id: input.org_id, action: input.action }, error)
   }
 }
 
@@ -59,6 +62,6 @@ export async function logLoginAttempt(
   })
 
   if (error) {
-    console.error('Failed to write login attempt:', error)
+    logger.error('login_attempt_write_failed', { user_id: input.user_id, succeeded: input.succeeded }, error)
   }
 }

@@ -1,4 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getLogger } from './logger.ts'
+
+const logger = getLogger('auth')
 
 export interface VerifiedToken {
   sub: string
@@ -22,7 +25,7 @@ export async function verifyToken(
 
   const { data, error } = await userClient.auth.getUser()
   if (error || !data.user) {
-    console.error('JWT verification failed:', error?.message ?? 'no user')
+    logger.error('jwt_verification_failed', { reason: error?.message ?? 'no user' })
     return null
   }
 

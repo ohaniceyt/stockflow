@@ -4,6 +4,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 import { logActivity } from '../_shared/audit.ts'
+import { getLogger, getTraceId } from '../_shared/logger.ts'
 
 interface RequestPinResetPayload {
   email: string
@@ -79,7 +80,8 @@ async function countRecentRequests(
     .gte('created_at', rateLimitCutoff())
 
   if (error) {
-    console.error('Failed to count pin reset requests:', error)
+    const log = getLogger('request-pin-reset')
+    log.error('pin_reset_count_failed', { field, value }, error)
     return 0
   }
   return count ?? 0
@@ -95,7 +97,8 @@ async function recordRequest(
     ip_address: ipAddress,
   })
   if (error) {
-    console.error('Failed to record pin reset request:', error)
+    const log = getLogger('request-pin-reset')
+    log.error('pin_reset_record_failed', { email, ip_address: ipAddress }, error)
   }
 }
 
@@ -111,7 +114,8 @@ async function findActiveMembership(
     .maybeSingle()
 
   if (error) {
-    console.error('Failed to look up membership for pin reset:', error)
+    const log = getLogger('request-pin-reset')
+    log.error('pin_reset_membership_lookup_failed', { email }, error)
     return null
   }
   if (!data || typeof data.id !== 'string' || typeof data.organization_id !== 'string') return null
@@ -122,6 +126,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return corsResponse(req)
   }
+
+  const traceId = getTraceId(req)
+  const log = getLogger('request-pin-reset', traceId)
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -174,6 +181,7 @@ Deno.serve(async (req: Request) => {
     // Rate-limit by IP to prevent enumeration / abuse.
     const ipRequests = await countRecentRequests(adminClient, 'ip_address', clientIp)
     if (ipRequests >= MAX_REQUESTS_PER_IP) {
+      log.warn('pin_reset_rate_limited_ip', { ip_address: clientIp, count: ipRequests })
       return new Response(
         JSON.stringify({ error: 'Too many requests from this network. Try again later.' }),
         { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -183,6 +191,7 @@ Deno.serve(async (req: Request) => {
     // Rate-limit by email.
     const emailRequests = await countRecentRequests(adminClient, 'email', normalizedEmail)
     if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
+      log.warn('pin_reset_rate_limited_email', { email: normalizedEmail, count: emailRequests })
       return new Response(
         JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
         { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -210,7 +219,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', membership.id)
 
     if (forceError) {
-      console.error('Failed to set force_pin_change:', forceError)
+      log.error('pin_reset_force_flag_failed', { membership_id: membership.id }, forceError)
     }
 
     const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
@@ -223,6 +232,11 @@ Deno.serve(async (req: Request) => {
     })
 
     if (linkError || !linkData.properties?.action_link) {
+      log.error(
+        'pin_reset_link_generation_failed',
+        { email: normalizedEmail },
+        linkError ?? undefined
+      )
       return new Response(
         JSON.stringify({ error: linkError?.message ?? 'Could not generate reset link' }),
         { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -244,11 +258,17 @@ Deno.serve(async (req: Request) => {
         org_id: membership.org_id,
         actor_id: claims.sub,
         action: 'pin_reset_requested',
-        entity_type: 'organization_membership',
-        entity_id: membership.id,
-        metadata: { email: normalizedEmail, ip_address: clientIp ?? null },
+        target_type: 'organization_membership',
+        target_id: membership.id,
+        details: { email: normalizedEmail, ip_address: clientIp ?? null },
       }),
     ])
+
+    log.info('pin_reset_sent', {
+      email: normalizedEmail,
+      membership_id: membership.id,
+      email_id: id,
+    })
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,
@@ -256,6 +276,7 @@ Deno.serve(async (req: Request) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    log.error('pin_reset_unhandled_error', {}, err instanceof Error ? err : new Error(message))
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },

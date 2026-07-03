@@ -1,4 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
+import { getLogger } from './logger.ts'
+
+const logger = getLogger('quotas')
 
 export interface OrgLimits {
   orgId: string
@@ -25,7 +28,7 @@ export async function getOrgLimits(
     .single()
 
   if (orgError || !org) {
-    console.error('getOrgLimits org error:', orgError)
+    logger.error('get_org_limits_org_failed', { org_id: orgId }, orgError ?? undefined)
     return null
   }
 
@@ -36,7 +39,7 @@ export async function getOrgLimits(
     .single()
 
   if (subError || !subscription) {
-    console.error('getOrgLimits subscription error:', subError)
+    logger.error('get_org_limits_subscription_failed', { org_id: orgId }, subError ?? undefined)
     return null
   }
 
@@ -47,7 +50,7 @@ export async function getOrgLimits(
     .single()
 
   if (planError || !plan) {
-    console.error('getOrgLimits plan error:', planError)
+    logger.error('get_org_limits_plan_failed', { org_id: orgId, plan_id: subscription.plan_id }, planError ?? undefined)
     return null
   }
 
@@ -67,10 +70,10 @@ export async function getOrgLimits(
     adminClient.rpc('movements_count_this_month', { p_org_id: orgId }),
   ])
 
-  if (usersError) console.error('users count error:', usersError)
-  if (productsError) console.error('products count error:', productsError)
-  if (locationsError) console.error('locations count error:', locationsError)
-  if (movementsError) console.error('movements count error:', movementsError)
+  if (usersError) logger.error('users_count_failed', { org_id: orgId }, usersError)
+  if (productsError) logger.error('products_count_failed', { org_id: orgId }, productsError)
+  if (locationsError) logger.error('locations_count_failed', { org_id: orgId }, locationsError)
+  if (movementsError) logger.error('movements_count_failed', { org_id: orgId }, movementsError)
 
   return {
     orgId,
