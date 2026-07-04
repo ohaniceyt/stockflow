@@ -98,13 +98,22 @@ Les anciens `.env` / `.env.local` sont encore présents dans l'historique git. P
 pip install git-filter-repo
 
 # 2. Depuis la racine du repo, supprimer les fichiers sensés de toute l'historique
-git filter-repo --path .env --path .env.local --path-glob 'supabase/functions/**/.env' --invert-paths
+git filter-repo \
+  --path .env --path .env.local \
+  --path-glob 'supabase/functions/**/.env' \
+  --invert-paths
 
 # 3. Forcer le push (attention : réécrit l'historique public)
 git push origin --force --all
 ```
 
 > **Attention :** cette opération réécrit l'historique public. Tous les collaborateurs doivent recloner le repo après le `force push`.
+
+### Anciens scripts avec secrets
+
+Les scripts `scripts/check-admin.mjs`, `scripts/smoke-test-*.mjs` et `scripts/verify-onboarding-prod.mjs` contenaient historiquement des clés Supabase. Puisque les fichiers eux-mêmes sont utiles et ont été corrigés pour lire les variables d'environnement, l'essentiel est de **rotationner les clés** listées ci-dessus. Les anciennes clés dans l'historique deviendront alors inutilisables.
+
+Pour aller plus loin, vous pouvez aussi purger les JWT historiques des scripts avec `git filter-repo --replace-text` (voir la documentation de git-filter-repo), mais la rotation des clés est l'action indispensable.
 
 ## Automatisations ajoutées
 
