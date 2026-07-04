@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     })
 
     // Moderators may disable a user for support reasons, but only super_admins can re-enable or disable owners.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient)
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, undefined, true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

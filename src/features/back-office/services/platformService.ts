@@ -48,6 +48,22 @@ async function platformFetch(
   return data
 }
 
+export async function createPlatformChallenge(password: string): Promise<string> {
+  const data = await platformFetch('/create-platform-challenge', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  })
+  const challengeId = data.challenge_id
+  if (typeof challengeId !== 'string' || !challengeId) {
+    throw new Error('Challenge ID manquant')
+  }
+  return challengeId
+}
+
+function challengeHeaders(challengeId?: string): Record<string, string> {
+  return challengeId ? { 'X-Platform-Challenge-Id': challengeId } : {}
+}
+
 export async function getOverview(): Promise<PlatformOverview> {
   const data = await platformFetch('/platform-get-overview')
   return {
@@ -182,10 +198,15 @@ export async function suspendOrganization(
   })
 }
 
-export async function setOrganizationPlan(orgId: string, planId: string): Promise<void> {
+export async function setOrganizationPlan(
+  orgId: string,
+  planId: string,
+  challengeId?: string
+): Promise<void> {
   await platformFetch('/platform-set-organization-plan', {
     method: 'POST',
     body: JSON.stringify({ orgId, planId }),
+    headers: challengeHeaders(challengeId),
   })
 }
 
@@ -228,10 +249,15 @@ export async function resetUserPin(membershipId: string): Promise<void> {
   })
 }
 
-export async function toggleUserActive(membershipId: string, isActive: boolean): Promise<void> {
+export async function toggleUserActive(
+  membershipId: string,
+  isActive: boolean,
+  challengeId?: string
+): Promise<void> {
   await platformFetch('/platform-toggle-user-active', {
     method: 'POST',
     body: JSON.stringify({ membershipId, isActive }),
+    headers: challengeHeaders(challengeId),
   })
 }
 

@@ -28,7 +28,7 @@ export default function PosCashierFeaturePage() {
         {
           icon: CreditCard,
           title: 'Paiements multiples',
-          description: 'Cash, carte, mobile money et paiements mixtes supportés.',
+          description: 'Enregistrement du cash, carte, mobile money et paiements mixtes.',
         },
         {
           icon: Printer,

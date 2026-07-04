@@ -89,12 +89,28 @@ Après rotation, s'assurer que :
 
 ---
 
+## Purger l'historique git
+
+Les anciens `.env` / `.env.local` sont encore présents dans l'historique git. Pour les retirer complètement **avant de pousser sur GitHub** :
+
+```bash
+# 1. Installer git-filter-repo (une seule fois)
+pip install git-filter-repo
+
+# 2. Depuis la racine du repo, supprimer les fichiers sensés de toute l'historique
+git filter-repo --path .env --path .env.local --path-glob 'supabase/functions/**/.env' --invert-paths
+
+# 3. Forcer le push (attention : réécrit l'historique public)
+git push origin --force --all
+```
+
+> **Attention :** cette opération réécrit l'historique public. Tous les collaborateurs doivent recloner le repo après le `force push`.
+
+## Automatisations ajoutées
+
+- `src/lib/sentry.ts` : `beforeSend` récursivement masque mots de passe, tokens, emails, clés API, JWT.
+- `.github/workflows/ci.yml` : job **Secrets Scan** avec TruffleHog sur chaque PR/push.
+
 ## Backup temporaire
 
-Les anciens fichiers `.env` et `.env.local` ont été sauvegardés dans :
-
-```
-/tmp/stockflow-env-backup/
-```
-
-**Supprimez ce dossier une fois la rotation terminée.**
+Le dossier `/tmp/stockflow-env-backup/` a été supprimé localement. Ne recréez jamais de backup de secrets en clair.

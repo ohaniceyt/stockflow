@@ -19,6 +19,7 @@ import {
   setOrganizationPlan,
   suspendOrganization,
 } from '../services/platformService'
+import { usePlatformChallenge } from '../hooks/usePlatformChallenge'
 import { PageHeader, PageSection, StatusBadge } from '@/components/design-system'
 import type { BackOfficeOrganization, Paginated } from '../types'
 
@@ -29,6 +30,7 @@ export default function BackOfficeOrganizationsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { platformAdminRole, enterSudo } = useAuth()
+  const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
 
   const [search, setSearch] = useState('')
@@ -62,8 +64,10 @@ export default function BackOfficeOrganizationsPage() {
   })
 
   const planMutation = useMutation({
-    mutationFn: ({ orgId, plan }: { orgId: string; plan: string }) =>
-      setOrganizationPlan(orgId, plan),
+    mutationFn: async ({ orgId, plan }: { orgId: string; plan: string }) => {
+      const challengeId = await requestChallenge("Changer le plan de l'organisation")
+      return setOrganizationPlan(orgId, plan, challengeId)
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ORGS_QUERY_KEY }),
   })
 

@@ -1,15 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = 'https://ngdvmodloxuvrdjjzxel.supabase.co'
-const serviceKey =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZHZtb2Rsb3h1dnJkamp6eGVsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjA4MjA3NSwiZXhwIjoyMDk3NjU4MDc1fQ.NdfKRG-1OOSdNogBma00E5wkfU4WHikFDfXzjCH-Isc'
+const url = process.env.SUPABASE_URL
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const email = process.env.PLATFORM_ADMIN_EMAIL
+
+if (!url || !serviceKey || !email) {
+  console.error(
+    'Missing required environment variables: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PLATFORM_ADMIN_EMAIL'
+  )
+  process.exit(1)
+}
 
 const adminClient = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
 async function main() {
-  const email = 'su@app.grandigix.com'
   const { data: list, error: listError } = await adminClient.auth.admin.listUsers({
     page: 1,
     perPage: 100,

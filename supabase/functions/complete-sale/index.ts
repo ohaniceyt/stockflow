@@ -258,7 +258,6 @@ Deno.serve(async (req: Request) => {
           amount_paid: payload.amount_paid,
           currency: payload.currency,
           payment_method: payload.payment_method,
-          ip_address: req.headers.get('x-forwarded-for') ?? null,
         },
         ip_address: req.headers.get('x-forwarded-for') ?? null,
       })

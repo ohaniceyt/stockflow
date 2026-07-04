@@ -171,12 +171,10 @@ Deno.serve(async (req: Request) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const details =
-      err instanceof Error
-        ? { message: err.message, name: err.name, stack: err.stack }
-        : { raw: typeof err === 'object' ? JSON.stringify(err) : String(err) }
-    console.error('send-auto-reminders error:', details)
-    return new Response(JSON.stringify({ error: 'Internal error', details }), {
+    const message = err instanceof Error ? err.message : String(err)
+    // Log internally but never expose stack or internals to the cron caller.
+    console.error('send-auto-reminders error:', message)
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
       status: 500,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })

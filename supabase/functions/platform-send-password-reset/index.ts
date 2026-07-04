@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
+    const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
     const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
       redirectTo: `${appUrl}/auth/reset-password`,
     })
@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
       action: 'user_password_reset_sent',
       target_type: 'user',
       target_id: user.id,
-      metadata: { email },
+      metadata: { user_id: user.id },
     })
 
     return new Response(JSON.stringify({ success: true, message: 'Password reset email sent' }), {

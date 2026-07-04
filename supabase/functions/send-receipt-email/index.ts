@@ -4,6 +4,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { buildReceiptPdfBase64 } from '../_shared/receiptPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml } from '../_shared/html.ts'
+import { getCurrentOrgId } from '../_shared/membership.ts'
 
 interface SendReceiptEmailPayload {
   receipt_id: string
@@ -51,9 +52,18 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
+    if (!activeOrgId) {
+      return new Response(JSON.stringify({ error: 'No active organization' }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
     const { pdfBase64, filename, receipt } = await buildReceiptPdfBase64(
       adminClient,
-      payload.receipt_id
+      payload.receipt_id,
+      activeOrgId
     )
 
     let recipient = payload.to

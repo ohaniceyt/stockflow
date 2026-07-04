@@ -56,7 +56,7 @@ const features = [
     icon: Receipt,
     title: 'Caisse intégrée',
     description:
-      'Ventes rapides, impression de reçus, paiements multiples (cash, carte, mobile money) et annulations contrôlées.',
+      'Ventes rapides, impression de reçus, enregistrement des modes de paiement (cash, carte, mobile money) et annulations contrôlées.',
   },
   {
     icon: WifiOff,
@@ -189,7 +189,7 @@ const faqs = [
   {
     question: 'Quels modes de paiement sont acceptés en caisse ?',
     answer:
-      'La caisse supporte le cash, la carte bancaire, le mobile money et les paiements mixtes. Chaque vente génère un reçu et met à jour le stock en temps réel.',
+      'La caisse enregistre le cash, la carte bancaire, le mobile money et les paiements mixtes. Chaque vente génère un reçu et met à jour le stock en temps réel.',
   },
   {
     question: 'Comment sont protégées mes données ?',

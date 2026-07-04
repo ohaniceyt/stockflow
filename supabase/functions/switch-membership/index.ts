@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface Payload {
   membershipId: string
@@ -79,6 +80,19 @@ Deno.serve(async (req: Request) => {
     }
 
     await adminClient.from('users').update({ active_org_id: org.id }).eq('id', claims.sub)
+
+    await logActivity(adminClient, {
+      org_id: org.id,
+      actor_id: claims.sub,
+      action: 'membership_switched',
+      target_type: 'organization_membership',
+      target_id: membership.id,
+      details: {
+        role: membership.role,
+        previous_org_id: membership.org_id,
+      },
+      ip_address: req.headers.get('x-forwarded-for') ?? null,
+    })
 
     const profile = membership.users as unknown as {
       id: string

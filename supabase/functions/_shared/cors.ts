@@ -15,10 +15,12 @@ function getAllowedOrigins(): string[] {
 export function getCorsHeaders(req: Request): Record<string, string> {
   const allowed = getAllowedOrigins()
   const requestOrigin = req.headers.get('origin') ?? ''
-  const origin = allowed.includes(requestOrigin) ? requestOrigin : allowed[0] ?? ''
+  const allowedOrigin = allowed.includes(requestOrigin) ? requestOrigin : ''
 
+  // Only echo ACAO for explicitly allowed origins. For untrusted origins the
+  // header is omitted so the browser blocks the cross-origin request.
   return {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-platform-challenge-id',
   }

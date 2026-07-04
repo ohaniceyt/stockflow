@@ -11,6 +11,20 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
 jobs:
+  secrets:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --only-verified
+
   audit:
     name: Security Audit
     runs-on: ubuntu-latest

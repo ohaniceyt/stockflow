@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface CreateApiKeyPayload {
   org_id: string
@@ -130,6 +131,20 @@ Deno.serve(async (req: Request) => {
         }
       )
     }
+
+    await logActivity(adminClient, {
+      org_id: payload.org_id,
+      actor_id: claims.sub,
+      action: 'api_key_created',
+      target_type: 'organization_api_key',
+      target_id: inserted.id,
+      details: {
+        name: inserted.name,
+        scopes: inserted.scopes,
+        allowed_location_ids: inserted.allowed_location_ids,
+      },
+      ip_address: req.headers.get('x-forwarded-for') ?? null,
+    })
 
     return new Response(
       JSON.stringify({

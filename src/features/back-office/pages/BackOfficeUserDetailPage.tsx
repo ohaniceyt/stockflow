@@ -9,6 +9,7 @@ import {
   sendPasswordReset,
   toggleUserActive,
 } from '../services/platformService'
+import { usePlatformChallenge } from '../hooks/usePlatformChallenge'
 import { PageHeader, PageSection, StatusBadge } from '@/components/design-system'
 import type { ActivityLogRow, BackOfficeUser, LoginAttemptRow } from '../types'
 
@@ -17,6 +18,7 @@ export default function BackOfficeUserDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { platformAdminRole, enterSudo } = useAuth()
+  const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
   const safeUserId = userId ?? ''
 
@@ -31,8 +33,10 @@ export default function BackOfficeUserDetailPage() {
   })
 
   const toggleMutation = useMutation({
-    mutationFn: ({ membershipId, isActive }: { membershipId: string; isActive: boolean }) =>
-      toggleUserActive(membershipId, isActive),
+    mutationFn: async ({ membershipId, isActive }: { membershipId: string; isActive: boolean }) => {
+      const challengeId = await requestChallenge('Activer/désactiver un membre')
+      return toggleUserActive(membershipId, isActive, challengeId)
+    },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['back-office', 'user', safeUserId] }),
   })

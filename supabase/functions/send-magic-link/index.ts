@@ -3,6 +3,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 import { getLogger, getTraceId } from '../_shared/logger.ts'
+import { getDefaultRedirectUrl, isAllowedRedirectUrl } from '../_shared/redirect.ts'
 
 interface SendMagicLinkPayload {
   email: string
@@ -37,7 +38,7 @@ export function buildMagicLinkEmailHtml(link: string, _appUrl: string): string {
           <div class="logo">StockFlow</div>
           <div class="title">Votre lien de connexion sécurisé</div>
           <p class="text">
-            Cliquez sur le bouton ci-dessous pour accéder à votre compte. Ce lien est valable 24 heures et ne peut être utilisé qu'une seule fois.
+            Cliquez sur le bouton ci-dessous pour accéder à votre compte. Ce lien est valable 1 heure et ne peut être utilisé qu'une seule fois.
           </p>
           <p>
             <a class="button" href="${escapeHtmlAttribute(link)}" target="_blank">Se connecter</a>
@@ -142,6 +143,17 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    // Only allow configured application origins. Reject anything else to prevent
+    // open-redirect / token theft.
+    if (redirectTo && !isAllowedRedirectUrl(redirectTo)) {
+      log.warn('magic_link_invalid_redirect', { redirect_to: redirectTo })
+      return new Response(JSON.stringify({ error: 'Invalid redirect URL' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+    const finalRedirectTo = redirectTo ?? getDefaultRedirectUrl()
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
@@ -184,10 +196,7 @@ Deno.serve(async (req: Request) => {
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: {
-        redirectTo:
-          redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com',
-      },
+      options: { redirectTo: finalRedirectTo },
     })
 
     if (linkError || !linkData.properties?.action_link) {
@@ -198,7 +207,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const appUrl = redirectTo ?? Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
+    const appUrl = getDefaultRedirectUrl()
     const magicLink = linkData.properties.action_link
 
     const { id } = await sendEmail({

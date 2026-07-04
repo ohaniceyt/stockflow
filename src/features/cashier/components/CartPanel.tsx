@@ -132,6 +132,12 @@ export function CartPanel({
             <option value="transfer">Virement</option>
             <option value="other">Autre</option>
           </Select>
+          {paymentMethod !== 'cash' && paymentMethod !== 'other' && (
+            <p className="text-xs text-muted-foreground">
+              L'encaissement électronique s'effectue en dehors de StockFlow. Ce champ sert à
+              l'enregistrement comptable.
+            </p>
+          )}
         </div>
 
         {paymentMethod === 'cash' && (

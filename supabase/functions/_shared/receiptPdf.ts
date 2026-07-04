@@ -4,6 +4,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.49.4'
 export async function buildReceiptPdfBase64(
   adminClient: SupabaseClient,
   receiptId: string,
+  expectedOrgId?: string,
 ): Promise<{ pdfBase64: string; filename: string; receipt: Record<string, unknown> }> {
   const { data: receipt, error: receiptError } = await adminClient
     .from('receipts')
@@ -13,6 +14,10 @@ export async function buildReceiptPdfBase64(
 
   if (receiptError || !receipt) {
     throw new Error(receiptError?.message ?? 'Receipt not found')
+  }
+
+  if (expectedOrgId && String(receipt.org_id) !== expectedOrgId) {
+    throw new Error('Receipt does not belong to the active organization')
   }
 
   const org = receipt.org as Record<string, unknown>

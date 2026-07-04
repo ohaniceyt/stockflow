@@ -72,7 +72,7 @@ const faqs = [
   {
     question: 'Quels modes de paiement acceptez-vous ?',
     answer:
-      'Nous acceptons les paiements par carte bancaire, virement et mobile money selon les régions.',
+      'Nous facturons les abonnements par carte bancaire ou virement selon la région. Le mobile money est en préparation.',
   },
 ]
 

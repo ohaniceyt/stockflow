@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

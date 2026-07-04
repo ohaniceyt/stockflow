@@ -490,28 +490,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const requestPinReset = useCallback(async (email: string) => {
-    // Use a server-side Edge Function so we can mark force_pin_change = true
-    // before the magic link is consumed. Without this, users who already have a
-    // PIN cannot set a new one because /change-pin requires the current PIN.
-    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
-    const response = await fetch(`${supabaseUrl}/functions/v1/request-pin-reset`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: supabaseKey,
-      },
-      body: JSON.stringify({ email }),
-    })
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: { message: string } | string
+  const requestPinReset = useCallback(
+    async (email: string) => {
+      if (!session?.accessToken) {
+        throw new Error('Vous devez être connecté pour demander une réinitialisation du PIN')
       }
-      const message = typeof data.error === 'string' ? data.error : data.error?.message
-      throw new Error(message ?? 'Échec de la demande de réinitialisation du PIN')
-    }
-  }, [])
+
+      // Use a server-side Edge Function so we can mark force_pin_change = true
+      // before the magic link is consumed. Without this, users who already have a
+      // PIN cannot set a new one because /change-pin requires the current PIN.
+      const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
+      const response = await fetch(`${supabaseUrl}/functions/v1/request-pin-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supabaseKey,
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: { message: string } | string
+        }
+        const message = typeof data.error === 'string' ? data.error : data.error?.message
+        throw new Error(message ?? 'Échec de la demande de réinitialisation du PIN')
+      }
+    },
+    [session]
+  )
 
   const setPin = useCallback(
     async (pin: string) => {

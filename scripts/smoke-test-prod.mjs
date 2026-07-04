@@ -7,11 +7,16 @@
 
 import assert from 'node:assert'
 
-const PROJECT_REF = 'ngdvmodloxuvrdjjzxel'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF
+const ANON_KEY = process.env.SUPABASE_ANON_KEY
+const APP_URL = process.env.PUBLIC_APP_URL ?? 'https://stockflow.grandigix.com'
+
+if (!PROJECT_REF || !ANON_KEY) {
+  console.error('Missing required environment variables: SUPABASE_PROJECT_REF and SUPABASE_ANON_KEY')
+  process.exit(1)
+}
+
 const FUNCTIONS_BASE = `https://${PROJECT_REF}.supabase.co/functions/v1`
-const APP_URL = 'https://stockflow.grandigix.com'
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZHZtb2Rsb3h1dnJkamp6eGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODIwNzUsImV4cCI6MjA5NzY1ODA3NX0.b6RZ3zXPdBEnaQXTvNeAg_xB-pOzOGJF8lEKQ5SK5SU'
 
 const results = []
 

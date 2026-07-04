@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     })
 
     // Only super_admins may set platform admin passwords.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

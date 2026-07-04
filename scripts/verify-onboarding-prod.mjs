@@ -4,17 +4,24 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const PROJECT_REF = 'ngdvmodloxuvrdjjzxel'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF
+const ANON_KEY = process.env.SUPABASE_ANON_KEY
+
+if (!PROJECT_REF || !ANON_KEY) {
+  console.error(
+    'Missing required environment variables: SUPABASE_PROJECT_REF and SUPABASE_ANON_KEY'
+  )
+  process.exit(1)
+}
+
 const FUNCTIONS_BASE = `https://${PROJECT_REF}.supabase.co/functions/v1`
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZHZtb2Rsb3h1dnJkamp6eGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODIwNzUsImV4cCI6MjA5NzY1ODA3NX0.b6RZ3zXPdBEnaQXTvNeAg_xB-pOzOGJF8lEKQ5SK5SU'
 
 const EMAIL = process.env.SMOKE_EMAIL ?? ''
 const PASSWORD = process.env.SMOKE_PASSWORD ?? ''
 
 if (!EMAIL || !PASSWORD) {
   console.error(
-    'Usage: SMOKE_EMAIL=<email> SMOKE_PASSWORD=<password> node scripts/verify-onboarding-prod.mjs'
+    'Usage: SUPABASE_PROJECT_REF=<ref> SUPABASE_ANON_KEY=<key> SMOKE_EMAIL=<email> SMOKE_PASSWORD=<password> node scripts/verify-onboarding-prod.mjs'
   )
   process.exit(1)
 }

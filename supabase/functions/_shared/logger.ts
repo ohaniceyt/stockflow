@@ -35,6 +35,53 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
   error: 3,
 }
 
+const SENSITIVE_KEYS = new Set([
+  'password',
+  'pin',
+  'token',
+  'access_token',
+  'refresh_token',
+  'apikey',
+  'api_key',
+  'authorization',
+  'secret',
+  'service_role_key',
+  'email',
+  'ip_address',
+])
+
+function isSensitiveKey(key: string): boolean {
+  const lower = key.toLowerCase()
+  return SENSITIVE_KEYS.has(lower) || lower.endsWith('_secret') || lower.endsWith('_token')
+}
+
+function sanitizeValue(value: unknown): unknown {
+  if (value === null || value === undefined) return value
+  if (typeof value === 'string') {
+    // Mask likely JWTs (three base64 segments separated by dots).
+    return value.replace(
+      /(^|\s|=)(eyJ[\w-]*\.[\w-]*\.[\w-]*)/g,
+      '$1[REDACTED_JWT]'
+    ) as unknown as typeof value
+  }
+  if (Array.isArray(value)) return value.map(sanitizeValue)
+  if (typeof value === 'object') return sanitizeFields(value as Record<string, unknown>)
+  return value
+}
+
+function sanitizeFields(fields?: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!fields) return undefined
+  const sanitized: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(fields)) {
+    if (isSensitiveKey(key)) {
+      sanitized[key] = '[REDACTED]'
+    } else {
+      sanitized[key] = sanitizeValue(value)
+    }
+  }
+  return sanitized
+}
+
 function getLogLevel(): LogLevel {
   const envLevel = Deno.env.get('LOG_LEVEL')?.toLowerCase()
   if (envLevel && envLevel in LEVEL_ORDER) {
@@ -81,18 +128,18 @@ function createLogger(functionName: string, traceId: string | null, baseFields?:
       function: functionName,
       trace_id: traceId,
       event,
-      fields: { ...baseFields, ...fields },
+      fields: sanitizeFields({ ...baseFields, ...fields }),
     }
 
     if (err instanceof Error) {
       entry.error = {
         name: err.name,
-        message: err.message,
-        stack: err.stack,
+        message: sanitizeValue(err.message) as string,
+        stack: typeof err.stack === 'string' ? (sanitizeValue(err.stack) as string) : undefined,
       }
     } else if (err !== undefined && err !== null) {
       entry.error = {
-        message: String(err),
+        message: sanitizeValue(String(err)) as string,
       }
     }
 
@@ -104,7 +151,7 @@ function createLogger(functionName: string, traceId: string | null, baseFields?:
     info: (event, fields) => log('info', event, fields),
     warn: (event, fields) => log('warn', event, fields),
     error: (event, fields, err) => log('error', event, fields, err),
-    child: (fields) => createLogger(functionName, traceId, { ...baseFields, ...fields }),
+    child: (fields) => createLogger(functionName, traceId, { ...baseFields, ...sanitizeFields(fields) }),
   }
 }
 

@@ -1,0 +1,22 @@
+name: Cron Cleanup Audit Logs
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Cleanup audit logs
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Call cleanup Edge Function
+        run: |
+          curl -sS -X POST \
+            "${SUPABASE_URL}/functions/v1/cleanup-audit-logs" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -d '{}'

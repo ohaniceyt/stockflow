@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Send a magic link so the user can set a new PIN through /auth/reset-pin.
-    const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
+    const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
     const { error: otpError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email: userEmail,

@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
-import { pbkdf2Sync, randomBytes } from 'node:crypto'
+import { pbkdf2Sync, randomBytes, randomInt } from 'node:crypto'
 
-const url = process.env.SUPABASE_URL ?? 'https://ngdvmodloxuvrdjjzxel.supabase.co'
-const serviceKey = process.argv[2] ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+const url = process.env.SUPABASE_URL
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const password = process.env.PLATFORM_ADMIN_PASSWORD
 
-if (!serviceKey) {
-  console.error('Usage: node scripts/seed-admin.mjs <SUPABASE_SERVICE_ROLE_KEY>')
-  console.error('Or set SUPABASE_SERVICE_ROLE_KEY environment variable.')
+if (!url || !serviceKey) {
+  console.error('Missing required environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
 
@@ -25,18 +24,23 @@ const adminClient = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-const email = process.env.PLATFORM_ADMIN_EMAIL ?? 'su@app.grandigix.com'
+const email = process.env.PLATFORM_ADMIN_EMAIL
+
+if (!email) {
+  console.error('Missing required environment variable: PLATFORM_ADMIN_EMAIL')
+  process.exit(1)
+}
 
 function hashPin(pin, salt = randomBytes(16)) {
   const derived = pbkdf2Sync(pin, salt, 100_000, 32, 'sha256')
   return `pbkdf2$${salt.toString('base64')}$${derived.toString('base64')}`
 }
 
-function generatePin(length = 6) {
+function generatePin(length = 8) {
   const digits = '0123456789'
   let pin = ''
   for (let i = 0; i < length; i++) {
-    pin += digits[Math.floor(Math.random() * digits.length)]
+    pin += digits[randomInt(0, 10)]
   }
   return pin
 }

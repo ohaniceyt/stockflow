@@ -3,6 +3,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface CreateProductPayload {
   org_id: string
@@ -125,6 +126,22 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
+
+    await logActivity(adminClient, {
+      org_id: payload.org_id,
+      actor_id: claims.sub,
+      action: 'product_created',
+      target_type: 'product',
+      target_id: data.id,
+      details: {
+        name: data.name,
+        category: data.category,
+        unit: data.unit,
+        cost_price: data.cost_price,
+        selling_price: data.selling_price,
+      },
+      ip_address: req.headers.get('x-forwarded-for') ?? null,
+    })
 
     return new Response(JSON.stringify(data), {
       status: 200,

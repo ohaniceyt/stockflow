@@ -26,6 +26,7 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
   })
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -51,6 +52,13 @@ export default function SignupPage() {
 
     if (form.password !== form.confirmPassword) {
       setError('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    if (!agreedToTerms) {
+      setError(
+        "Vous devez accepter les conditions d'utilisation et la politique de confidentialité."
+      )
       return
     }
 
@@ -158,6 +166,27 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 required
               />
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                id="terms"
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-primary"
+              />
+              <Label htmlFor="terms" className="text-sm font-normal leading-relaxed">
+                J'accepte les{' '}
+                <Link to="/terms" className="text-primary hover:underline" target="_blank">
+                  Conditions d'utilisation
+                </Link>{' '}
+                et la{' '}
+                <Link to="/privacy" className="text-primary hover:underline" target="_blank">
+                  Politique de confidentialité
+                </Link>
+                .
+              </Label>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

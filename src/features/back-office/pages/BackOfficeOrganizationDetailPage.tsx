@@ -23,6 +23,7 @@ import {
   updateOrganizationSlug,
   getOrganizationSlugHistory,
 } from '../services/platformService'
+import { usePlatformChallenge } from '../hooks/usePlatformChallenge'
 import { PageHeader, PageSection, DataCard, StatusBadge } from '@/components/design-system'
 import type { ActivityLogRow, BackOfficeOrganization, BackOfficeUser, Paginated } from '../types'
 
@@ -33,6 +34,7 @@ export default function BackOfficeOrganizationDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { platformAdminRole, enterSudo } = useAuth()
+  const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
   const safeOrgId = orgId ?? ''
 
@@ -52,7 +54,10 @@ export default function BackOfficeOrganizationDetailPage() {
   })
 
   const planMutation = useMutation({
-    mutationFn: (plan: string) => setOrganizationPlan(safeOrgId, plan),
+    mutationFn: async (plan: string) => {
+      const challengeId = await requestChallenge("Changer le plan de l'organisation")
+      return setOrganizationPlan(safeOrgId, plan, challengeId)
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['back-office', 'organization', safeOrgId] })
     },

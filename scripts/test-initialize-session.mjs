@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = 'https://ngdvmodloxuvrdjjzxel.supabase.co'
-const publishableKey = 'sb_publishable_vdrn0CrixTpyQ0teLhMwlQ_YnnjRdvH'
-const email = 'su@app.grandigix.com'
-const password = 'AdminPass123!'
+const url = process.env.SUPABASE_URL
+const publishableKey = process.env.SUPABASE_ANON_KEY
+const email = process.env.PLATFORM_ADMIN_EMAIL
+const password = process.env.PLATFORM_ADMIN_PASSWORD
+
+if (!url || !publishableKey || !email || !password) {
+  console.error(
+    'Missing required environment variables: SUPABASE_URL, SUPABASE_ANON_KEY, PLATFORM_ADMIN_EMAIL, PLATFORM_ADMIN_PASSWORD'
+  )
+  process.exit(1)
+}
 
 const supabase = createClient(url, publishableKey, {
   auth: { autoRefreshToken: false, persistSession: false },

@@ -1,23 +1,17 @@
-import { supabaseKey } from './supabase'
+import { supabase, supabaseKey } from './supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
-function getAccessToken(): string | null {
-  const raw = localStorage.getItem('stockflow-session')
-  if (!raw) return null
-  try {
-    const parsed = JSON.parse(raw) as { accessToken?: string }
-    return parsed.accessToken ?? null
-  } catch {
-    return null
-  }
+async function getAccessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 }
 
 export async function edgeFetch<T = unknown>(
   functionName: string,
   options?: RequestInit
 ): Promise<T> {
-  const token = getAccessToken()
+  const token = await getAccessToken()
 
   const baseHeaders: Record<string, string> = {
     apikey: supabaseKey,

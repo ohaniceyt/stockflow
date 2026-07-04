@@ -3,6 +3,7 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { getCurrentOrgId } from '../_shared/membership.ts'
 
 interface SendInvoiceReminderPayload {
   invoice_id: string
@@ -50,6 +51,14 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
+    if (!activeOrgId) {
+      return new Response(JSON.stringify({ error: 'No active organization' }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: invoice, error: invoiceError } = await adminClient
       .from('invoices')
       .select('*, org:organizations(*), contact:contacts(*)')
@@ -59,6 +68,16 @@ Deno.serve(async (req: Request) => {
 
     if (invoiceError || !invoice) {
       throw new Error(invoiceError?.message ?? 'Invoice not found')
+    }
+
+    if (String(invoice.org_id) !== activeOrgId) {
+      return new Response(
+        JSON.stringify({ error: 'Invoice does not belong to the active organization' }),
+        {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     const status = String(invoice.status)
@@ -72,7 +91,8 @@ Deno.serve(async (req: Request) => {
     const { pdfBase64, filename } = await buildDocumentPdfBase64(
       adminClient,
       payload.invoice_id,
-      'invoice'
+      'invoice',
+      activeOrgId
     )
 
     const recipient = payload.to ?? (invoice.contact as Record<string, unknown>)?.email ?? null

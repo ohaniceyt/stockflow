@@ -4,6 +4,7 @@ import { sendEmail } from '../_shared/resend.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { logActivity } from '../_shared/audit.ts'
 
 interface CreateUserPayload {
   name: string
@@ -176,6 +177,19 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
+
+    await logActivity(adminClient, {
+      org_id: operator.org_id,
+      actor_id: claims.sub,
+      action: 'user_created',
+      target_type: 'user',
+      target_id: authUserId,
+      details: {
+        role,
+        is_new_profile: !existingProfile,
+      },
+      ip_address: req.headers.get('x-forwarded-for') ?? null,
+    })
 
     // Generate a password-recovery link so the new user can set a real password.
     // The account is created with a random password; without this link the user
