@@ -104,7 +104,7 @@ StockFlow vNext dispose d'une architecture moderne (React 19, Supabase, Vite, Ta
 
 - [x] Husky + lint-staged + `.nvmrc` (SF-036/SF-038).
 - [x] CI bloquante sur E2E (SF-029) + scan secrets TruffleHog.
-- [x] Sentry + logs structurés + health check (SF-031 partiel).
+- [x] Sentry + logs structurés + health check renforcé (SF-031).
 - [ ] Augmenter la couverture de tests (Edge Functions, auth, sync).
 - [ ] Résoudre `npm audit` / Dependabot.
 - [ ] Environnement de staging/preview.
