@@ -35,10 +35,10 @@ Copiez `.env.example` vers `.env` et renseignez les valeurs.
 
 ### Frontend (Vercel)
 
-| Variable                 | Description                                                                                   |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`      | URL du projet Supabase (ex. `https://<ref>.supabase.co`)                                      |
-| `VITE_SUPABASE_ANON_KEY` | Clé anonyme/public du projet (anciennement `VITE_SUPABASE_PUBLISHABLE_KEY`, fallback accepté) |
+| Variable                 | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | URL du projet Supabase (ex. `https://<ref>.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY` | Clé anonyme/public du projet Supabase                    |
 
 > Vérifiez qu’il n’y a **pas d’espace parasite** au début des valeurs dans le dashboard Vercel.
 

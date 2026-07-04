@@ -67,7 +67,7 @@ Le backup `/tmp/stockflow-env-backup/` a été supprimé.
 **Frontend (Vite) :**
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY` (fallback `VITE_SUPABASE_PUBLISHABLE_KEY`)
+- `VITE_SUPABASE_ANON_KEY`
 
 **Edge Functions (Deno) :**
 
@@ -77,11 +77,11 @@ Le backup `/tmp/stockflow-env-backup/` a été supprimé.
 
 ### Risques résiduels
 
-| #   | Sévérité | Problème                                                                              | Recommandation                                                                  |
-| --- | -------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 4.1 | Faible   | `VITE_SUPABASE_PUBLISHABLE_KEY` est utilisé en fallback ; la CI l'expose globalement. | Uniformiser sur `VITE_SUPABASE_ANON_KEY` et limiter aux jobs qui en ont besoin. |
-| 4.2 | Faible   | `VITE_SENTRY_DSN` n'est pas documenté dans `.env.example`.                            | **Corrigé** — `VITE_SENTRY_DSN` est désormais documenté.                        |
-| 4.3 | Faible   | `cron-cleanup.yml` hardcode l'URL Supabase.                                           | **Corrigé** — l'URL est désormais lue depuis `secrets.SUPABASE_URL`.            |
+| #   | Sévérité | Problème                                                                              | Recommandation                                                                                                                                                                                    |
+| --- | -------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4.1 | Faible   | `VITE_SUPABASE_PUBLISHABLE_KEY` est utilisé en fallback ; la CI l'expose globalement. | **Corrigé** — fallback supprimé de `src/services/supabase.ts`, `.env.example` et `README.md` ; la CI utilise exclusivement `VITE_SUPABASE_ANON_KEY` et la limite aux jobs `build`/`e2e`/`deploy`. |
+| 4.2 | Faible   | `VITE_SENTRY_DSN` n'est pas documenté dans `.env.example`.                            | **Corrigé** — `VITE_SENTRY_DSN` est désormais documenté.                                                                                                                                          |
+| 4.3 | Faible   | `cron-cleanup.yml` hardcode l'URL Supabase.                                           | **Corrigé** — l'URL est désormais lue depuis `secrets.SUPABASE_URL`.                                                                                                                              |
 
 ---
 
@@ -196,7 +196,7 @@ git push origin --force --all
 
 ### P1 — Court terme
 
-7. Uniformiser la CI sur `VITE_SUPABASE_ANON_KEY` (retirer `VITE_SUPABASE_PUBLISHABLE_KEY`).
+7. ~~Uniformiser la CI sur `VITE_SUPABASE_ANON_KEY` (retirer `VITE_SUPABASE_PUBLISHABLE_KEY`).~~ **Corrigé.**
 8. ~~Externaliser `SUPABASE_URL` dans `cron-cleanup.yml`.~~ **Corrigé.**
 9. ~~Documenter `VITE_SENTRY_DSN` dans `.env.example`.~~ **Corrigé.**
 10. Ajouter une colonne `expires_at` sur `organization_api_keys`.
