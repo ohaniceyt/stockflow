@@ -30,7 +30,7 @@ export function useInventorySessions() {
   return useQuery({
     queryKey: [INVENTORY_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
         const data = await fetchInventorySessions(orgId)
         await cacheInventorySessions(data)
@@ -124,11 +124,7 @@ export function useCreateInventorySession() {
         await queueOperation({ type: 'INVENTORY_SESSION_CREATE', payload })
         return
       }
-      try {
-        await createInventorySession(orgId, locationId, name, operatorId)
-      } catch {
-        await queueOperation({ type: 'INVENTORY_SESSION_CREATE', payload })
-      }
+      await createInventorySession(orgId, locationId, name, operatorId)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INVENTORY_QUERY_KEY, orgId] })
@@ -150,7 +146,7 @@ export function useUpdateCount(sessionId: string) {
       countId: string
       countedQuantity: number
     }): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, countId, countedQuantity }
       if (!online) {
         await queueOperation({
@@ -159,14 +155,7 @@ export function useUpdateCount(sessionId: string) {
         })
         return
       }
-      try {
-        await updateCount(countId, countedQuantity)
-      } catch {
-        await queueOperation({
-          type: 'INVENTORY_COUNT_UPDATE',
-          payload,
-        })
-      }
+      await updateCount(countId, countedQuantity)
     },
     onMutate: async ({ countId, countedQuantity }) => {
       await queryClient.cancelQueries({ queryKey: ['inventory-counts', sessionId] })
@@ -213,17 +202,13 @@ export function useApplyInventorySession() {
 
   return useMutation({
     mutationFn: async (sessionId: string): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, sessionId }
       if (!online) {
         await queueOperation({ type: 'INVENTORY', payload })
         return
       }
-      try {
-        await applyInventorySession(sessionId)
-      } catch {
-        await queueOperation({ type: 'INVENTORY', payload })
-      }
+      await applyInventorySession(sessionId)
     },
     onSuccess: (_data, sessionId) => {
       void queryClient.invalidateQueries({ queryKey: [INVENTORY_QUERY_KEY, orgId] })
