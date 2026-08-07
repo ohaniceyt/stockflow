@@ -48,8 +48,11 @@ export async function fetchStock(orgId: string): Promise<StockItem[]> {
     await Promise.all([
       supabase
         .from('products')
-        .select('id, name, unit, category, barcode, threshold, cost_price, selling_price')
-        .eq('org_id', orgId),
+        .select(
+          'id, name, unit, category, barcode, threshold, cost_price, selling_price, is_active'
+        )
+        .eq('org_id', orgId)
+        .eq('is_active', true),
       supabase.from('locations').select('id, name').eq('org_id', orgId),
     ])
 

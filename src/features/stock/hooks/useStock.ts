@@ -19,7 +19,7 @@ export function useStock() {
   return useQuery({
     queryKey: [STOCK_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
         const data = await fetchStock(orgId)
         await cacheStockLevels(
@@ -41,7 +41,8 @@ export function useStock() {
           getCachedLocations(orgId),
         ])
         if (cachedLevels.length > 0) {
-          return mapCachedToStockItems(cachedLevels, products, locations)
+          const activeProducts = products.filter((p) => p.isActive)
+          return mapCachedToStockItems(cachedLevels, activeProducts, locations)
         }
         throw err
       }
