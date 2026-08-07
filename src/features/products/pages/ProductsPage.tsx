@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +16,12 @@ import { ProductList } from '../components/ProductList'
 import { CategoryList } from '../components/CategoryList'
 import { CategoryForm } from '../components/CategoryForm'
 import { BulkProductImport } from '../components/BulkProductImport'
-import { useCreateProduct, useProducts, useUpdateProduct } from '../hooks/useProducts'
+import {
+  useCreateProduct,
+  useDeleteProduct,
+  useProducts,
+  useUpdateProduct,
+} from '../hooks/useProducts'
 import {
   CATEGORIES_QUERY_KEY,
   useCategories,
@@ -38,11 +44,12 @@ export default function ProductsPage() {
   const online = useNetworkStatus()
   const orgId = session?.membership.orgId
   const [activeTab, setActiveTab] = useState<TabValue>('products')
+  const [showInactive, setShowInactive] = useState(false)
 
   const canManage = hasRole(['super_admin', 'admin', 'operator'])
   const canBulkImport = hasRole(['super_admin', 'admin'])
 
-  const { data: products, isLoading, error } = useProducts()
+  const { data: products, isLoading, error } = useProducts(showInactive)
   const {
     data: categories,
     isLoading: isCategoriesLoading,
@@ -50,6 +57,7 @@ export default function ProductsPage() {
   } = useCategories()
   const create = useCreateProduct()
   const update = useUpdateProduct()
+  const deleteProductMutation = useDeleteProduct()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
@@ -140,6 +148,21 @@ export default function ProductsPage() {
     )
   }
 
+  const handleDelete = (product: Product) => {
+    if (
+      confirm(
+        `Supprimer définitivement « ${product.name} » ? Cette action est irréversible et n'est possible que pour les produits sans mouvements, stock ni ventes.`
+      )
+    ) {
+      setProductFormError(null)
+      deleteProductMutation.mutate(product.id, {
+        onError: (err) => {
+          setProductFormError(err.message)
+        },
+      })
+    }
+  }
+
   const handleProductDialogOpenChange = (open: boolean) => {
     setIsProductDialogOpen(open)
     setProductFormError(null)
@@ -200,7 +223,7 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Produits"
-        description="Gérez le catalogue de produits et les catégories de votre organisation."
+        description="Gérez le catalogue de produits et les catégories de votre entreprise."
       />
 
       {productFormError && (
@@ -236,6 +259,16 @@ export default function ProductsPage() {
                   disabled={!online}
                 />
               )}
+              <div className="flex items-center gap-2">
+                <input
+                  id="show-inactive"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                />
+                <Label htmlFor="show-inactive">Afficher les inactifs</Label>
+              </div>
               {canManage && (
                 <Dialog open={isProductDialogOpen} onOpenChange={handleProductDialogOpenChange}>
                   <Button
@@ -286,7 +319,8 @@ export default function ProductsPage() {
                 products={products}
                 onEdit={handleEdit}
                 onToggleActive={handleToggleActive}
-                isUpdating={update.isPending}
+                onDelete={handleDelete}
+                isUpdating={update.isPending || deleteProductMutation.isPending}
                 canManage={canManage}
               />
             )}

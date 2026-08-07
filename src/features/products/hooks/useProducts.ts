@@ -4,7 +4,12 @@ import { useAuth } from '@/features/auth/context/AuthContext'
 import { useNetworkStatus } from '@/features/offline/hooks/useSync'
 import { cacheProducts, getCachedProducts } from '@/features/offline/services/cacheService'
 import { queueOperation } from '@/features/offline/services/queueService'
-import { createProduct, fetchProducts, updateProduct } from '../services/productService'
+import {
+  createProduct,
+  deleteProduct,
+  fetchProducts,
+  updateProduct,
+} from '../services/productService'
 import type { Product } from '@/types'
 
 const PRODUCTS_QUERY_KEY = 'products'
@@ -20,17 +25,17 @@ interface CreateProductContext {
   tempId: string
 }
 
-export function useProducts() {
+export function useProducts(includeInactive = false) {
   const { session } = useAuth()
   const online = useNetworkStatus()
   const orgId = session?.membership.orgId
 
   return useQuery({
-    queryKey: [PRODUCTS_QUERY_KEY, orgId],
+    queryKey: [PRODUCTS_QUERY_KEY, orgId, { includeInactive }],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
-        const data = await fetchProducts(orgId)
+        const data = await fetchProducts(orgId, includeInactive)
         await cacheProducts(data)
         return data
       } catch (err) {
@@ -57,7 +62,7 @@ export function useCreateProduct() {
 
   return useMutation<CreateProductResult, Error, CreateProductInput, CreateProductContext>({
     mutationFn: (input) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const tempId = tempIdMap.current.get(input) ?? `pending-${crypto.randomUUID()}`
       const inputWithTempId = { ...input, tempId }
       if (!online) {
@@ -125,7 +130,7 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: ({ id, ...input }: { id: string } & Partial<CreateProductInput>) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, id, input }
       if (!online) {
         return queueOperation({ type: 'PRODUCT_UPDATE', payload }).then(() => undefined)
@@ -151,6 +156,37 @@ export function useUpdateProduct() {
       return { previous }
     },
     onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData([PRODUCTS_QUERY_KEY, orgId], context.previous)
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })
+    },
+  })
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!orgId) throw new Error('Entreprise manquante')
+      return deleteProduct(id, orgId)
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [PRODUCTS_QUERY_KEY, orgId] })
+      const previous = queryClient.getQueryData<Product[]>([PRODUCTS_QUERY_KEY, orgId])
+
+      queryClient.setQueryData([PRODUCTS_QUERY_KEY, orgId], (old: Product[] | undefined) => {
+        return old?.filter((p) => p.id !== id)
+      })
+
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
       if (context?.previous) {
         queryClient.setQueryData([PRODUCTS_QUERY_KEY, orgId], context.previous)
       }

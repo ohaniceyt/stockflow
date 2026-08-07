@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Pencil, Power, PowerOff } from 'lucide-react'
+import { Pencil, Power, PowerOff, Trash2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { Product } from '@/types'
 import { ResponsiveTable, type ResponsiveColumn } from '@/components/ui/ResponsiveTable'
@@ -11,6 +11,7 @@ interface ProductListProps {
   products: Product[]
   onEdit: (product: Product) => void
   onToggleActive: (product: Product) => void
+  onDelete?: (product: Product) => void
   isUpdating?: boolean
   canManage?: boolean
 }
@@ -19,6 +20,7 @@ export function ProductList({
   products,
   onEdit,
   onToggleActive,
+  onDelete,
   isUpdating,
   canManage = true,
 }: ProductListProps) {
@@ -98,6 +100,17 @@ export function ProductList({
                 <Power className="h-4 w-4 text-emerald-600" />
               )}
             </Button>
+            {onDelete && !product.isActive && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(product)}
+                disabled={isUpdating}
+                aria-label={`Supprimer ${product.name}`}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
           </div>
         ) : null,
     },

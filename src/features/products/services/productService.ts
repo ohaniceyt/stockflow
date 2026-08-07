@@ -26,13 +26,15 @@ function mapRowToProduct(row: ProductRow): Product {
   }
 }
 
-export async function fetchProducts(orgId: string): Promise<Product[]> {
+export async function fetchProducts(orgId: string, includeInactive = false): Promise<Product[]> {
   // RLS filters by org; the explicit org_id filter narrows the query and documents the contract.
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('org_id', orgId)
-    .order('name')
+  let query = supabase.from('products').select('*').eq('org_id', orgId).order('name')
+
+  if (!includeInactive) {
+    query = query.eq('is_active', true)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throw new Error(error.message)
@@ -99,4 +101,46 @@ export async function updateProduct(
   }
 
   return mapRowToProduct(data)
+}
+
+export async function deleteProduct(id: string, orgId: string): Promise<void> {
+  // A product may only be hard-deleted when it has no operational history.
+  // Otherwise soft-delete (is_active=false) preserves receipts, movements and stock traces.
+  const historyChecks = await Promise.all([
+    supabase
+      .from('movements')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', id)
+      .eq('org_id', orgId),
+    supabase
+      .from('stock_levels')
+      .select('id, locations!inner(org_id)', { count: 'exact', head: true })
+      .eq('product_id', id)
+      .eq('locations.org_id', orgId),
+    supabase
+      .from('invoice_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', id),
+    supabase
+      .from('receipt_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', id),
+  ])
+
+  const blocked = historyChecks.some((result) => {
+    if (result.error) return true
+    return (result.count ?? 0) > 0
+  })
+
+  if (blocked) {
+    throw new Error(
+      'Ce produit a des mouvements, du stock ou des ventes associés. Désactivez-le plutôt que le supprimer.'
+    )
+  }
+
+  const { error } = await supabase.from('products').delete().eq('id', id).eq('org_id', orgId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
 }
