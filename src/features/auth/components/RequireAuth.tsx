@@ -21,7 +21,11 @@ export function RequireAuth({ children, roles, requirePlatformAdmin, fallback }:
     return <Navigate to="/onboarding" replace />
   }
 
-  if (session?.membership.forcePinChange && location.pathname !== '/change-pin') {
+  if (
+    session?.membership.forcePinChange &&
+    location.pathname !== '/change-pin' &&
+    location.pathname !== '/set-pin'
+  ) {
     return <Navigate to="/change-pin" replace />
   }
 

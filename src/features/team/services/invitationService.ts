@@ -17,6 +17,7 @@ export interface UserOrg {
   role: UserRole
   organizationName: string
   isSuspended: boolean
+  forcePinChange?: boolean
 }
 
 export interface MyInvitation {
@@ -106,6 +107,7 @@ interface RawUserOrg {
   id: string
   org_id: string
   role: UserRole
+  force_pin_change: boolean
   organizations: { id: string; name: string; is_suspended: boolean }
 }
 
@@ -117,6 +119,7 @@ export async function fetchMyOrganizations(): Promise<UserOrg[]> {
     role: u.role,
     organizationName: u.organizations.name,
     isSuspended: u.organizations.is_suspended,
+    forcePinChange: u.force_pin_change,
   }))
 }
 

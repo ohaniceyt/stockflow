@@ -64,7 +64,7 @@ interface AuthContextValue {
   changePin: (currentPin: string, newPin: string) => Promise<void>
   unlockApp: (pin: string) => Promise<boolean>
   lockApp: () => void
-  switchMembership: (membershipId: string) => Promise<void>
+  switchMembership: (membershipId: string, needsPinChange?: boolean) => Promise<void>
   hasRole: (roles: UserRole[]) => boolean
   isPlatformAdmin: boolean
   platformAdminRole: PlatformAdminRole | null
@@ -295,12 +295,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persistSession])
 
   const initializeSession = useCallback(
-    async (supabaseSession: {
-      access_token: string
-      refresh_token: string
-      expires_at?: number
-      expires_in?: number
-    }) => {
+    async (
+      supabaseSession: {
+        access_token: string
+        refresh_token: string
+        expires_at?: number
+        expires_in?: number
+      },
+      overrideForcePinChange?: boolean
+    ) => {
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
 
       const response = await fetch(`${supabaseUrl}/functions/v1/initialize-session`, {
@@ -329,6 +332,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseSession.refresh_token,
         expiresAt
       )
+
+      if (overrideForcePinChange !== undefined) {
+        next.membership.forcePinChange = overrideForcePinChange
+      }
 
       // Guard against session races (e.g. email-verification page signs out while
       // this initialization is in flight). Only persist if Supabase still holds
@@ -371,6 +378,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize from persisted Supabase session on mount
   useEffect(() => {
     let mounted = true
+
+    // Clear any stale sudo target from a previous session. Sudo impersonation
+    // is client-side only and must not survive reloads.
+    try {
+      sessionStorage.removeItem(SUDO_TARGET_KEY)
+    } catch {
+      // ignore
+    }
 
     void (async () => {
       const { data, error } = await supabase.auth.getSession()
@@ -687,7 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, persistSession])
 
   const switchMembership = useCallback(
-    async (membershipId: string) => {
+    async (membershipId: string, needsPinChange = false) => {
       if (!session) throw new Error('Not authenticated')
 
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
@@ -711,7 +726,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error?.message ?? 'Session lost')
       }
 
-      await initializeSession(data.session)
+      await initializeSession(data.session, needsPinChange)
     },
     [session, initializeSession]
   )

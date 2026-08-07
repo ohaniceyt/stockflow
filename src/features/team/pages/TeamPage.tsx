@@ -90,13 +90,13 @@ export default function TeamPage() {
     })
   }
 
-  const handleSwitchOrg = async (membershipId: string) => {
+  const handleSwitchOrg = async (membershipId: string, needsPinChange = false) => {
     setIsSwitching(true)
     setSwitchError(null)
     try {
-      await switchMembership(membershipId)
+      await switchMembership(membershipId, needsPinChange)
     } catch (err) {
-      setSwitchError(err instanceof Error ? err.message : 'Échec du changement d’organisation')
+      setSwitchError(err instanceof Error ? err.message : 'Échec du changement d’entreprise')
     } finally {
       setIsSwitching(false)
     }
@@ -106,7 +106,7 @@ export default function TeamPage() {
     <div className="space-y-6">
       <PageHeader
         title="Équipe"
-        description="Gérez les utilisateurs de votre organisation."
+        description="Gérez les utilisateurs de votre entreprise."
         actions={
           canCreate
             ? [
@@ -168,7 +168,7 @@ export default function TeamPage() {
       {switchError && <StatusBadge variant="danger">{switchError}</StatusBadge>}
 
       {myOrganizations && myOrganizations.length > 1 && (
-        <PageSection title="Mes organisations">
+        <PageSection title="Mes entreprises">
           <OrgSwitcher
             organizations={myOrganizations}
             onSwitch={handleSwitchOrg}

@@ -4,7 +4,7 @@ import type { UserOrg } from '../services/invitationService'
 
 interface OrgSwitcherProps {
   organizations: UserOrg[]
-  onSwitch: (membershipId: string) => void
+  onSwitch: (membershipId: string, needsPinChange: boolean) => void
   isSwitching?: boolean
 }
 
@@ -15,7 +15,7 @@ export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitche
   return (
     <div className="space-y-2">
       <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Mes organisations
+        Mes entreprises
       </p>
       <div className="space-y-1">
         {organizations.map((org) => (
@@ -23,7 +23,7 @@ export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitche
             key={org.id}
             type="button"
             disabled={org.id === currentMembershipId || org.isSuspended || isSwitching}
-            onClick={() => onSwitch(org.id)}
+            onClick={() => onSwitch(org.id, Boolean(org.forcePinChange))}
             className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               org.id === currentMembershipId
                 ? 'bg-primary text-primary-foreground'
