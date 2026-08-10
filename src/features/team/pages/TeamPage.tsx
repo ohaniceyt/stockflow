@@ -90,11 +90,11 @@ export default function TeamPage() {
     })
   }
 
-  const handleSwitchOrg = async (membershipId: string, needsPinChange = false) => {
+  const handleSwitchOrg = async (membershipId: string) => {
     setIsSwitching(true)
     setSwitchError(null)
     try {
-      await switchMembership(membershipId, needsPinChange)
+      await switchMembership(membershipId)
     } catch (err) {
       setSwitchError(err instanceof Error ? err.message : 'Échec du changement d’entreprise')
     } finally {

@@ -64,7 +64,7 @@ interface AuthContextValue {
   changePin: (currentPin: string, newPin: string) => Promise<void>
   unlockApp: (pin: string) => Promise<boolean>
   lockApp: () => void
-  switchMembership: (membershipId: string, needsPinChange?: boolean) => Promise<void>
+  switchMembership: (membershipId: string) => Promise<void>
   hasRole: (roles: UserRole[]) => boolean
   isPlatformAdmin: boolean
   platformAdminRole: PlatformAdminRole | null
@@ -295,15 +295,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persistSession])
 
   const initializeSession = useCallback(
-    async (
-      supabaseSession: {
-        access_token: string
-        refresh_token: string
-        expires_at?: number
-        expires_in?: number
-      },
-      overrideForcePinChange?: boolean
-    ) => {
+    async (supabaseSession: {
+      access_token: string
+      refresh_token: string
+      expires_at?: number
+      expires_in?: number
+    }) => {
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
 
       const response = await fetch(`${supabaseUrl}/functions/v1/initialize-session`, {
@@ -332,10 +329,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseSession.refresh_token,
         expiresAt
       )
-
-      if (overrideForcePinChange !== undefined) {
-        next.membership.forcePinChange = overrideForcePinChange
-      }
 
       // Guard against session races (e.g. email-verification page signs out while
       // this initialization is in flight). Only persist if Supabase still holds
@@ -702,7 +695,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, persistSession])
 
   const switchMembership = useCallback(
-    async (membershipId: string, needsPinChange = false) => {
+    async (membershipId: string) => {
       if (!session) throw new Error('Not authenticated')
 
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
@@ -726,7 +719,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error?.message ?? 'Session lost')
       }
 
-      await initializeSession(data.session, needsPinChange)
+      await initializeSession(data.session)
     },
     [session, initializeSession]
   )

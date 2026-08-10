@@ -1,10 +1,10 @@
-import { Building2, Check } from 'lucide-react'
+import { Building2, Check, Lock } from 'lucide-react'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { UserOrg } from '../services/invitationService'
 
 interface OrgSwitcherProps {
   organizations: UserOrg[]
-  onSwitch: (membershipId: string, needsPinChange: boolean) => void
+  onSwitch: (membershipId: string) => void
   isSwitching?: boolean
 }
 
@@ -23,7 +23,7 @@ export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitche
             key={org.id}
             type="button"
             disabled={org.id === currentMembershipId || org.isSuspended || isSwitching}
-            onClick={() => onSwitch(org.id, Boolean(org.forcePinChange))}
+            onClick={() => onSwitch(org.id)}
             className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               org.id === currentMembershipId
                 ? 'bg-primary text-primary-foreground'
@@ -34,7 +34,15 @@ export function OrgSwitcher({ organizations, onSwitch, isSwitching }: OrgSwitche
               <Building2 className="h-4 w-4" />
               {org.organizationName}
             </span>
-            {org.id === currentMembershipId && <Check className="h-4 w-4" />}
+            <span className="flex items-center gap-2">
+              {org.forcePinChange && (
+                <Lock
+                  className="h-3.5 w-3.5 text-amber-500"
+                  aria-label="Changement de PIN requis"
+                />
+              )}
+              {org.id === currentMembershipId && <Check className="h-4 w-4" />}
+            </span>
           </button>
         ))}
       </div>
