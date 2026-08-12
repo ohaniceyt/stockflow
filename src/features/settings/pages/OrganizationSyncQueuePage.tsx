@@ -272,7 +272,7 @@ export default function OrganizationSyncQueuePage() {
 
 function statusVariant(
   status: OrgPendingOperation['status']
-): 'neutral' | 'success' | 'warning' | 'destructive' {
+): 'neutral' | 'success' | 'warning' | 'danger' {
   switch (status) {
     case 'completed':
       return 'success'
@@ -283,7 +283,7 @@ function statusVariant(
       return 'warning'
     case 'dead':
     case 'cancelled':
-      return 'destructive'
+      return 'danger'
     default:
       return 'neutral'
   }
