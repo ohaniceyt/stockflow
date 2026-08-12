@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { OfflineStatus } from '@/features/offline/components/OfflineStatus'
+import { useSync } from '@/features/offline/hooks/useSync'
 import { useWebVitals } from '@/hooks/useWebVitals'
 import { SudoBanner } from '@/features/back-office/components/SudoBanner'
 import { Sidebar } from './Sidebar'
@@ -12,6 +13,7 @@ import { SkipLink } from '@/components/SkipLink'
 
 export function AppLayout() {
   const { session } = useAuth()
+  const { sync } = useSync()
   const [menuOpen, setMenuOpen] = useState(false)
   useWebVitals()
 
@@ -34,7 +36,7 @@ export function AppLayout() {
       </main>
 
       <MobileNav onMenuOpen={() => setMenuOpen(true)} />
-      <OfflineStatus className="bottom-20 md:bottom-4" />
+      <OfflineStatus className="bottom-20 md:bottom-4" onRetry={() => void sync()} />
     </div>
   )
 }

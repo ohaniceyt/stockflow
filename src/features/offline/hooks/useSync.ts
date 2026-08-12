@@ -461,6 +461,9 @@ function isRetryableError(err: Error): boolean {
   if (msg.includes('stock insuffisant')) return false
   if (msg.includes('opérateur non trouvé') || msg.includes('operator not found')) return false
   if (msg.includes('session de caisse invalide ou fermée')) return false
+  if (msg.includes('produit ou emplacement non autorisé')) return false
+  // Unique violation on client_operation_id means the operation was already applied.
+  if (msg.includes('duplicate key value') && msg.includes('client_operation_id')) return false
   // Network errors, timeouts, and 5xx are retryable.
   return true
 }

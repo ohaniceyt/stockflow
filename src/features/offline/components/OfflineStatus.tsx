@@ -3,9 +3,10 @@ import { useSync } from '../hooks/useSync'
 
 interface OfflineStatusProps {
   className?: string
+  onRetry?: () => void
 }
 
-export function OfflineStatus({ className }: OfflineStatusProps) {
+export function OfflineStatus({ className, onRetry }: OfflineStatusProps) {
   const { online, isSyncing, lastError, deadCount, retryDead } = useSync()
 
   if (online && !isSyncing && !lastError && deadCount === 0) return null
@@ -30,7 +31,10 @@ export function OfflineStatus({ className }: OfflineStatusProps) {
       {online && deadCount > 0 && !isSyncing && (
         <button
           type="button"
-          onClick={() => void retryDead()}
+          onClick={() => {
+            void retryDead()
+            onRetry?.()
+          }}
           className="rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30"
         >
           Réessayer
