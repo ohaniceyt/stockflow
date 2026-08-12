@@ -6,6 +6,7 @@ const tabs = [
   { to: '/settings/organization', label: 'Entreprise' },
   { to: '/settings/team', label: 'Équipe' },
   { to: '/settings/audit-logs', label: 'Audit' },
+  { to: '/settings/sync-queue', label: 'File sync' },
   { to: '/settings/api', label: 'API' },
   { to: '/settings/subscription', label: 'Abonnement' },
   { to: '/settings/storefront', label: 'Store' },

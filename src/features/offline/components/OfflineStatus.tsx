@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { useNavigate } from 'react-router-dom'
 import { useSync } from '../hooks/useSync'
 
 interface OfflineStatusProps {
@@ -8,6 +9,7 @@ interface OfflineStatusProps {
 
 export function OfflineStatus({ className, onRetry }: OfflineStatusProps) {
   const { online, isSyncing, lastError, deadCount, retryDead } = useSync()
+  const navigate = useNavigate()
 
   if (online && !isSyncing && !lastError && deadCount === 0) return null
 
@@ -29,16 +31,25 @@ export function OfflineStatus({ className, onRetry }: OfflineStatusProps) {
               : 'Synchronisation en cours…'}
       </span>
       {online && deadCount > 0 && !isSyncing && (
-        <button
-          type="button"
-          onClick={() => {
-            void retryDead()
-            onRetry?.()
-          }}
-          className="rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30"
-        >
-          Réessayer
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              void retryDead()
+              onRetry?.()
+            }}
+            className="rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30"
+          >
+            Réessayer
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/settings/sync-queue')}
+            className="rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30"
+          >
+            Gérer
+          </button>
+        </>
       )}
     </div>
   )

@@ -21,7 +21,12 @@ import {
   updateCategory,
 } from '@/features/products/services/categoryService'
 import { pullSync } from '@/features/offline/services/syncService'
-import { computeChecksum, resolveServerUpdatedAt } from '@/features/offline/services/queueService'
+import {
+  completeServerOperation,
+  computeChecksum,
+  resolveServerUpdatedAt,
+  updateServerOperationStatus,
+} from '@/features/offline/services/queueService'
 import { isRetryableError } from '@/features/offline/utils/isRetryableError'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { MovementType, StockLevel } from '@/types'
@@ -75,7 +80,26 @@ export function useSync() {
   // Also backfill missing checksums and server-side updatedAt snapshots for legacy
   // queued operations so they benefit from the new conflict detection.
   useEffect(() => {
-    void db.pendingOperations.where('status').equals('syncing').modify({ status: 'failed' })
+    void (async () => {
+      const stuck = await db.pendingOperations.where('status').equals('syncing').toArray()
+      if (stuck.length > 0) {
+        const now = Date.now()
+        await db.pendingOperations.bulkUpdate(
+          stuck.map((op) => ({
+            key: op.id,
+            changes: { status: 'failed' as const, error: 'Sync interrupted', nextRetryAt: now },
+          }))
+        )
+        for (const op of stuck) {
+          void updateServerOperationStatus({
+            ...op,
+            status: 'failed',
+            error: 'Sync interrupted',
+            nextRetryAt: now,
+          })
+        }
+      }
+    })()
     void backfillChecksums()
     void backfillServerUpdatedAt()
   }, [])
@@ -134,6 +158,7 @@ export function useSync() {
             await preExecuteCheck(op, tempToRealId)
             await executeOperation(op, orgId, tempToRealId)
             await db.pendingOperations.delete(op.id)
+            void completeServerOperation(op.id)
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Erreur inconnue'
             const isRetryable = err instanceof Error && isRetryableError(err)
@@ -144,12 +169,21 @@ export function useSync() {
                 ? Date.now() + Math.min(2 ** retryCount * 1000, MAX_BACKOFF_MS)
                 : undefined
 
+            const updatedOp: QueuedOperation = {
+              ...op,
+              status,
+              error: message,
+              retryCount,
+              nextRetryAt,
+            }
+
             await db.pendingOperations.update(op.id, {
               status,
               error: message,
               retryCount,
               nextRetryAt,
             })
+            void updateServerOperationStatus(updatedOp)
 
             if (status === 'dead') {
               syncError = err instanceof Error ? err : new Error(message)
@@ -268,6 +302,15 @@ export function useSync() {
         changes: { status: 'failed', retryCount: 0, nextRetryAt: undefined, error: undefined },
       }))
     )
+    for (const op of dead) {
+      void updateServerOperationStatus({
+        ...op,
+        status: 'failed',
+        retryCount: 0,
+        nextRetryAt: undefined,
+        error: undefined,
+      })
+    }
     setDeadCount(0)
     void sync()
   }, [sync])

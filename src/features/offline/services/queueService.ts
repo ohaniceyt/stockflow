@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { edgeFetch } from '@/services/edgeFunctions'
 import type { PendingOperation, StockLevel } from '@/types'
 
 export interface QueueOperationInput {
@@ -347,6 +348,29 @@ async function storeOperationServerUpdatedAt(
   })
 }
 
+async function mirrorOperationToServer(op: PendingOperation): Promise<void> {
+  // Best-effort server mirror. If the device is offline or the server is
+  // unreachable, the local Dexie queue remains the source of truth and the
+  // server-side queue will be backfilled on the next successful sync.
+  try {
+    await edgeFetch('queue-org-operation', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_operation_id: op.id,
+        type: op.type,
+        payload: op.payload,
+        status: op.status,
+        retry_count: op.retryCount,
+        error: op.error ?? null,
+        next_retry_at: op.nextRetryAt ? new Date(op.nextRetryAt).toISOString() : null,
+      }),
+    })
+  } catch (err) {
+    // Silently ignore network/server errors. Do not block the local queue.
+    console.warn('Failed to mirror operation to server queue', op.id, err)
+  }
+}
+
 export async function queueOperation(input: QueueOperationInput): Promise<PendingOperation> {
   validateOperation(input)
 
@@ -368,9 +392,47 @@ export async function queueOperation(input: QueueOperationInput): Promise<Pendin
 
   await db.pendingOperations.add(op)
   await storeOperationServerUpdatedAt(op.id, serverUpdatedAt)
+
+  // Mirror the new operation to the server queue for admin visibility. This is
+  // fire-and-forget: failures are logged but do not break offline queueing.
+  void mirrorOperationToServer(op)
+
   return op
 }
 
 export async function getPendingOperations(): Promise<PendingOperation[]> {
   return db.pendingOperations.where('status').anyOf('pending', 'failed').sortBy('createdAt')
+}
+
+export async function updateServerOperationStatus(op: PendingOperation): Promise<void> {
+  // Best-effort status update on the server mirror.
+  try {
+    await edgeFetch('update-org-pending-operation', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_operation_id: op.id,
+        status: op.status,
+        retry_count: op.retryCount,
+        error: op.error ?? null,
+        next_retry_at: op.nextRetryAt ? new Date(op.nextRetryAt).toISOString() : null,
+      }),
+    })
+  } catch (err) {
+    console.warn('Failed to update server operation status', op.id, err)
+  }
+}
+
+export async function completeServerOperation(opId: string): Promise<void> {
+  // Best-effort mark-as-completed of the server mirror once the operation succeeded.
+  try {
+    await edgeFetch('update-org-pending-operation', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_operation_id: opId,
+        status: 'completed',
+      }),
+    })
+  } catch (err) {
+    console.warn('Failed to complete server operation mirror', opId, err)
+  }
 }

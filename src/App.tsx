@@ -38,6 +38,9 @@ const OrganizationSettingsPage = lazy(() => import('@/features/settings/pages/Or
 const OrganizationAuditLogsPage = lazy(
   () => import('@/features/settings/pages/OrganizationAuditLogsPage')
 )
+const OrganizationSyncQueuePage = lazy(
+  () => import('@/features/settings/pages/OrganizationSyncQueuePage')
+)
 const ApiKeysPage = lazy(() => import('@/features/api/pages/ApiKeysPage'))
 const InvitePage = lazy(() => import('@/features/team/pages/InvitePage'))
 const UnauthorizedPage = lazy(() => import('@/features/auth/pages/UnauthorizedPage'))
@@ -192,6 +195,14 @@ function App() {
                   element={
                     <RequireAuth roles={['super_admin', 'admin']}>
                       <OrganizationAuditLogsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings/sync-queue"
+                  element={
+                    <RequireAuth roles={['super_admin', 'admin']}>
+                      <OrganizationSyncQueuePage />
                     </RequireAuth>
                   }
                 />
