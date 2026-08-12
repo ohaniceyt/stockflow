@@ -3,8 +3,9 @@ import { cn } from '@/lib/utils'
 
 const tabs = [
   { to: '/settings/profile', label: 'Profil' },
-  { to: '/settings/organization', label: 'Organisation' },
+  { to: '/settings/organization', label: 'Entreprise' },
   { to: '/settings/team', label: 'Équipe' },
+  { to: '/settings/audit-logs', label: 'Audit' },
   { to: '/settings/api', label: 'API' },
   { to: '/settings/subscription', label: 'Abonnement' },
   { to: '/settings/storefront', label: 'Store' },
