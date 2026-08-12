@@ -12,6 +12,7 @@ import {
   getCachedProducts,
 } from '@/features/offline/services/cacheService'
 import { queueOperation } from '@/features/offline/services/queueService'
+import { isRetryableError } from '@/features/offline/utils/isRetryableError'
 import {
   createMovement,
   fetchMovements,
@@ -33,7 +34,7 @@ export function useMovements() {
     useInfiniteQuery({
       queryKey: [MOVEMENTS_QUERY_KEY, orgId],
       queryFn: async ({ pageParam }) => {
-        if (!orgId) throw new Error('Organisation manquante')
+        if (!orgId) throw new Error('Entreprise manquante')
         try {
           const result = await fetchMovements({
             orgId,
@@ -109,17 +110,23 @@ export function useCreateMovement() {
   return useMutation({
     mutationFn: async (
       input: Omit<Parameters<typeof createMovement>[0], 'orgId'>
-    ): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+    ): Promise<string> => {
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { ...input, orgId }
       if (!online) {
         await queueOperation({ type: 'MOVEMENT', payload })
-        return
+        return ''
       }
       try {
-        await createMovement(payload)
-      } catch {
-        await queueOperation({ type: 'MOVEMENT', payload })
+        return await createMovement(payload)
+      } catch (err) {
+        // Only queue retryable errors (network, timeout, 5xx). Business/client
+        // errors (403, 409, validation) must be surfaced so the user can act.
+        if (isRetryableError(err)) {
+          await queueOperation({ type: 'MOVEMENT', payload })
+          return ''
+        }
+        throw err
       }
     },
     onMutate: async (input) => {
@@ -211,7 +218,7 @@ export function useCreateBulkMovements() {
   const orgId = session?.membership.orgId
   return useMutation({
     mutationFn: async (inputs: Omit<Parameters<typeof createMovement>[0], 'orgId'>[]) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       if (!online) {
         for (const input of inputs) {
           await queueOperation({ type: 'MOVEMENT', payload: { ...input, orgId } })
@@ -221,8 +228,12 @@ export function useCreateBulkMovements() {
       for (const input of inputs) {
         try {
           await createMovement({ ...input, orgId })
-        } catch {
-          await queueOperation({ type: 'MOVEMENT', payload: { ...input, orgId } })
+        } catch (err) {
+          if (isRetryableError(err)) {
+            await queueOperation({ type: 'MOVEMENT', payload: { ...input, orgId } })
+          } else {
+            throw err
+          }
         }
       }
     },

@@ -3,7 +3,16 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { logActivity } from '../_shared/audit.ts'
+import {
+  isEnum,
+  isNonNegativeInteger,
+  isNumber,
+  isPositiveInteger,
+  isString,
+  isUuid,
+  parseJsonBody,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface OrgFeatures {
   has_cashier_enabled: boolean
@@ -46,18 +55,10 @@ const ALLOWED_TYPES: RecordMovementPayload['type'][] = [
   'TRANSFER',
 ]
 
-function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0
-}
-
 function validatePayload(
   payload: RecordMovementPayload
 ): { ok: false; error: string } | { ok: true } {
-  if (!ALLOWED_TYPES.includes(payload.type)) {
+  if (!isEnum(payload.type, ALLOWED_TYPES)) {
     return { ok: false, error: 'Type de mouvement invalide' }
   }
   const quantityValid =
@@ -67,16 +68,53 @@ function validatePayload(
   if (!quantityValid) {
     return { ok: false, error: 'La quantité doit être un entier positif' }
   }
-  if (!payload.product_id || !payload.location_id) {
+  if (!isUuid(payload.product_id) || !isUuid(payload.location_id)) {
     return { ok: false, error: 'Produit et emplacement requis' }
   }
   if (payload.type === 'TRANSFER') {
-    if (!payload.target_location_id) {
+    if (!isUuid(payload.target_location_id)) {
       return { ok: false, error: 'Un transfert nécessite un emplacement cible' }
     }
     if (payload.target_location_id === payload.location_id) {
       return { ok: false, error: "L'emplacement cible doit être différent de l'origine" }
     }
+  } else if (
+    payload.target_location_id !== null &&
+    payload.target_location_id !== undefined &&
+    !isUuid(payload.target_location_id)
+  ) {
+    return { ok: false, error: "L'emplacement cible doit être un UUID valide" }
+  }
+  if (payload.reason !== null && payload.reason !== undefined && !isString(payload.reason, 500)) {
+    return { ok: false, error: 'La raison est invalide' }
+  }
+  if (
+    payload.contact_id !== null &&
+    payload.contact_id !== undefined &&
+    !isUuid(payload.contact_id)
+  ) {
+    return { ok: false, error: 'Contact invalide' }
+  }
+  if (
+    payload.cashier_session_id !== null &&
+    payload.cashier_session_id !== undefined &&
+    !isUuid(payload.cashier_session_id)
+  ) {
+    return { ok: false, error: 'Session de caisse invalide' }
+  }
+  if (
+    payload.client_operation_id !== null &&
+    payload.client_operation_id !== undefined &&
+    !isUuid(payload.client_operation_id)
+  ) {
+    return { ok: false, error: 'Opération client invalide' }
+  }
+  if (
+    payload.unit_price !== null &&
+    payload.unit_price !== undefined &&
+    !isNumber(payload.unit_price)
+  ) {
+    return { ok: false, error: 'Prix unitaire invalide' }
   }
   return { ok: true }
 }
@@ -125,7 +163,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -163,7 +201,12 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: RecordMovementPayload = await req.json()
+    const parseResult = await parseJsonBody<RecordMovementPayload>(req)
+    if (!parseResult.ok) {
+      return parseResult.response
+    }
+
+    const payload = parseResult.body
     const payloadValidation = validatePayload(payload)
     if (!payloadValidation.ok) {
       return new Response(JSON.stringify({ error: payloadValidation.error }), {
@@ -182,7 +225,7 @@ Deno.serve(async (req: Request) => {
 
     const features = await getOrgFeatures(adminClient, operator.org_id)
     if (payload.cashier_session_id && !features?.has_cashier_enabled) {
-      return new Response(JSON.stringify({ error: 'Caisse non activée pour cette organisation' }), {
+      return new Response(JSON.stringify({ error: 'Caisse non activée pour cette entreprise' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -190,10 +233,7 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, operator.org_id)
     if (!limits) {
-      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
     if (limits.isSuspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
@@ -234,10 +274,92 @@ Deno.serve(async (req: Request) => {
     })
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      // The RPC raised a business-rule or data error (e.g. stock insuffisant,
+      // rôle insuffisant, produit non autorisé). Surface a client-safe French
+      // message so the user can act on it instead of a generic 500.
+      const message = error.message?.toLowerCase() ?? ''
+      if (message.includes('rôle insuffisant')) {
+        return new Response(JSON.stringify({ error: 'Rôle insuffisant pour ce mouvement' }), {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('produit ou emplacement non autorisé')) {
+        return new Response(JSON.stringify({ error: 'Produit ou emplacement non autorisé' }), {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('emplacement cible non autorisé')) {
+        return new Response(JSON.stringify({ error: 'Emplacement cible non autorisé' }), {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('stock insuffisant')) {
+        return new Response(JSON.stringify({ error: 'Stock insuffisant' }), {
+          status: 409,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('type de mouvement invalide')) {
+        return new Response(JSON.stringify({ error: 'Type de mouvement invalide' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('la quantité doit être positive')) {
+        return new Response(JSON.stringify({ error: 'La quantité doit être positive' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('un transfert nécessite un emplacement cible')) {
+        return new Response(
+          JSON.stringify({ error: 'Un transfert nécessite un emplacement cible' }),
+          {
+            status: 400,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      if (message.includes('session de caisse invalide ou fermée')) {
+        return new Response(JSON.stringify({ error: 'Session de caisse invalide ou fermée' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (message.includes('contact invalide')) {
+        return new Response(
+          JSON.stringify({ error: 'Contact invalide pour ce type de mouvement' }),
+          {
+            status: 400,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      if (message.includes('duplicate key value') && message.includes('client_operation_id')) {
+        return new Response(JSON.stringify({ error: 'Ce mouvement a déjà été enregistré' }), {
+          status: 409,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      if (
+        message.includes('utilisateur non authentifié') ||
+        message.includes('opérateur non trouvé') ||
+        message.includes('opérateur inactif')
+      ) {
+        return new Response(
+          JSON.stringify({ error: 'Session invalide, veuillez vous reconnecter' }),
+          {
+            status: 401,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      // Unexpected database/internal error: keep details server-side.
+      console.error('record_movement rpc error', error)
+      return genericInternalErrorResponse(req)
     }
 
     const movementId =
@@ -245,33 +367,12 @@ Deno.serve(async (req: Request) => {
         ? data.id
         : data
 
-    await logActivity(adminClient, {
-      org_id: operator.org_id,
-      actor_id: claims.sub,
-      action: 'stock_movement_recorded',
-      target_type: 'movement',
-      target_id: typeof movementId === 'string' ? movementId : null,
-      details: {
-        type: payload.type,
-        quantity: payload.quantity,
-        product_id: payload.product_id,
-        location_id: payload.location_id,
-        target_location_id: payload.target_location_id,
-        reason: payload.reason,
-        unit_price: payload.unit_price,
-      },
-      ip_address: req.headers.get('x-forwarded-for') ?? null,
-    })
-
     return new Response(JSON.stringify({ movement_id: movementId }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+    console.error('record-movement uncaught error', err)
+    return genericInternalErrorResponse(req)
   }
 })

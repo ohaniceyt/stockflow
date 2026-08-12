@@ -4,7 +4,7 @@ export interface Membership {
   id: string
   org_id: string
   user_id: string
-  role: 'super_admin' | 'admin' | 'operator' | 'reader'
+  role: 'super_admin' | 'admin' | 'operator' | 'cashier' | 'reader'
   is_active: boolean
   force_pin_change: boolean
   last_login_at: string | null

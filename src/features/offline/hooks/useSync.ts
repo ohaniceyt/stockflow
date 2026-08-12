@@ -22,6 +22,7 @@ import {
 } from '@/features/products/services/categoryService'
 import { pullSync } from '@/features/offline/services/syncService'
 import { computeChecksum, resolveServerUpdatedAt } from '@/features/offline/services/queueService'
+import { isRetryableError } from '@/features/offline/utils/isRetryableError'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import type { MovementType, StockLevel } from '@/types'
 
@@ -445,27 +446,6 @@ async function preExecuteCheck(
 ): Promise<void> {
   await validateChecksum(op)
   await checkConflict(op, tempToRealId)
-}
-
-function isRetryableError(err: Error): boolean {
-  const msg = err.message.toLowerCase()
-  // Corruption / conflict errors need manual intervention.
-  if (msg.includes('checksum')) return false
-  if (msg.includes('conflit de synchronisation')) return false
-  // 4xx client errors are generally not retryable.
-  if (/\b4\d{2}\b/.test(err.message)) return false
-  if (msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not found'))
-    return false
-  if (msg.includes('invalid request') || msg.includes('validation')) return false
-  // Business validation errors that will not be fixed by retrying.
-  if (msg.includes('stock insuffisant')) return false
-  if (msg.includes('opérateur non trouvé') || msg.includes('operator not found')) return false
-  if (msg.includes('session de caisse invalide ou fermée')) return false
-  if (msg.includes('produit ou emplacement non autorisé')) return false
-  // Unique violation on client_operation_id means the operation was already applied.
-  if (msg.includes('duplicate key value') && msg.includes('client_operation_id')) return false
-  // Network errors, timeouts, and 5xx are retryable.
-  return true
 }
 
 async function executeOperation(

@@ -208,8 +208,8 @@ export async function createMovement(input: {
   unitPrice?: number | null
   cashierSessionId?: string | null
   clientOperationId?: string | null
-}): Promise<void> {
-  await edgeFetch('record-movement', {
+}): Promise<string> {
+  const data = await edgeFetch<{ movement_id: string }>('record-movement', {
     method: 'POST',
     body: JSON.stringify({
       org_id: input.orgId,
@@ -225,4 +225,5 @@ export async function createMovement(input: {
       client_operation_id: input.clientOperationId ?? null,
     }),
   })
+  return data.movement_id
 }
