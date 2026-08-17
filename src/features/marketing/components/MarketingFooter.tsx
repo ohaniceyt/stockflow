@@ -7,7 +7,6 @@ const footerLinks = {
     { label: 'Caisse & POS', href: '/features/pos-cashier' },
     { label: 'Mode offline', href: '/features/offline' },
     { label: 'Analytics', href: '/features/analytics' },
-    { label: 'Tarifs', href: '/pricing' },
   ],
   Company: [{ label: 'Contact', href: 'mailto:team@stockflow.grandigix.com' }],
   Resources: [

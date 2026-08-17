@@ -26,6 +26,20 @@ const testimonials = [
   },
 ]
 
+function StarRating({ value }: { value: number }) {
+  return (
+    <span className="flex" aria-label={`Note ${String(value)} étoiles sur 5`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`h-4 w-4 ${i < value ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
+          aria-hidden="true"
+        />
+      ))}
+    </span>
+  )
+}
+
 export function SocialProof() {
   return (
     <section className="border-y bg-muted/30 px-4 py-16 sm:px-6 lg:px-8">
@@ -35,11 +49,7 @@ export function SocialProof() {
             Ils gagnent du temps chaque jour
           </p>
           <div className="mt-4 flex items-center justify-center gap-1 text-base font-medium">
-            <span className="flex">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-              ))}
-            </span>
+            <StarRating value={5} />
             <span className="ml-2 text-muted-foreground">
               Note moyenne 4.8/5 sur plus de 120 avis
             </span>
@@ -51,8 +61,12 @@ export function SocialProof() {
             <div
               key={logo.name}
               className="flex flex-col items-center gap-2 rounded-xl border bg-background p-4 opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0"
+              aria-label={logo.name}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-base font-bold">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-base font-bold"
+                aria-hidden="true"
+              >
                 {logo.initials}
               </div>
               <span className="text-center text-base font-medium">{logo.name}</span>
@@ -62,15 +76,19 @@ export function SocialProof() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {testimonials.map((t) => (
-            <div key={t.author} className="rounded-2xl border bg-background p-6 shadow-sm">
+            <figure
+              key={t.author}
+              className="rounded-2xl border bg-background p-6 shadow-sm transition-transform hover:-translate-y-1"
+            >
               <div className="mb-4 flex">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                ))}
+                <StarRating value={5} />
               </div>
               <blockquote className="mb-4 text-foreground">“{t.quote}”</blockquote>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
+              <figcaption className="flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground"
+                  aria-hidden="true"
+                >
                   {t.author
                     .split(' ')
                     .map((n) => n[0])
@@ -82,8 +100,8 @@ export function SocialProof() {
                     {t.role} — {t.location}
                   </p>
                 </div>
-              </div>
-            </div>
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>

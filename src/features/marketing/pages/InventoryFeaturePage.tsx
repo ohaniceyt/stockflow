@@ -5,8 +5,8 @@ export default function InventoryFeaturePage() {
   return (
     <FeaturePage
       eyebrow="Gestion de stock"
-      title="Votre inventaire sous contrôle, en temps réel"
-      description="Fini les ruptures de stock surprises et les pertes inexpliquées. Suivez chaque produit, chaque emplacement et chaque mouvement dans une interface claire et rapide."
+      title="Votre inventaire sous contrôle, même à plusieurs entrepôts"
+      description="Arrêtez de compter vos produits à la main. Suivez chaque article, chaque boutique et chaque mouvement en temps réel depuis votre téléphone ou votre ordinateur."
       primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
@@ -23,18 +23,19 @@ export default function InventoryFeaturePage() {
         {
           icon: MapPin,
           title: 'Multi-emplacements',
-          description: 'Gérez du stock dans plusieurs entrepôts, boutiques ou points de vente.',
+          description: 'Gérez du stock dans plusieurs boutiques ou entrepôts sans perdre le fil.',
         },
         {
           icon: History,
           title: 'Historique traçable',
-          description: 'Chaque mouvement est horodaté et rattaché à un opérateur.',
+          description:
+            'Chaque entrée, sortie et ajustement est horodaté et rattaché à un opérateur.',
         },
         {
           icon: ScanLine,
           title: 'Scan rapide',
           description:
-            'Utilisez la caméra de votre appareil pour scanner et rechercher des produits.',
+            'Utilisez la caméra de votre téléphone comme scanner pour vendre ou compter le stock.',
         },
         {
           icon: Boxes,
@@ -45,7 +46,7 @@ export default function InventoryFeaturePage() {
         {
           icon: BarChart3,
           title: 'Alertes et rapports',
-          description: 'Notifications de stock faible, valorisation et rapports de rotation.',
+          description: 'Soyez alerté avant la rupture et consultez la valorisation de votre stock.',
         },
       ]}
       benefits={[

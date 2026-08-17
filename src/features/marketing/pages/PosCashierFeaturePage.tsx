@@ -5,8 +5,8 @@ export default function PosCashierFeaturePage() {
   return (
     <FeaturePage
       eyebrow="Caisse & POS"
-      title="Une caisse rapide pour vendre sans file d’attente"
-      description="Transformez n’importe quel appareil en point de vente. Scannez les produits, encaissez en cash, par carte ou mobile money, et imprimez des reçus en quelques secondes."
+      title="Encaissez rapidement, au comptoir ou en déplacement"
+      description="Transformez n’importe quel téléphone ou tablette en caisse. Scannez les produits, encaissez en cash, par carte ou mobile money, et envoyez un reçu en quelques secondes."
       primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
@@ -18,32 +18,32 @@ export default function PosCashierFeaturePage() {
         {
           icon: Receipt,
           title: 'Panier rapide',
-          description: 'Ajoutez des produits par recherche, code-barres ou catégorie.',
+          description: 'Ajoutez des produits par recherche, catégorie ou scan de code-barres.',
         },
         {
           icon: Smartphone,
-          title: 'Scan code-barres',
-          description: 'Utilisez la caméra de votre téléphone comme scanner.',
+          title: 'Scan avec votre téléphone',
+          description: 'Utilisez la caméra comme scanner, sans matériel supplémentaire.',
         },
         {
           icon: CreditCard,
-          title: 'Paiements multiples',
-          description: 'Enregistrement du cash, carte, mobile money et paiements mixtes.',
+          title: 'Cash, carte & mobile money',
+          description: 'Enregistrez le cash, les cartes et les paiements mobile money en un clic.',
         },
         {
           icon: Printer,
           title: 'Reçus et tickets',
-          description: 'Imprimez ou partagez les reçus par email et messagerie.',
+          description: 'Imprimez, partagez par WhatsApp ou envoyez un reçu par email.',
         },
         {
           icon: RotateCcw,
           title: 'Annulations contrôlées',
-          description: 'Annulez une vente avec journal d’audit et mise à jour du stock.',
+          description: 'Annulez une vente avec journal d’audit et remise à jour du stock.',
         },
         {
           icon: BarChart3,
           title: 'Rapports de vente',
-          description: 'Suivez les ventes par caissier, produit et mode de paiement.',
+          description: 'Suivez les ventes par caissier, produit et mode de paiement en temps réel.',
         },
       ]}
       benefits={[

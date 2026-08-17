@@ -1,18 +1,27 @@
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useCookieConsent, saveConsent } from '../hooks/useCookieConsent'
 
 export function CookieConsentBanner() {
   const consent = useCookieConsent()
+  const acceptButtonRef = useRef<HTMLButtonElement>(null)
 
   const accept = (state: Parameters<typeof saveConsent>[0]) => {
     saveConsent(state)
   }
+
+  useEffect(() => {
+    if (consent === 'pending') {
+      acceptButtonRef.current?.focus()
+    }
+  }, [consent])
 
   if (consent !== 'pending') return null
 
   return (
     <div
       role="dialog"
+      aria-modal="true"
       aria-live="polite"
       aria-label="Consentement aux cookies"
       className="fixed inset-x-0 bottom-0 z-50 border-t bg-card p-4 shadow-lg sm:p-6"
@@ -23,7 +32,10 @@ export function CookieConsentBanner() {
           <p className="text-muted-foreground">
             StockFlow utilise des cookies nécessaires au fonctionnement du service. Vous pouvez
             accepter les cookies d’analyse pour nous aider à améliorer l’expérience.{' '}
-            <a href="/cookies" className="underline hover:text-foreground">
+            <a
+              href="/cookies"
+              className="underline hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            >
               En savoir plus
             </a>
           </p>
@@ -33,7 +45,7 @@ export function CookieConsentBanner() {
           <Button variant="outline" size="sm" onClick={() => accept('necessary')}>
             Refuser
           </Button>
-          <Button size="sm" onClick={() => accept('all')}>
+          <Button ref={acceptButtonRef} size="sm" onClick={() => accept('all')}>
             Tout accepter
           </Button>
         </div>

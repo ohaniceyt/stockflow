@@ -16,7 +16,7 @@ export function FinalCta() {
           <MarketingButton to="/signup" size="lg" className="gap-2">
             Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
           </MarketingButton>
-          <MarketingButton to="/pricing" variant="outline" size="lg">
+          <MarketingButton to="/#pricing" variant="outline" size="lg">
             Voir les tarifs
           </MarketingButton>
         </div>

@@ -29,7 +29,7 @@ export function PricingSection({
   onCurrencyChange,
   format,
 }: PricingSectionProps) {
-  const [yearly, setYearly] = useState(false)
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
 
   const currencyLabels: Record<string, string> = {
     EUR: 'EUR (€)',
@@ -37,60 +37,88 @@ export function PricingSection({
     XOF: 'XOF (F CFA)',
   }
 
+  const isYearly = billing === 'yearly'
+
   return (
     <section id="pricing" className="px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Des tarifs simples et transparents
+            Des tarifs clairs, sans surprise
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Choisissez le plan qui correspond à votre activité. Changez d’échelle à tout moment.
+            Commencez gratuitement. Passez à un plan supérieur quand votre activité grandit. Changez
+            d’échelle à tout moment.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <div className="inline-flex items-center gap-3 rounded-full border bg-muted/50 p-1">
-              <button
-                type="button"
-                onClick={() => setYearly(false)}
-                className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
-                  !yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
-                }`}
-              >
-                Mensuel
-              </button>
-              <button
-                type="button"
-                onClick={() => setYearly(true)}
-                className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
-                  yearly ? 'bg-background text-foreground shadow' : 'text-muted-foreground'
-                }`}
-              >
-                Annuel <span className="ml-1 text-base text-primary">-20%</span>
-              </button>
+            <div
+              className="inline-flex items-center rounded-full border bg-muted/50 p-1"
+              role="radiogroup"
+              aria-label="Période de facturation"
+            >
+              <label className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name="billing"
+                  value="monthly"
+                  checked={billing === 'monthly'}
+                  onChange={() => setBilling('monthly')}
+                  className="peer sr-only"
+                />
+                <span className="block rounded-full px-4 py-2 text-base font-medium text-muted-foreground transition peer-checked:bg-background peer-checked:text-foreground peer-checked:shadow peer-hover:text-foreground">
+                  Mensuel
+                </span>
+              </label>
+              <label className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name="billing"
+                  value="yearly"
+                  checked={billing === 'yearly'}
+                  onChange={() => setBilling('yearly')}
+                  className="peer sr-only"
+                />
+                <span className="block rounded-full px-4 py-2 text-base font-medium text-muted-foreground transition peer-checked:bg-background peer-checked:text-foreground peer-checked:shadow peer-hover:text-foreground">
+                  Annuel <span className="ml-1 text-sm font-semibold text-primary">-20%</span>
+                </span>
+              </label>
             </div>
 
-            <div className="inline-flex items-center rounded-full border bg-muted/50 p-1">
+            <div
+              className="inline-flex items-center rounded-full border bg-muted/50 p-1"
+              role="radiogroup"
+              aria-label="Devise"
+            >
               {currencies.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => onCurrencyChange(c)}
-                  className={`rounded-full px-4 py-1.5 text-base font-medium transition ${
-                    currency === c
-                      ? 'bg-background text-foreground shadow'
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  {currencyLabels[c] ?? c}
-                </button>
+                <label key={c} className="relative cursor-pointer">
+                  <input
+                    type="radio"
+                    name="currency"
+                    value={c}
+                    checked={currency === c}
+                    onChange={() => onCurrencyChange(c)}
+                    className="peer sr-only"
+                    aria-label={`Devise ${currencyLabels[c] ?? c}`}
+                  />
+                  <span className="block rounded-full px-4 py-2 text-base font-medium text-muted-foreground transition peer-checked:bg-background peer-checked:text-foreground peer-checked:shadow peer-hover:text-foreground">
+                    {currencyLabels[c] ?? c}
+                  </span>
+                </label>
               ))}
             </div>
           </div>
         </div>
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div
+          id="pricing-cards"
+          className="grid gap-8 lg:grid-cols-3"
+          role="tabpanel"
+          aria-label="Grille des tarifs"
+        >
           {tiers.map((tier) => {
-            const price = yearly && tier.yearlyPrice ? format(tier.yearlyPrice / 12, 2) : tier.price
-            const period = yearly && tier.yearlyPrice ? '/mois, facturé annuellement' : tier.period
+            const price =
+              isYearly && tier.yearlyPrice ? format(tier.yearlyPrice / 12, 2) : tier.price
+            const period =
+              isYearly && tier.yearlyPrice ? '/mois, facturé annuellement' : tier.period
             return (
               <div
                 key={tier.name}
@@ -119,7 +147,7 @@ export function PricingSection({
                     {period}
                   </span>
                 </div>
-                {yearly && tier.yearlyPrice && (
+                {isYearly && tier.yearlyPrice && (
                   <p className="mt-1 text-base text-primary">
                     {format(tier.yearlyPrice, 0)} facturés par an
                   </p>
@@ -144,7 +172,8 @@ export function PricingSection({
           })}
         </div>
         <p className="mt-8 text-center text-base text-muted-foreground">
-          Tous les plans payants incluent 1 mois d’essai gratuit. Annulation à tout moment.
+          1 mois d’essai gratuit sur tous les plans payants. Sans carte bancaire. Annulation à tout
+          moment.
         </p>
       </div>
     </section>

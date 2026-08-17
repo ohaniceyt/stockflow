@@ -1,16 +1,19 @@
+import { useState } from 'react'
 import { ArrowRight, Play, CheckCircle2 } from 'lucide-react'
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { MarketingButton } from './MarketingButton'
 import HeroDemoDialog from './HeroDemoDialog'
 
 const valueProps = [
-  'Inventaire multi-emplacements en temps réel',
-  'Caisse et reçus en quelques secondes',
-  'Mode hors ligne et synchro automatique',
-  'RGPD-ready et sécurisé',
+  'Stock, caisse et rapports dans une seule app',
+  'Fonctionne même sans connexion internet',
+  'Multi-boutiques, multi-emplacements, multi-devises',
+  'Prêt pour la RGPD et la conformité locale',
 ]
 
 export function HeroSection() {
+  const [demoOpen, setDemoOpen] = useState(false)
+
   return (
     <section className="relative overflow-hidden bg-background px-4 pt-16 pb-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -21,15 +24,16 @@ export function HeroSection() {
                 Nouveau
               </span>
               <span className="text-muted-foreground">
-                La gestion de stock repensée pour la PME africaine
+                La caisse-inventaire conçue pour les PME africaines
               </span>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Vendez plus, <span className="text-primary">gérez mieux</span>
+              Vendez plus vite, <span className="text-primary">gérez sans stress</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              StockFlow centralise votre inventaire, votre caisse et vos analyses en une seule app
-              rapide, offline-first et sécurisée.
+              StockFlow centralise votre inventaire, votre caisse et vos analyses en une app rapide,
+              offline-first et sécurisée. Conçu pour les boutiques, restaurants et distributeurs en
+              Afrique.
             </p>
             <ul className="mt-8 space-y-3">
               {valueProps.map((prop) => (
@@ -47,18 +51,18 @@ export function HeroSection() {
                 Essayer 1 mois gratuit <ArrowRight className="h-4 w-4" />
               </MarketingButton>
               <MarketingButton
-                id="demo-open"
                 variant="outline"
                 size="lg"
                 className="gap-2"
+                onClick={() => setDemoOpen(true)}
                 aria-label="Voir la démo"
               >
-                <Play className="h-4 w-4" />
+                <Play className="h-4 w-4" aria-hidden="true" />
                 Voir la démo
               </MarketingButton>
             </div>
             <p className="mt-4 text-base text-muted-foreground">
-              1 mois d’essai gratuit. Sans carte bancaire.
+              1 mois d’essai gratuit. Sans carte bancaire. Annulation à tout moment.
             </p>
           </div>
 
@@ -67,7 +71,7 @@ export function HeroSection() {
             <div className="relative overflow-hidden rounded-2xl border bg-card shadow-2xl">
               <OptimizedImage
                 src="/dashboard-preview"
-                alt="Tableau de bord StockFlow"
+                alt="Tableau de bord StockFlow avec stock, ventes et alertes"
                 width={1600}
                 height={1000}
                 className="w-full object-cover"
@@ -83,7 +87,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <HeroDemoDialog />
+      <HeroDemoDialog open={demoOpen} onClose={() => setDemoOpen(false)} />
     </section>
   )
 }

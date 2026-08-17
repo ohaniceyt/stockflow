@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <h2>2. Données collectées</h2>
       <ul>
         <li>Identifiants : nom, prénom, adresse e-mail, numéro de téléphone.</li>
-        <li>Données professionnelles : nom de l’organisation, adresse, identifiants fiscaux.</li>
+        <li>Données professionnelles : nom de l’entreprise, adresse, identifiants fiscaux.</li>
         <li>Données d’activité : produits, stocks, mouvements, ventes, contacts, reçus.</li>
         <li>Données techniques : adresse IP, logs de connexion, cookies fonctionnels.</li>
       </ul>
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       <h2>3. Finalités du traitement</h2>
       <ul>
         <li>Fournir et améliorer le service StockFlow.</li>
-        <li>Gérer votre compte, votre organisation et vos utilisateurs.</li>
+        <li>Gérer votre compte, votre entreprise et vos utilisateurs.</li>
         <li>Assurer la sécurité, la facturation et le support client.</li>
         <li>Respecter nos obligations légales et fiscales.</li>
       </ul>
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
 
       <h2>9. Sécurité</h2>
       <p>
-        Nous mettons en œuvre des mesures techniques et organisationnelles : chiffrement en transit
+        Nous mettons en œuvre des mesures techniques et entreprisenelles : chiffrement en transit
         (TLS), chiffrement au repos, authentification sécurisée, contrôles d’accès et journalisation
         des actions sensibles.
       </p>

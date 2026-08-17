@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { MarketingButton } from './MarketingButton'
 import { MarketingHeader } from './MarketingHeader'
 import { MarketingFooter } from './MarketingFooter'
+import { SkipLink } from './SkipLink'
 
 interface FeaturePageProps {
   eyebrow: string
@@ -34,9 +35,10 @@ export function FeaturePage({
 }: FeaturePageProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SkipLink />
       <MarketingHeader />
 
-      <main>
+      <main id="main-content">
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
