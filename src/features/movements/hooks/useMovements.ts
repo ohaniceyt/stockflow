@@ -16,6 +16,7 @@ import { isRetryableError } from '@/features/offline/utils/isRetryableError'
 import {
   createMovement,
   fetchMovements,
+  updateMovement,
   MOVEMENTS_PAGE_SIZE,
   type FetchMovementsResult,
   type MovementWithDetails,
@@ -207,6 +208,27 @@ export function useCreateMovement() {
       }
       void queryClient.invalidateQueries({ queryKey: [MOVEMENTS_QUERY_KEY, orgId] })
       void queryClient.invalidateQueries({ queryKey: ['stock', orgId] })
+    },
+  })
+}
+
+export function useUpdateMovement() {
+  const queryClient = useQueryClient()
+  const { session } = useAuth()
+  const orgId = session?.membership.orgId
+
+  return useMutation({
+    mutationFn: (input: {
+      movementId: string
+      patch: { reason?: string | null; contactId?: string | null }
+    }) => {
+      if (!orgId) throw new Error('Entreprise manquante')
+      return updateMovement(orgId, input.movementId, input.patch)
+    },
+    onSuccess: () => {
+      // On ne touche qu'aux métadonnées (reason/contact_id), pas au stock :
+      // on invalide seulement la liste des mouvements.
+      void queryClient.invalidateQueries({ queryKey: [MOVEMENTS_QUERY_KEY, orgId] })
     },
   })
 }

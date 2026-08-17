@@ -18,7 +18,9 @@ import { useStock } from '@/features/stock/hooks/useStock'
 import { MovementForm } from '../components/MovementForm'
 import { BulkMovementForm } from '../components/BulkMovementForm'
 import { MovementList } from '../components/MovementList'
+import { EditMovementDialog } from '../components/EditMovementDialog'
 import { useCreateBulkMovements, useCreateMovement, useMovements } from '../hooks/useMovements'
+import type { MovementWithDetails } from '../services/movementService'
 import { PageHeader, PageSection, EmptyState } from '@/components/design-system'
 import type { MovementType } from '@/types'
 
@@ -41,8 +43,11 @@ export default function MovementsPage() {
   const { data: stock } = useStock()
   const { hasRole } = useAuth()
   const canCreate = hasRole(['super_admin', 'admin', 'operator'])
+  const canEdit = hasRole(['super_admin', 'admin'])
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null)
+  const [editingMovement, setEditingMovement] = useState<MovementWithDetails | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [contactFilter, setContactFilter] = useState<string>('all')
 
   const isLoading = movementsLoading || productsLoading || locationsLoading || contactsLoading
@@ -85,6 +90,11 @@ export default function MovementsPage() {
     createBulk.mutate(inputs, {
       onSuccess: () => setDialogMode(null),
     })
+  }
+
+  const handleEditMovement = (movement: MovementWithDetails) => {
+    setEditingMovement(movement)
+    setIsEditDialogOpen(true)
   }
 
   return (
@@ -171,6 +181,16 @@ export default function MovementsPage() {
         </DialogContent>
       </Dialog>
 
+      <EditMovementDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) setEditingMovement(null)
+        }}
+        movement={editingMovement}
+        contacts={contacts ?? []}
+      />
+
       {!isLoading && !movementsError && movements.length > 0 && (
         <PageSection contentClassName="py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -197,7 +217,11 @@ export default function MovementsPage() {
       {isLoading && <p className="text-muted-foreground">Chargement…</p>}
       {movementsError && <p className="text-destructive">{movementsError.message}</p>}
       {!isLoading && !movementsError && movements.length > 0 && (
-        <MovementList movements={filteredMovements} />
+        <MovementList
+          movements={filteredMovements}
+          canEdit={canEdit}
+          onEdit={canEdit ? handleEditMovement : undefined}
+        />
       )}
       {!isLoading && !movementsError && movements.length === 0 && (
         <EmptyState

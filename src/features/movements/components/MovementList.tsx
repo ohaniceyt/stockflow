@@ -1,6 +1,8 @@
 import { format, isValid, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/design-system'
 import type { MovementType } from '@/types'
 import type { MovementWithDetails } from '../services/movementService'
@@ -16,6 +18,8 @@ function formatMovementDate(value: string): string {
 
 interface MovementListProps {
   movements: MovementWithDetails[]
+  canEdit?: boolean
+  onEdit?: (movement: MovementWithDetails) => void
 }
 
 const typeLabels: Record<MovementType, string> = {
@@ -34,7 +38,7 @@ const typeVariants: Record<MovementType, BadgeVariant> = {
   ADJUSTMENT: 'outline',
 }
 
-export function MovementList({ movements }: MovementListProps) {
+export function MovementList({ movements, canEdit, onEdit }: MovementListProps) {
   const columns: ResponsiveColumn<MovementWithDetails>[] = [
     {
       key: 'date',
@@ -94,6 +98,26 @@ export function MovementList({ movements }: MovementListProps) {
       header: 'Motif',
       cell: (m) => <span className="text-muted-foreground">{m.reason ?? '—'}</span>,
     },
+    ...(canEdit && onEdit
+      ? [
+          {
+            key: 'actions',
+            header: 'Actions',
+            cell: (m: MovementWithDetails) => (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onEdit(m)}
+                aria-label="Modifier le mouvement"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            ),
+            className: 'text-right',
+          } satisfies ResponsiveColumn<MovementWithDetails>,
+        ]
+      : []),
   ]
 
   const empty = (

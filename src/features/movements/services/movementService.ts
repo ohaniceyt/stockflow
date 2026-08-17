@@ -263,3 +263,24 @@ export async function createMovement(input: {
   })
   return data.movement_id
 }
+
+// Édition admin des métadonnées d'un mouvement (reason + contact_id seulement).
+// Sémantique PATCH : seules les clés présentes dans `patch` sont envoyées à
+// l'edge, qui n'applique que celles-ci. On ne touche pas au stock.
+export async function updateMovement(
+  orgId: string,
+  movementId: string,
+  patch: { reason?: string | null; contactId?: string | null }
+): Promise<void> {
+  const body: Record<string, unknown> = { org_id: orgId, movement_id: movementId }
+  if (Object.prototype.hasOwnProperty.call(patch, 'reason')) {
+    body.reason = patch.reason ?? null
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'contactId')) {
+    body.contact_id = patch.contactId ?? null
+  }
+  await edgeFetch<{ success: boolean }>('update-movement', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
