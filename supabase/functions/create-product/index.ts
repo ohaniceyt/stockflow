@@ -178,6 +178,21 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !data) {
+      // 23505 = unique_violation. Soit (org_id, barcode) via
+      // products_org_barcode_uniq, soit (org_id, name) via
+      // products_org_id_name_key. On renvoie un 409 lisible plutôt qu'un
+      // 500 générique, et on distingue via le nom de la contrainte présent
+      // dans error.message.
+      if (error?.code === '23505') {
+        const isBarcode = /barcode/i.test(error.message)
+        const message = isBarcode
+          ? 'Un produit avec ce code-barres existe déjà dans cette entreprise.'
+          : 'Un produit avec ce nom existe déjà dans cette entreprise.'
+        return new Response(JSON.stringify({ error: message }), {
+          status: 409,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
       return genericInternalErrorResponse(req)
     }
 

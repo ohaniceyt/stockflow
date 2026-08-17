@@ -230,20 +230,70 @@ Deno.serve(async (req: Request) => {
     }))
 
     const productNames = productRows.map((p) => p.name)
+    const productBarcodes = productRows
+      .map((p) => p.barcode)
+      .filter((b): b is string => b !== null && b !== '')
+
     const { data: existingProducts } = await adminClient
       .from('products')
-      .select('name')
+      .select('name, barcode')
       .eq('org_id', org_id)
       .in('name', productNames)
 
     const existingNames = new Set((existingProducts ?? []).map((p) => p.name))
 
-    const newRows = productRows.filter((p) => !existingNames.has(p.name))
-    const duplicateCount = productRows.length - newRows.length
+    // Barcodes déjà pris dans cette entreprise. Requête séparée car PostgREST
+    // combine les filtres par AND ; on veut les rows matchant un nom OU un
+    // barcode du lot. L'index unique products_org_barcode_uniq ferait sinon
+    // échouer tout le .insert(newRows) (atomique) dès qu'un barcode du lot
+    // existe déjà en base.
+    let existingBarcodes = new Set<string>()
+    if (productBarcodes.length > 0) {
+      const { data: existingByBarcode } = await adminClient
+        .from('products')
+        .select('barcode')
+        .eq('org_id', org_id)
+        .in('barcode', productBarcodes)
+      existingBarcodes = new Set(
+        (existingByBarcode ?? []).map((p) => p.barcode).filter((b): b is string => b !== null)
+      )
+    }
 
-    if (duplicateCount > 0) {
+    // Dédup : on ignore une ligne si son nom existe déjà en base, ou si son
+    // barcode existe déjà en base OU a déjà été vu plus tôt dans ce même lot
+    // (le 1er occurrence gagne). On suit le même pattern que les noms : on
+    // ignore plutôt que d'échouer le lot entier.
+    const seenBarcodes = new Set<string>()
+    let duplicateNameCount = 0
+    let duplicateBarcodeCount = 0
+    const newRows = productRows.filter((p) => {
+      if (existingNames.has(p.name)) {
+        duplicateNameCount += 1
+        return false
+      }
+      // Un barcode truthy (non-null, non-vide). Le garde truthy rétreint
+      // proprement vers string dans tous les cas (réel string|null ou type
+      // dégradé), ce qu'un `!== null` seul ne ferait pas si le type dégradé
+      // contient undefined.
+      const barcode = p.barcode
+      if (barcode && (existingBarcodes.has(barcode) || seenBarcodes.has(barcode))) {
+        duplicateBarcodeCount += 1
+        return false
+      }
+      if (barcode) {
+        seenBarcodes.add(barcode)
+      }
+      return true
+    })
+
+    if (duplicateNameCount > 0) {
       errors.push(
-        `${duplicateCount} produit(s) ignoré(s) car le nom existe déjà dans cette entreprise.`
+        `${duplicateNameCount} produit(s) ignoré(s) car le nom existe déjà dans cette entreprise.`
+      )
+    }
+    if (duplicateBarcodeCount > 0) {
+      errors.push(
+        `${duplicateBarcodeCount} produit(s) ignoré(s) car le code-barres existe déjà dans cette entreprise.`
       )
     }
 
