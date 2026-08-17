@@ -1,34 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { TrendingUp } from 'lucide-react'
-import type { MovementWithDetails } from '@/features/movements/services/movementService'
 import { Button } from '@/components/ui/button'
+import type { TopProductRow } from '@/features/dashboard/services/dashboardService'
 
 interface DashboardTopProductsProps {
-  movements: MovementWithDetails[]
+  topProducts: TopProductRow[]
 }
 
-export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
+export function DashboardTopProducts({ topProducts }: DashboardTopProductsProps) {
   const [limit, setLimit] = useState(5)
-
-  const topProducts = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; quantity: number }>()
-    movements
-      .filter((m) => m.type === 'OUT' && !m.isCancelled)
-      .forEach((m) => {
-        const entry = map.get(m.productId) ?? {
-          id: m.productId,
-          name: m.productName ?? 'Produit inconnu',
-          quantity: 0,
-        }
-        entry.quantity += m.quantity
-        map.set(m.productId, entry)
-      })
-    return Array.from(map.values())
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, limit)
-  }, [movements, limit])
-
-  const max = Math.max(...topProducts.map((p) => p.quantity), 1)
+  const rows = topProducts.slice(0, limit)
+  const max = Math.max(...rows.map((p) => p.qty_sold), 1)
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">
@@ -51,17 +33,17 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
         </div>
       </div>
 
-      {topProducts.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="py-8 text-center text-base text-muted-foreground">
           Aucune vente enregistrée.
         </p>
       ) : (
         <ul className="space-y-3">
-          {topProducts.map((product, index) => {
-            const percent = (product.quantity / max) * 100
+          {rows.map((product, index) => {
+            const percent = (product.qty_sold / max) * 100
             const isTop = index < 3
             return (
-              <li key={product.id} className="space-y-1">
+              <li key={product.product_id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex min-w-0 items-center gap-2 font-medium text-foreground">
                     <TrendingUp
@@ -70,7 +52,7 @@ export function DashboardTopProducts({ movements }: DashboardTopProductsProps) {
                     <span className="truncate">{product.name}</span>
                   </span>
                   <span className="font-semibold text-foreground">
-                    {product.quantity.toLocaleString('fr-FR')}
+                    {product.qty_sold.toLocaleString('fr-FR')}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

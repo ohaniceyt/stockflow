@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
-import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import { format, subDays } from 'date-fns'
+import type { DailyFluxPoint } from '@/features/dashboard/services/dashboardService'
 
 interface DashboardFluxChartProps {
-  movements: MovementWithDetails[]
+  daily: DailyFluxPoint[]
 }
 
 function getDayKey(date: Date) {
-  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`
+  return format(date, 'dd/MM')
 }
 
 interface DailyTotal {
@@ -15,26 +16,20 @@ interface DailyTotal {
   out: number
 }
 
-function getDailyTotals(movements: MovementWithDetails[]): DailyTotal[] {
+// Zero-fill the last 7 days (ending today) and merge with the server-aggregated
+// daily_flux points (keyed 'YYYY-MM-DD' in the org timezone).
+function buildLast7Days(daily: DailyFluxPoint[]): DailyTotal[] {
+  const map = new Map(daily.map((d) => [d.day, d]))
   const days: DailyTotal[] = []
   for (let i = 6; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
+    const d = subDays(new Date(), i)
     d.setHours(0, 0, 0, 0)
-    const next = new Date(d)
-    next.setDate(next.getDate() + 1)
-
-    const dayMovements = movements.filter((m) => {
-      const mDate = new Date(m.createdAt)
-      return mDate >= d && mDate < next
-    })
-
+    const key = format(d, 'yyyy-MM-dd')
+    const point = map.get(key)
     days.push({
       label: getDayKey(d),
-      in: dayMovements.filter((m) => m.type === 'IN').reduce((sum, m) => sum + m.quantity, 0),
-      out: dayMovements
-        .filter((m) => m.type === 'OUT' && !m.isCancelled)
-        .reduce((sum, m) => sum + m.quantity, 0),
+      in: point?.in_qty ?? 0,
+      out: point?.out_qty ?? 0,
     })
   }
   return days
@@ -158,10 +153,10 @@ function drawChart(canvas: HTMLCanvasElement, wrapper: HTMLDivElement, days: Dai
   ctx.fillText('Sorties', cssWidth / 2 + 26, legendY)
 }
 
-export function DashboardFluxChart({ movements }: DashboardFluxChartProps) {
+export function DashboardFluxChart({ daily }: DashboardFluxChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const days = useMemo(() => getDailyTotals(movements), [movements])
+  const days = useMemo(() => buildLast7Days(daily), [daily])
   const hasData = useMemo(() => days.some((d) => d.in > 0 || d.out > 0), [days])
 
   useEffect(() => {

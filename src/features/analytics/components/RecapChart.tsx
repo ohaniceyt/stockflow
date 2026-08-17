@@ -1,38 +1,29 @@
-import { format, eachDayOfInterval, startOfDay } from 'date-fns'
+import { eachDayOfInterval, format, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import type { DailyFluxPoint } from '@/features/dashboard/services/dashboardService'
 
 interface RecapChartProps {
-  movements: MovementWithDetails[]
+  daily: DailyFluxPoint[]
   startDate: Date
   endDate: Date
 }
 
-export function RecapChart({ movements, startDate, endDate }: RecapChartProps) {
+export function RecapChart({ daily, startDate, endDate }: RecapChartProps) {
   const days = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) })
+  const map = new Map(daily.map((d) => [d.day, d]))
 
   const data = days.map((day) => {
-    const dayMovements = movements.filter((m) => {
-      const mDate = startOfDay(new Date(m.createdAt))
-      return mDate.getTime() === day.getTime()
-    })
-
-    const inQty = dayMovements
-      .filter((m) => m.type === 'IN')
-      .reduce((sum, m) => sum + m.quantity, 0)
-    const outQty = dayMovements
-      .filter((m) => m.type === 'OUT')
-      .reduce((sum, m) => sum + m.quantity, 0)
-
+    const key = format(day, 'yyyy-MM-dd')
+    const point = map.get(key)
     return {
       label: format(day, 'dd/MM', { locale: fr }),
-      in: inQty,
-      out: outQty,
+      in: point?.in_qty ?? 0,
+      out: point?.out_qty ?? 0,
     }
   })
 
-  const hasData = movements.length > 0
+  const hasData = daily.length > 0
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm md:p-6">

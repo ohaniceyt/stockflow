@@ -5,13 +5,14 @@ import { Download, FileText, Share2, AlertCircle } from 'lucide-react'
 import type { Product } from '@/types'
 import type { StockItem } from '@/features/stock/services/stockService'
 import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import type { MovementStatsResult } from '@/features/dashboard/services/dashboardService'
 
 interface ExportActionsProps {
   periodLabel: string
   movements: MovementWithDetails[]
   stock: StockItem[]
   products: Product[]
-  productMap: Map<string, Product>
+  stats?: MovementStatsResult
   currency: string
   orgName?: string
   redactFinancials?: boolean
@@ -22,7 +23,7 @@ export function ExportActions({
   movements,
   stock,
   products,
-  productMap,
+  stats,
   currency,
   orgName = 'StockFlow',
   redactFinancials = false,
@@ -41,6 +42,9 @@ export function ExportActions({
       setLoading(null)
     }
   }
+
+  // Per-product in/out balances come from the server RPC (not the capped raw list).
+  const balanceByProduct = new Map((stats?.product_balances ?? []).map((b) => [b.product_id, b]))
 
   const exportToExcel = () => {
     return wrapAsync('excel', async () => {
@@ -107,13 +111,9 @@ export function ExportActions({
       ]
 
       products.forEach((p) => {
-        const productMovements = movements.filter((m) => m.productId === p.id)
-        const inQty = productMovements
-          .filter((m) => m.type === 'IN')
-          .reduce((sum, m) => sum + m.quantity, 0)
-        const outQty = productMovements
-          .filter((m) => m.type === 'OUT')
-          .reduce((sum, m) => sum + m.quantity, 0)
+        const balance = balanceByProduct.get(p.id)
+        const inQty = balance?.in_qty ?? 0
+        const outQty = balance?.out_qty ?? 0
         const stockItem = stock.find((s) => s.productId === p.id)
         const quantity = stockItem?.quantity ?? 0
         balanceSheet.addRow({
@@ -227,12 +227,7 @@ export function ExportActions({
 
       let footer = ''
       if (!redactFinancials) {
-        const revenue = movements
-          .filter((m) => m.type === 'OUT')
-          .reduce((sum, m) => {
-            const product = productMap.get(m.productId)
-            return sum + m.quantity * (product?.sellingPrice ?? 0)
-          }, 0)
+        const revenue = stats?.totals.estimated_revenue ?? 0
         footer = `\n\nCA période: ${revenue.toLocaleString()} ${currency}`
       }
 

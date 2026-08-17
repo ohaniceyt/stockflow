@@ -1809,6 +1809,10 @@ export type Database = {
       current_user_is_operator_or_above: { Args: never; Returns: boolean }
       current_user_org_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      get_movement_stats: {
+        Args: { p_org_id: string; p_from?: string | null; p_to?: string | null }
+        Returns: Json
+      }
       get_overdue_invoices_for_org: {
         Args: { p_org_id: string }
         Returns: {
@@ -1820,6 +1824,7 @@ export type Database = {
           total: number
         }[]
       }
+      has_cashier_sale: { Args: { p_org_id: string }; Returns: boolean }
       invoke_send_auto_reminders: { Args: never; Returns: undefined }
       is_platform_admin:
         | { Args: never; Returns: boolean }

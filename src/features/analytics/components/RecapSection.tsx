@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { format, startOfDay, subDays, isAfter, isBefore, isValid } from 'date-fns'
+import { addDays, format, formatISO, isAfter, isValid, startOfDay, subDays } from 'date-fns'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
 import { useMovements } from '@/features/movements/hooks/useMovements'
+import { useMovementStats } from '@/features/dashboard/hooks/useMovementStats'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,12 +45,8 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
   const { data: stock, isLoading: stockLoading, error: stockError } = useStock()
   const { data: movements, isLoading: movementsLoading, error: movementsError } = useMovements()
 
-  const isLoading = productsLoading || stockLoading || movementsLoading
-  const queryError = productsError ?? stockError ?? movementsError
-
   const activeProducts = useMemo(() => products?.filter((p) => p.isActive) ?? [], [products])
   const stockItems = useMemo(() => stock ?? [], [stock])
-  const allMovements = useMemo(() => movements, [movements])
   const productMap = useMemo(() => new Map(products?.map((p) => [p.id, p]) ?? []), [products])
 
   const periodRange = useMemo(() => {
@@ -79,15 +76,29 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
     }
   }, [periodMode, startDate, endDate])
 
+  // Half-open server range [start, end+1day). Stats come from the RPC; the raw
+  // movements list (table + export dump) stays on useMovements (recent, paginated).
+  const statsRange = useMemo(
+    () => ({ from: formatISO(periodRange.start), to: formatISO(addDays(periodRange.end, 1)) }),
+    [periodRange]
+  )
+  const { data: stats, isPending: statsPending, error: statsError } = useMovementStats(statsRange)
+
+  const isLoading = productsLoading || stockLoading || movementsLoading || statsPending
+  const queryError = productsError ?? stockError ?? movementsError ?? statsError
+
+  // Raw recent movements, filtered to the selected period for the table + raw export
+  // dump. NB: capped at the page size — known caveat, the résumés use the RPC.
   const filteredMovements = useMemo(() => {
-    return allMovements.filter((m) => {
+    return movements.filter((m) => {
       const mDate = startOfDay(new Date(m.createdAt))
       return (
         (isAfter(mDate, periodRange.start) || mDate.getTime() === periodRange.start.getTime()) &&
-        (isBefore(mDate, periodRange.end) || mDate.getTime() === periodRange.end.getTime())
+        (mDate.getTime() <= periodRange.end.getTime() ||
+          mDate.getTime() === periodRange.end.getTime())
       )
     })
-  }, [allMovements, periodRange])
+  }, [movements, periodRange])
 
   const totalQuantity = useMemo(
     () => stockItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -108,49 +119,17 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
     }, 0)
   }, [stockItems, productMap])
 
-  const estimatedRevenue = useMemo(() => {
-    return filteredMovements
-      .filter((m) => m.type === 'OUT' && !m.isCancelled)
-      .reduce((sum, m) => {
-        const product = productMap.get(m.productId)
-        return sum + m.quantity * (product?.sellingPrice ?? 0)
-      }, 0)
-  }, [filteredMovements, productMap])
-
-  const estimatedMargin = useMemo(() => {
-    return filteredMovements
-      .filter((m) => m.type === 'OUT' && !m.isCancelled)
-      .reduce((sum, m) => {
-        const product = productMap.get(m.productId)
-        if (!product) return sum
-        return sum + m.quantity * (product.sellingPrice - product.costPrice)
-      }, 0)
-  }, [filteredMovements, productMap])
-
-  const realRevenue = useMemo(() => {
-    return filteredMovements
-      .filter((m) => m.type === 'OUT' && !m.isCancelled)
-      .reduce((sum, m) => {
-        const price = m.unitPrice ?? productMap.get(m.productId)?.sellingPrice ?? 0
-        return sum + m.quantity * price
-      }, 0)
-  }, [filteredMovements, productMap])
-
-  const realProfit = useMemo(() => {
-    return filteredMovements
-      .filter((m) => m.type === 'OUT' && !m.isCancelled)
-      .reduce((sum, m) => {
-        const product = productMap.get(m.productId)
-        if (!product) return sum
-        const price = m.unitPrice ?? product.sellingPrice
-        return sum + m.quantity * (price - product.costPrice)
-      }, 0)
-  }, [filteredMovements, productMap])
-
+  const totals = stats?.totals
+  const estimatedRevenue = totals?.estimated_revenue ?? 0
+  const estimatedMargin = totals?.estimated_margin ?? 0
+  const realRevenue = totals?.real_revenue ?? 0
+  const realProfit = totals?.real_profit ?? 0
   const realMarginRate = useMemo(() => {
     if (realRevenue <= 0) return 0
     return Math.round((realProfit / realRevenue) * 10000) / 100
   }, [realRevenue, realProfit])
+  const inCount = totals?.in_count ?? 0
+  const outCount = totals?.out_count ?? 0
 
   const validateRange = (start: string, end: string) => {
     const s = new Date(start)
@@ -197,7 +176,7 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
           movements={filteredMovements}
           stock={stockItems}
           products={activeProducts}
-          productMap={productMap}
+          stats={stats}
           currency={currency}
           orgName={orgName}
           redactFinancials={!canViewFinancials}
@@ -266,28 +245,24 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
             realRevenue={realRevenue}
             realProfit={realProfit}
             realMarginRate={realMarginRate}
-            inCount={filteredMovements.filter((m) => m.type === 'IN').length}
-            outCount={filteredMovements.filter((m) => m.type === 'OUT').length}
+            inCount={inCount}
+            outCount={outCount}
             currency={currency}
             canViewFinancials={canViewFinancials}
           />
 
           {!dateError && (
             <RecapChart
-              movements={filteredMovements}
+              daily={stats?.daily_flux ?? []}
               startDate={periodRange.start}
               endDate={periodRange.end}
             />
           )}
 
-          <AnalyticsTopProducts
-            movements={filteredMovements}
-            productMap={productMap}
-            currency={currency}
-          />
+          <AnalyticsTopProducts topProducts={stats?.top_products ?? []} currency={currency} />
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <ProductBalanceTable movements={filteredMovements} products={activeProducts} />
+            <ProductBalanceTable balances={stats?.product_balances ?? []} />
             <RecapMovementsTable movements={filteredMovements} />
           </div>
         </>

@@ -1,20 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { CalendarDays } from 'lucide-react'
-import type { MovementWithDetails } from '@/features/movements/services/movementService'
+import { eachDayOfInterval, format, isValid, parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import type { DailyFluxPoint } from '@/features/dashboard/services/dashboardService'
 
 type Period = 30 | 90 | 'custom'
 
 interface DashboardTrendChartProps {
-  movements: MovementWithDetails[]
-}
-
-function getDayKey(date: Date) {
-  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`
+  /** Server-aggregated daily flux (covers at least [rangeFrom, rangeTo]). */
+  daily: DailyFluxPoint[]
+  /** Inclusive trend window start ('YYYY-MM-DD', local). */
+  rangeFrom: string
+  /** Inclusive trend window end ('YYYY-MM-DD', local). */
+  rangeTo: string
+  period: Period
+  startDate: string
+  endDate: string
+  onPeriodChange: (p: Period) => void
+  onStartChange: (value: string) => void
+  onEndChange: (value: string) => void
 }
 
 function toInputDate(date: Date) {
-  return date.toISOString().slice(0, 10)
+  return format(date, 'yyyy-MM-dd')
 }
 
 function drawTrend(
@@ -131,63 +139,33 @@ function drawTrend(
   })
 }
 
-export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
-  const today = new Date()
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(today.getDate() - 30)
-
-  const [period, setPeriod] = useState<Period>(30)
-  const [startDate, setStartDate] = useState<string>(toInputDate(thirtyDaysAgo))
-  const [endDate, setEndDate] = useState<string>(toInputDate(today))
+export function DashboardTrendChart({
+  daily,
+  rangeFrom,
+  rangeTo,
+  period,
+  startDate,
+  endDate,
+  onPeriodChange,
+  onStartChange,
+  onEndChange,
+}: DashboardTrendChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const isCustom = period === 'custom'
 
-  const filteredMovements = movements.filter((m) => {
-    const mDate = new Date(m.createdAt)
-    if (period === 'custom') {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
-      return m.type === 'OUT' && !m.isCancelled && mDate >= start && mDate <= end
-    }
-    const limit = new Date()
-    limit.setDate(limit.getDate() - period)
-    return m.type === 'OUT' && !m.isCancelled && mDate >= limit
-  })
-
-  const aggregated = (() => {
-    const map = new Map<string, number>()
-    let days: number
-    let start: Date
-    let end: Date
-
-    if (period === 'custom') {
-      start = new Date(startDate)
-      end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
-      days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-    } else {
-      days = period
-      end = new Date()
-      start = new Date()
-      start.setDate(end.getDate() - (days - 1))
-    }
-
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(end)
-      d.setDate(d.getDate() - i)
-      map.set(getDayKey(d), 0)
-    }
-
-    filteredMovements.forEach((m) => {
-      const key = getDayKey(new Date(m.createdAt))
-      map.set(key, (map.get(key) ?? 0) + m.quantity)
+  const aggregated = useMemo(() => {
+    const from = parseISO(rangeFrom)
+    const to = parseISO(rangeTo)
+    if (!isValid(from) || !isValid(to) || from > to) return [] as { label: string; value: number }[]
+    const map = new Map(daily.map((d) => [d.day, d]))
+    return eachDayOfInterval({ start: from, end: to }).map((day) => {
+      const key = format(day, 'yyyy-MM-dd')
+      const point = map.get(key)
+      return { label: format(day, 'dd/MM'), value: point?.out_qty ?? 0 }
     })
-
-    return Array.from(map.entries()).map(([label, value]) => ({ label, value }))
-  })()
+  }, [daily, rangeFrom, rangeTo])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -215,7 +193,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
               type="button"
               size="sm"
               variant={period === p ? 'default' : 'outline'}
-              onClick={() => setPeriod(p as Period)}
+              onClick={() => onPeriodChange(p as Period)}
             >
               {p}j
             </Button>
@@ -224,7 +202,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
             type="button"
             size="sm"
             variant={isCustom ? 'default' : 'outline'}
-            onClick={() => setPeriod('custom')}
+            onClick={() => onPeriodChange('custom')}
           >
             Perso
           </Button>
@@ -239,7 +217,7 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
               type="date"
               value={startDate}
               max={endDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => onStartChange(e.target.value)}
               className="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
             />
           </label>
@@ -249,8 +227,8 @@ export function DashboardTrendChart({ movements }: DashboardTrendChartProps) {
               type="date"
               value={endDate}
               min={startDate}
-              max={toInputDate(today)}
-              onChange={(e) => setEndDate(e.target.value)}
+              max={toInputDate(new Date())}
+              onChange={(e) => onEndChange(e.target.value)}
               className="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
             />
           </label>

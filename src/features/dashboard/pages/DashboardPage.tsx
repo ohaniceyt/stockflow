@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { addDays, format, formatISO, isValid, min as minDate, startOfDay, subDays } from 'date-fns'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useStock } from '@/features/stock/hooks/useStock'
 import { useMovements } from '@/features/movements/hooks/useMovements'
@@ -17,6 +18,9 @@ import { DashboardTopProducts } from '../components/DashboardTopProducts'
 import { DashboardRotation } from '../components/DashboardRotation'
 import { DashboardAlerts } from '../components/DashboardAlerts'
 import { DashboardRecentMovements } from '../components/DashboardRecentMovements'
+import { useMovementStats, MOVEMENT_STATS_KEY } from '../hooks/useMovementStats'
+
+type TrendPeriod = 30 | 90 | 'custom'
 
 function SectionSkeleton({ label }: { label: string }) {
   return (
@@ -54,8 +58,42 @@ export default function DashboardPage() {
 
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null)
 
-  const isPending = productsPending || stockPending || movementsLoading
-  const errors = [productsError, stockError, movementsError].filter(Boolean)
+  // Trend selection lives here so the stats RPC can be scoped to the same window.
+  const todayStart = useMemo(() => startOfDay(new Date()), [])
+  const [period, setPeriod] = useState<TrendPeriod>(30)
+  const [startDate, setStartDate] = useState<string>(() =>
+    format(subDays(todayStart, 29), 'yyyy-MM-dd')
+  )
+  const [endDate, setEndDate] = useState<string>(() => format(todayStart, 'yyyy-MM-dd'))
+
+  const trendFrom = useMemo(() => {
+    if (period === 'custom') {
+      const d = startOfDay(new Date(startDate))
+      return isValid(d) ? d : todayStart
+    }
+    return subDays(todayStart, period - 1)
+  }, [period, startDate, todayStart])
+
+  const trendTo = useMemo(() => {
+    if (period === 'custom') {
+      const d = startOfDay(new Date(endDate))
+      return isValid(d) ? d : todayStart
+    }
+    return todayStart
+  }, [period, endDate, todayStart])
+
+  // Single RPC call covering both the trend window and the last-7-days flux.
+  // range = [earliest of (trendFrom, today-6d), today+1d)  (half-open, in local tz).
+  const statsRange = useMemo(() => {
+    const rpcFrom = minDate([trendFrom, subDays(todayStart, 6)])
+    const rpcTo = addDays(todayStart, 1)
+    return { from: formatISO(rpcFrom), to: formatISO(rpcTo) }
+  }, [trendFrom, todayStart])
+
+  const { data: stats, isPending: statsPending, error: statsError } = useMovementStats(statsRange)
+
+  const isPending = productsPending || stockPending || movementsLoading || statsPending
+  const errors = [productsError, stockError, movementsError, statsError].filter(Boolean)
   const queryError = errors.length > 0 ? errors : null
 
   const stockItems = stock ?? []
@@ -67,6 +105,7 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['products', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['stock', orgId] }),
       queryClient.invalidateQueries({ queryKey: ['movements', orgId] }),
+      queryClient.invalidateQueries({ queryKey: [MOVEMENT_STATS_KEY, orgId] }),
       queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === 'movements-by-product',
       }),
@@ -101,6 +140,12 @@ export default function DashboardPage() {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   }, [movements])
+
+  const dailyFlux = stats?.daily_flux ?? []
+  const topProducts = stats?.top_products ?? []
+  const rotation = stats?.rotation ?? []
+  const trendFromStr = format(trendFrom, 'yyyy-MM-dd')
+  const trendToStr = format(trendTo, 'yyyy-MM-dd')
 
   return (
     <PullToRefresh onRefresh={handleRefresh} disabled={isPending}>
@@ -141,14 +186,24 @@ export default function DashboardPage() {
             <DashboardStats stock={stockItems} productCount={activeProducts.length} />
 
             <PageSection title="Flux 7 jours">
-              <DashboardFluxChart movements={movements} />
+              <DashboardFluxChart daily={dailyFlux} />
             </PageSection>
 
-            <DashboardTrendChart movements={movements} />
+            <DashboardTrendChart
+              daily={dailyFlux}
+              rangeFrom={trendFromStr}
+              rangeTo={trendToStr}
+              period={period}
+              startDate={startDate}
+              endDate={endDate}
+              onPeriodChange={setPeriod}
+              onStartChange={setStartDate}
+              onEndChange={setEndDate}
+            />
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <DashboardTopProducts movements={movements} />
-              <DashboardRotation stock={stockItems} movements={movements} />
+              <DashboardTopProducts topProducts={topProducts} />
+              <DashboardRotation rotation={rotation} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
