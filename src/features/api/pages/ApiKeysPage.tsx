@@ -59,12 +59,12 @@ export default function ApiKeysPage() {
   if (!canManage) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
+        <PageHeader title="Paramètres" description="Gérez les clés API de votre entreprise." />
         <SettingsTabs />
         <EmptyState
           icon={ShieldCheck}
           title="API non activée"
-          description="L'API publique n'est pas activée pour cette organisation."
+          description="L'API publique n'est pas activée pour cette entreprise."
         />
       </div>
     )
@@ -72,7 +72,7 @@ export default function ApiKeysPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader title="Paramètres" description="Gérez les clés API de votre organisation." />
+      <PageHeader title="Paramètres" description="Gérez les clés API de votre entreprise." />
 
       <SettingsTabs />
 

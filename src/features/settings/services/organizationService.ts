@@ -71,7 +71,7 @@ export function mapOrganizationRow(data: {
 }
 
 export async function fetchOrganization(orgId: string): Promise<Organization> {
-  if (!orgId) throw new Error('Organisation manquante')
+  if (!orgId) throw new Error('Entreprise manquante')
 
   const { data, error } = await supabase
     .from('organizations')
@@ -82,7 +82,7 @@ export async function fetchOrganization(orgId: string): Promise<Organization> {
     .single()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (error || !data) throw new Error(error?.message ?? 'Organisation non trouvée')
+  if (error || !data) throw new Error(error?.message ?? 'Entreprise non trouvée')
 
   return mapOrganizationRow(data)
 }
@@ -91,7 +91,7 @@ export async function updateOrganization(
   orgId: string,
   input: UpdateOrganizationInput
 ): Promise<Organization> {
-  if (!orgId) throw new Error('Organisation manquante')
+  if (!orgId) throw new Error('Entreprise manquante')
 
   const updateData: Database['public']['Tables']['organizations']['Update'] = {
     name: input.name.trim(),

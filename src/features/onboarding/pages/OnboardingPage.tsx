@@ -61,7 +61,7 @@ export default function OnboardingPage() {
         <div className="w-full max-w-md space-y-4 rounded-xl border bg-card p-8 shadow-sm">
           <h1 className="text-2xl font-bold">Vérification requise</h1>
           <p className="text-muted-foreground">
-            Veuillez vérifier votre adresse email avant de créer une organisation. Un lien de
+            Veuillez vérifier votre adresse email avant de créer une entreprise. Un lien de
             vérification vous a été envoyé.
           </p>
           <div className="flex flex-col gap-2">
@@ -83,7 +83,7 @@ export default function OnboardingPage() {
         <div>
           <h1 className="text-2xl font-bold">Onboarding requis</h1>
           <p className="mt-2 text-muted-foreground">
-            Veuillez contacter un administrateur pour finaliser la configuration de l’organisation.
+            Veuillez contacter un administrateur pour finaliser la configuration de l’entreprise.
           </p>
         </div>
       </div>
@@ -104,11 +104,11 @@ export default function OnboardingPage() {
     setSuggestedSlug(null)
     if (step === 1) {
       if (!orgName.trim()) {
-        setError('Le nom de l’organisation est requis')
+        setError('Le nom de l’entreprise est requis')
         return false
       }
       if (!orgSlug.trim()) {
-        setError('L’identifiant (slug) de l’organisation est requis')
+        setError('L’identifiant (slug) de l’entreprise est requis')
         return false
       }
       if (!isValidSlug(orgSlug)) {
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
         return false
       }
       if (!country) {
-        setError('Le pays de l’organisation est requis')
+        setError('Le pays de l’entreprise est requis')
         return false
       }
     }
@@ -195,7 +195,7 @@ export default function OnboardingPage() {
             <Building2 className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold">Bienvenue sur StockFlow</h1>
-          <p className="text-muted-foreground">Finalisez la configuration de votre organisation.</p>
+          <p className="text-muted-foreground">Finalisez la configuration de votre entreprise.</p>
         </div>
 
         <div className="flex justify-center gap-2">
@@ -214,7 +214,7 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="org-name">Nom de l’organisation</Label>
+                <Label htmlFor="org-name">Nom de l’entreprise</Label>
                 <Input
                   id="org-name"
                   value={orgName}
@@ -240,12 +240,12 @@ export default function OnboardingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   Lettres minuscules, chiffres et tirets uniquement. Cet identifiant sera utilisé
-                  pour le portail public de votre organisation.
+                  pour le portail public de votre entreprise.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="country">Pays de l’organisation</Label>
+                <Label htmlFor="country">Pays de l’entreprise</Label>
                 <Select
                   id="country"
                   value={country}
@@ -325,7 +325,7 @@ export default function OnboardingPage() {
               <h2 className="font-semibold">Récapitulatif</h2>
               <div className="rounded-lg bg-muted p-4 text-left text-sm">
                 <p>
-                  <span className="text-muted-foreground">Organisation :</span>{' '}
+                  <span className="text-muted-foreground">Entreprise :</span>{' '}
                   <span className="font-medium">{orgName}</span>
                 </p>
                 <p>
@@ -370,7 +370,7 @@ export default function OnboardingPage() {
           )}
 
           <div className="text-center text-sm text-muted-foreground">
-            Vous avez reçu une invitation pour rejoindre une organisation ?{' '}
+            Vous avez reçu une invitation pour rejoindre une entreprise ?{' '}
             <Link to="/invite" className="text-primary hover:underline">
               Rejoindre avec un lien d’invitation
             </Link>

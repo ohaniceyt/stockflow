@@ -23,7 +23,7 @@ export function useLocations() {
   return useQuery({
     queryKey: [LOCATIONS_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
         const data = await fetchLocations(orgId)
         await cacheLocations(data)
@@ -49,7 +49,7 @@ export function useCreateLocation() {
 
   return useMutation({
     mutationFn: async (input: LocationFormData): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, input }
       if (!online) {
         await queueOperation({ type: 'LOCATION_CREATE', payload })
@@ -108,7 +108,7 @@ export function useUpdateLocation() {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: { id: string } & LocationFormData): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, id, input }
       if (!online) {
         await queueOperation({ type: 'LOCATION_UPDATE', payload })
@@ -175,7 +175,7 @@ export function useSetDefaultLocation() {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { id, orgId }
       if (!online) {
         await queueOperation({ type: 'LOCATION_SET_DEFAULT', payload })

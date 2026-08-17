@@ -94,7 +94,7 @@ export function TeamList({
 
   const empty = (
     <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-      Aucun utilisateur dans l'organisation.
+      Aucun utilisateur dans l'entreprise.
     </div>
   )
 

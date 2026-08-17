@@ -61,7 +61,7 @@ export default function InvitePage() {
         setError(
           switchErr instanceof Error
             ? switchErr.message
-            : 'Échec du basculement vers la nouvelle organisation'
+            : 'Échec du basculement vers la nouvelle entreprise'
         )
         setIsAccepting(false)
       }
@@ -159,7 +159,7 @@ export default function InvitePage() {
                 onClick={handleAuthenticatedAccept}
                 disabled={isAccepting}
               >
-                {isAccepting ? 'Acceptation…' : 'Rejoindre l’organisation'}
+                {isAccepting ? 'Acceptation…' : 'Rejoindre l’entreprise'}
               </Button>
             </div>
           ) : (

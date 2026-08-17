@@ -93,7 +93,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
     e.preventDefault()
     setFormError(null)
     if (!name.trim()) {
-      setFormError("Le nom de l'organisation est requis.")
+      setFormError("Le nom de l'entreprise est requis.")
       return
     }
     update.mutate(
@@ -115,7 +115,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
       {formError && <p className="text-sm text-destructive">{formError}</p>}
 
       <div className="space-y-2">
-        <Label htmlFor="org-name">Nom de l'organisation</Label>
+        <Label htmlFor="org-name">Nom de l'entreprise</Label>
         <Input
           id="org-name"
           value={name}
@@ -144,7 +144,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="country">Pays de l’organisation</Label>
+        <Label htmlFor="country">Pays de l’entreprise</Label>
         <Select
           id="country"
           value={country}
@@ -198,7 +198,7 @@ function OrganizationForm({ organization, canManage, update }: OrganizationFormP
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Vous changez la devise de l’organisation. Les futurs documents utiliseront{' '}
+            Vous changez la devise de l’entreprise. Les futurs documents utiliseront{' '}
             <strong>{currency}</strong>. Les documents existants conservent leur devise d’origine.
           </p>
         </div>
@@ -287,7 +287,7 @@ function FeaturesCard({ organization, locations, canManage, update }: FeaturesCa
         />
         <FeatureToggle
           label="Store front"
-          description="Active une boutique publique accessible via l'identifiant de l'organisation."
+          description="Active une boutique publique accessible via l'identifiant de l'entreprise."
           icon={Store}
           checked={hasStorefrontEnabled}
           disabled={!canManage}
@@ -512,7 +512,7 @@ export default function OrganizationPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         title="Paramètres"
-        description="Gérez les informations, fonctionnalités et préférences de votre organisation."
+        description="Gérez les informations, fonctionnalités et préférences de votre entreprise."
       />
 
       <SettingsTabs />
@@ -520,12 +520,12 @@ export default function OrganizationPage() {
       {error && <p className="text-destructive">{error.message}</p>}
       {update.isSuccess && (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-          Organisation mise à jour.
+          Entreprise mise à jour.
         </p>
       )}
 
       <PageSection
-        title="Organisation"
+        title="Entreprise"
         description="Nom, identifiant, pays, devise et fuseau horaire."
       >
         {isLoading ? (
@@ -542,7 +542,7 @@ export default function OrganizationPage() {
 
       <PageSection
         title="Fonctionnalités"
-        description="Activez la caisse, le store front et l'API publique pour votre organisation."
+        description="Activez la caisse, le store front et l'API publique pour votre entreprise."
       >
         {isLoading ? (
           <p className="text-muted-foreground">Chargement…</p>
