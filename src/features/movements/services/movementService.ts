@@ -196,6 +196,42 @@ export async function fetchMovementsByProduct(
   return attachDetails(movements, productOrgMap, productMap, locationMap, userMap, contactMap)
 }
 
+// Fetch ALL non-cancelled OUT movements for a cashier session, untruncated.
+// `useMovements` is paginated (25/page) and the cashier page never pages
+// forward, so deriving session revenue / the session sales list from it would
+// silently cap at 25 sales (corrupted `dailyRevenue` on close + truncated
+// list). This dedicated fetch is scoped by `cashier_session_id` (RLS already
+// isolates by org) and returns every sale of the session.
+export async function fetchSessionSales(
+  orgId: string,
+  sessionId: string
+): Promise<MovementWithDetails[]> {
+  if (!orgId) {
+    throw new Error('Cannot fetch session sales without an organization id')
+  }
+  if (!sessionId) return []
+
+  const { data: movements, error } = await supabase
+    .from('movements')
+    .select('*')
+    .eq('cashier_session_id', sessionId)
+    .eq('type', 'OUT')
+    .eq('is_cancelled', false)
+    .order('created_at', { ascending: false })
+    .limit(1000)
+
+  if (error) throw new Error(error.message)
+  if (movements.length === 0) return []
+
+  const operatorIds = movements.map((row) => row.operator_id)
+  const { productOrgMap, productMap, locationMap, userMap, contactMap } = await fetchReferenceMaps(
+    orgId,
+    operatorIds
+  )
+
+  return attachDetails(movements, productOrgMap, productMap, locationMap, userMap, contactMap)
+}
+
 export async function createMovement(input: {
   orgId: string
   productId: string
