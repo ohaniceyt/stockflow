@@ -242,10 +242,11 @@ export async function getOrganizationSlugHistory(orgId: string): Promise<
   )
 }
 
-export async function resetUserPin(membershipId: string): Promise<void> {
+export async function resetUserPin(membershipId: string, challengeId?: string): Promise<void> {
   await platformFetch('/platform-reset-user-pin', {
     method: 'POST',
     body: JSON.stringify({ membershipId }),
+    headers: challengeHeaders(challengeId),
   })
 }
 
@@ -261,10 +262,11 @@ export async function toggleUserActive(
   })
 }
 
-export async function sendPasswordReset(email: string): Promise<void> {
+export async function sendPasswordReset(email: string, challengeId?: string): Promise<void> {
   await platformFetch('/platform-send-password-reset', {
     method: 'POST',
     body: JSON.stringify({ email }),
+    headers: challengeHeaders(challengeId),
   })
 }
 
