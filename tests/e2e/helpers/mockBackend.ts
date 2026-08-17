@@ -125,6 +125,31 @@ interface StockLevelRow {
   updated_at: string
 }
 
+interface AuditLogRow {
+  id: string
+  action: string
+  actor_id: string | null
+  target_type: string | null
+  target_id: string | null
+  details: unknown
+  created_at: string
+}
+
+interface PendingOperationRow {
+  id: string
+  client_operation_id: string
+  org_id: string
+  actor_id: string | null
+  type: string
+  payload: Record<string, unknown>
+  status: 'pending' | 'syncing' | 'failed' | 'dead' | 'cancelled' | 'completed'
+  retry_count: number
+  error: string | null
+  next_retry_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 interface MockState {
   products: ProductRow[]
   categories: CategoryRow[]
@@ -132,6 +157,8 @@ interface MockState {
   locations: LocationRow[]
   movements: MovementRow[]
   stockLevels: StockLevelRow[]
+  auditLogs: AuditLogRow[]
+  pendingOperations: PendingOperationRow[]
 }
 
 let state: MockState = {
@@ -141,6 +168,8 @@ let state: MockState = {
   locations: [],
   movements: [],
   stockLevels: [],
+  auditLogs: [],
+  pendingOperations: [],
 }
 
 function seedState() {
@@ -219,6 +248,31 @@ function seedState() {
     updated_at: nowIso,
   }
 
+  const auditLog: AuditLogRow = {
+    id: newId(),
+    action: 'products_insert',
+    actor_id: DEFAULT_MOCK_SESSION.user.id,
+    target_type: 'products',
+    target_id: product.id,
+    details: { name: product.name },
+    created_at: nowIso,
+  }
+
+  const pendingOperation: PendingOperationRow = {
+    id: newId(),
+    client_operation_id: newId(),
+    org_id: orgId,
+    actor_id: DEFAULT_MOCK_SESSION.user.id,
+    type: 'MOVEMENT',
+    payload: { productId: product.id, locationId: location.id, quantity: 10 },
+    status: 'dead',
+    retry_count: 5,
+    error: 'Stock insuffisant',
+    next_retry_at: null,
+    created_at: nowIso,
+    updated_at: nowIso,
+  }
+
   state = {
     products: [product],
     categories: [category],
@@ -226,6 +280,8 @@ function seedState() {
     locations: [location],
     movements: [],
     stockLevels: [stockLevel],
+    auditLogs: [auditLog],
+    pendingOperations: [pendingOperation],
   }
 }
 
@@ -403,7 +459,85 @@ export async function setupMockBackend(page: Page) {
         created_at: now(),
       }
       state.movements.unshift(movement)
+      state.auditLogs.unshift({
+        id: newId(),
+        action: 'movements_insert',
+        actor_id: DEFAULT_MOCK_SESSION.user.id,
+        target_type: 'movements',
+        target_id: movement.id,
+        details: { type: movement.type, quantity: movement.quantity },
+        created_at: now(),
+      })
       return fulfillCors(route, 200, jsonBody({ movement_id: movement.id }))
+    }
+
+    if (functionName === 'list-org-activity-logs') {
+      let logs = [...state.auditLogs]
+      const action = url.searchParams.get('action')
+      const targetType = url.searchParams.get('targetType')
+      if (action) logs = logs.filter((l) => l.action === action)
+      if (targetType) logs = logs.filter((l) => l.target_type === targetType)
+      const offset = Number(url.searchParams.get('offset') ?? '0')
+      const limit = Number(url.searchParams.get('limit') ?? '50')
+      return fulfillCors(
+        route,
+        200,
+        jsonBody({
+          logs: logs.slice(offset, offset + limit),
+          total: logs.length,
+          limit,
+          offset,
+        })
+      )
+    }
+
+    if (functionName === 'list-org-pending-operations') {
+      let ops = [...state.pendingOperations]
+      const status = url.searchParams.get('status')
+      if (status) ops = ops.filter((o) => o.status === status)
+      const offset = Number(url.searchParams.get('offset') ?? '0')
+      const limit = Number(url.searchParams.get('limit') ?? '50')
+      return fulfillCors(
+        route,
+        200,
+        jsonBody({
+          operations: ops.slice(offset, offset + limit),
+          total: ops.length,
+          limit,
+          offset,
+        })
+      )
+    }
+
+    if (functionName === 'cancel-org-operation') {
+      const clientOpId = getString(body, 'client_operation_id')
+      const idx = state.pendingOperations.findIndex((o) => o.client_operation_id === clientOpId)
+      if (idx === -1) {
+        return fulfillCors(route, 404, jsonBody({ error: 'Operation not found' }))
+      }
+      state.pendingOperations[idx] = {
+        ...state.pendingOperations[idx],
+        status: 'cancelled',
+        updated_at: now(),
+      }
+      return fulfillCors(route, 200, jsonBody({ success: true }))
+    }
+
+    if (functionName === 'update-org-pending-operation') {
+      const clientOpId = getString(body, 'client_operation_id')
+      const idx = state.pendingOperations.findIndex((o) => o.client_operation_id === clientOpId)
+      if (idx === -1) {
+        return fulfillCors(route, 404, jsonBody({ error: 'Operation not found' }))
+      }
+      state.pendingOperations[idx] = {
+        ...state.pendingOperations[idx],
+        status: getString(body, 'status') as PendingOperationRow['status'],
+        retry_count: getNumber(body, 'retry_count'),
+        error: getNullableString(body, 'error'),
+        next_retry_at: getNullableString(body, 'next_retry_at'),
+        updated_at: now(),
+      }
+      return fulfillCors(route, 200, jsonBody({ success: true }))
     }
 
     return fulfillCors(route, 404, jsonBody({ error: 'Function not mocked' }))

@@ -44,16 +44,16 @@ StockFlow vNext dispose d'une architecture moderne (React 19, Supabase, Vite, Ta
 
 ## Synthèse des audits #327 — #334
 
-| #   | Thème                              | État                            | Livrables clés                                                                                                                                       |
-| --- | ---------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 327 | Authentification & session         | Rapporté + correctifs appliqués | `AUTHENTICATION_SECURITY_AUDIT.md` ; wildcard redirect retiré, `redirectTo` validé, propagation JWT corrigée, CORS/copy magic link ajustés.          |
-| 328 | Contrôle d'accès                   | Rapporté + durci                | `ACCESS_CONTROL_AUDIT.md` ; politiques RLS critiques durcies, fonctions document scellées contre le cross-tenant.                                    |
-| 329 | Validation & nettoyage des entrées | **En cours** (agent background) | `INPUT_VALIDATION_AUDIT.md` attendu.                                                                                                                 |
-| 330 | Gestion des secrets                | Rapporté + scripts nettoyés     | `SECRETS_MANAGEMENT_AUDIT.md` mis à jour ; backup supprimé, Sentry/logger rédacteurs, TruffleHog CI, HSTS. **Rotations manuelles restantes.**        |
-| 331 | Audit logging                      | Corrigé                         | `AUDIT_LOGGING_AUDIT.md` ; deny RLS sur tables sensibles, `cleanup_old_audit_logs`, fonction/cron de cleanup, `logActivity` sur mutations critiques. |
-| 332 | Data residency                     | Documenté                       | `DATA_RESIDENCY_AUDIT.md` ; hébergeurs/régions inventoriés, mentions légales mises à jour. Migration région africaine à étudier.                     |
-| 333 | Pages légales / RGPD               | Corrigé                         | `LEGAL_PAGES_AUDIT.md` ; consentement signup, gestionnaire cookies, export/effacement données.                                                       |
-| 334 | PCI-DSS / mobile money             | Documenté                       | `PCI_DSS_MOBILE_MONEY_AUDIT.md` ; copy marketing corrigé, note caisse sur paiements externes. Aucune saisie de données cartes.                       |
+| #   | Thème                              | État         | Livrables clés                                                                                                                                       |
+| --- | ---------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 327 | Authentification & session         | Fermé        | `AUTHENTICATION_SECURITY_AUDIT.md` ; wildcard redirect retiré, `redirectTo` validé, propagation JWT corrigée, CORS/copy magic link ajustés.          |
+| 328 | Contrôle d'accès                   | Fermé        | `ACCESS_CONTROL_AUDIT.md` ; politiques RLS critiques durcies, fonctions document scellées contre le cross-tenant.                                    |
+| 329 | Validation & nettoyage des entrées | Fermé (code) | `INPUT_VALIDATION_AUDIT.md` ; 57 Edge Functions durcies, helpers `_shared/validate.ts` et `_shared/errors.ts`. Revue front-end et tests à prévoir.   |
+| 330 | Gestion des secrets                | Fermé (code) | `SECRETS_MANAGEMENT_AUDIT.md` mis à jour ; backup supprimé, Sentry/logger rédacteurs, TruffleHog CI, HSTS. **Rotations manuelles restantes.**        |
+| 331 | Audit logging                      | Fermé        | `AUDIT_LOGGING_AUDIT.md` ; deny RLS sur tables sensibles, `cleanup_old_audit_logs`, fonction/cron de cleanup, `logActivity` sur mutations critiques. |
+| 332 | Data residency                     | Documenté    | `DATA_RESIDENCY_AUDIT.md` ; hébergeurs/régions inventoriés, mentions légales mises à jour. Migration région africaine à étudier.                     |
+| 333 | Pages légales / RGPD               | Fermé        | `LEGAL_PAGES_AUDIT.md` ; consentement signup, gestionnaire cookies, export/effacement données.                                                       |
+| 334 | PCI-DSS / mobile money             | Documenté    | `PCI_DSS_MOBILE_MONEY_AUDIT.md` ; copy marketing corrigé, note caisse sur paiements externes. Aucune saisie de données cartes.                       |
 
 ---
 
@@ -84,7 +84,9 @@ StockFlow vNext dispose d'une architecture moderne (React 19, Supabase, Vite, Ta
 - [x] SF-013 : Journalisation `activity_logs` et `login_attempts` + rétention automatique.
 - [x] SF-015 : CSP + security headers via `vercel.json` (HSTS inclus).
 - [x] SF-016 : Error Boundary global.
-- [x] SF-017/SF-018 : Service worker PWA + icônes.
+- [x] SF-017/SF-018 : Service worker PWA + icônes/manifest.
+- [x] SF-019 : Accessibilité marketing (skip link, focus rings, ARIA, dialog démo).
+- [x] Déploiement continu Vercel prod/preview vert.
 - [ ] **Rotations manuelles P0** : clés Supabase anon/service_role, Resend, `AUTO_REMINDER_SECRET`, mot de passe admin, purge git (`filter-repo`).
 
 ### Phase 2 — Architecture & fiabilité (2-6 semaines)
@@ -98,7 +100,7 @@ StockFlow vNext dispose d'une architecture moderne (React 19, Supabase, Vite, Ta
 - [x] Système de toast/notification global (SF-022).
 - [x] Activer la caisse par défaut (SF-023).
 - [ ] Wizard first-sale post-onboarding.
-- [ ] Améliorer l'accessibilité marketing (skip link, contrastes).
+- [x] Améliorer l'accessibilité marketing (skip link, focus rings, aria-expanded/selected/controls, dialog démo contrôlé, labels étoiles/logos).
 
 ### Phase 4 — Opérations & qualité (10-14 semaines)
 
@@ -106,8 +108,8 @@ StockFlow vNext dispose d'une architecture moderne (React 19, Supabase, Vite, Ta
 - [x] CI bloquante sur E2E (SF-029) + scan secrets TruffleHog.
 - [x] Sentry + logs structurés + health check renforcé (SF-031).
 - [ ] Augmenter la couverture de tests (Edge Functions, auth, sync).
-- [ ] Résoudre `npm audit` / Dependabot.
-- [ ] Environnement de staging/preview.
+- [x] Résoudre `npm audit` / Dependabot (seuil high/critical atteint 0 vulnérabilités, voir `NPM_AUDIT_STATUS.md`).
+- [x] Environnement de staging/preview (déploiements Vercel Preview actifs sur chaque push).
 
 ### Phase 5 — Data residency & RGPD (spécifique)
 

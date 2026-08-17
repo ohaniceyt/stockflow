@@ -50,7 +50,7 @@ test.describe('BackOffice platform admin', () => {
     'BackOffice E2E requires E2E_BACKOFFICE_EMAIL and E2E_BACKOFFICE_PASSWORD environment variables'
   )
 
-  test('overview loads, organisations list works, sudo enters and exits', async ({ page }) => {
+  test('overview loads and organisations list works', async ({ page }) => {
     await login(page, PLATFORM_ADMIN.email, PLATFORM_ADMIN.password)
     await setupPinIfNeeded(page)
 
@@ -61,13 +61,13 @@ test.describe('BackOffice platform admin', () => {
     await page.waitForURL(/\/back-office\/?$/)
 
     await expect(page.getByRole('heading', { name: /Vue d'ensemble/ })).toBeVisible()
-    await expect(page.getByText('Organisations actives')).toBeVisible()
+    await expect(page.getByText('Entreprises actives')).toBeVisible()
     await expect(page.getByText('Utilisateurs en ligne')).toBeVisible()
 
-    // 2. Navigate to Organisations list.
-    await page.getByRole('link', { name: /Organisations/ }).click()
+    // 2. Navigate to Entreprises list.
+    await page.getByRole('link', { name: /Entreprises/ }).click()
     await page.waitForURL(/\/back-office\/organizations/)
-    await expect(page.getByRole('heading', { name: /Organisations/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Entreprises/ })).toBeVisible()
 
     // Wait for the table to populate.
     const rows = page.locator('table tbody tr')
@@ -81,22 +81,7 @@ test.describe('BackOffice platform admin', () => {
     await page.waitForURL(/\/back-office\/organizations\/[^/]+/)
     await expect(page.getByRole('heading', { name: firstOrgName ?? '' })).toBeVisible()
 
-    // 4. Enter sudo from the detail page.
-    const sudoButton = page.getByRole('button', { name: /Sudo/ }).first()
-    await expect(sudoButton).toBeVisible()
-    await sudoButton.click()
-
-    // We should land on the dashboard in sudo context.
-    await page.waitForURL(/\/dashboard/)
-    const sudoBanner = page.getByTestId('sudo-banner')
-    await expect(sudoBanner).toBeVisible()
-    await expect(sudoBanner).toContainText(firstOrgName ?? '')
-
-    // 5. Exit sudo via the banner.
-    await page.getByRole('button', { name: /Quitter le sudo/ }).click()
-    await expect(page.getByText(/Sudo actif/)).toBeHidden()
-
-    // 6. Go back to BackOffice and open Audit Logs.
+    // 4. Go back to BackOffice and open Audit Logs.
     await page
       .getByRole('navigation')
       .getByRole('link', { name: /Back Office/ })
@@ -105,5 +90,21 @@ test.describe('BackOffice platform admin', () => {
     await page.waitForURL(/\/back-office\/audit-logs/)
     await expect(page.getByRole('heading', { name: /Journal d'audit/ })).toBeVisible()
     await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10000 })
+  })
+
+  test.fixme('sudo enters and exits', async ({ page }) => {
+    // Sudo impersonation is disabled pending a server-side implementation.
+    // See PLATFORM_ADMIN_AUDIT.md for details.
+    await login(page, PLATFORM_ADMIN.email, PLATFORM_ADMIN.password)
+    await setupPinIfNeeded(page)
+
+    const backOfficeLink = page.getByTestId('nav-back-office')
+    await expect(backOfficeLink).toBeVisible({ timeout: 10000 })
+    await backOfficeLink.click()
+    await page.waitForURL(/\/back-office\/?$/)
+
+    // The Sudo button is currently replaced by a "Sudo indisponible" indicator.
+    await page.getByRole('link', { name: /Entreprises/ }).click()
+    await expect(page.getByText(/Sudo indisponible/)).toBeVisible()
   })
 })

@@ -14,7 +14,7 @@ export default defineConfig([
     'playwright-report',
     'test-results',
     '.npm-cache',
-    '.claude',
+    '**/.claude/**',
     'playwright.config.ts',
     'public/sw.js',
   ]),

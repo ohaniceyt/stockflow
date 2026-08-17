@@ -25,6 +25,7 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- Demo user accounts with a known PIN have been removed for security.
--- To create a local admin account, run the script located at:
---   scripts/seed-local-admin.ts
--- It will generate a random strong PIN and print it once.
+-- To create a local platform admin account, run the script located at:
+--   scripts/seed-admin.mjs
+-- It requires PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD (≥20 chars)
+-- and will generate a random strong PIN and print it once.
