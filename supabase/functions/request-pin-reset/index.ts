@@ -108,9 +108,13 @@ async function findActiveMembership(
   client: ReturnType<typeof createClient>,
   email: string
 ): Promise<{ id: string; org_id: string } | null> {
+  // NB: the column is `org_id` (not `organization_id`), and we expand the
+  // `users` relation with an inner join so the email filter actually applies
+  // (filtering on a nested relation without selecting it as !inner silently
+  // matches nothing in PostgREST, which previously broke self-service PIN reset).
   const { data, error } = await client
     .from('organization_memberships')
-    .select('id, organization_id')
+    .select('id, org_id, users!inner(email)')
     .eq('users.email', email.toLowerCase())
     .eq('is_active', true)
     .maybeSingle()
@@ -120,8 +124,8 @@ async function findActiveMembership(
     log.error('pin_reset_membership_lookup_failed', { email }, error)
     return null
   }
-  if (!data || typeof data.id !== 'string' || typeof data.organization_id !== 'string') return null
-  return { id: data.id, org_id: data.organization_id }
+  if (!data || typeof data.id !== 'string' || typeof data.org_id !== 'string') return null
+  return { id: data.id, org_id: data.org_id }
 }
 
 Deno.serve(async (req: Request) => {

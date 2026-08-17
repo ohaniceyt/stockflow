@@ -42,12 +42,19 @@ export default function BackOfficeUserDetailPage() {
   })
 
   const resetPinMutation = useMutation({
-    mutationFn: (membershipId: string) => resetUserPin(membershipId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['back-office', 'user', userId] }),
+    mutationFn: async (membershipId: string) => {
+      const challengeId = await requestChallenge('Réinitialiser le PIN')
+      return resetUserPin(membershipId, challengeId)
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['back-office', 'user', safeUserId] }),
   })
 
   const passwordResetMutation = useMutation({
-    mutationFn: (email: string) => sendPasswordReset(email),
+    mutationFn: async (email: string) => {
+      const challengeId = await requestChallenge('Envoyer un reset mot de passe')
+      return sendPasswordReset(email, challengeId)
+    },
   })
 
   if (!userId) return <div>Identifiant manquant</div>

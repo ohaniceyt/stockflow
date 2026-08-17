@@ -24,7 +24,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient)
+    // Resetting a user's PIN is sensitive (account access); require a fresh 2FA
+    // challenge even for moderators.
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, undefined, true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
@@ -60,9 +62,13 @@ Deno.serve(async (req: Request) => {
     const orgId = membership.org_id as string
     const userEmail = (membership.users as { email: string }).email
 
+    // Force a PIN change on next auth: the AppLock PIN lives client-side
+    // (IndexedDB), so the server-side enforcement is the force_pin_change flag.
+    // Setting it to true ensures the user MUST pick a new PIN after this reset
+    // (the previous, possibly compromised PIN is no longer trusted).
     const { error: updateError } = await adminClient
       .from('organization_memberships')
-      .update({ force_pin_change: false, updated_at: new Date().toISOString() })
+      .update({ force_pin_change: true, updated_at: new Date().toISOString() })
       .eq('id', membershipId)
 
     if (updateError) {
@@ -78,7 +84,7 @@ Deno.serve(async (req: Request) => {
     })
 
     if (otpError) {
-      // We still succeeded at clearing the PIN; log the email failure.
+      // We still succeeded at forcing the PIN change; log the email failure.
       console.error('Failed to send PIN reset magic link', otpError)
     }
 

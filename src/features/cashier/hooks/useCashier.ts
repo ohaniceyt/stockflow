@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { useContacts } from '@/features/contacts/hooks/useContacts'
-import { useMovements } from '@/features/movements/hooks/useMovements'
 import { useProducts } from '@/features/products/hooks/useProducts'
 import { useLocations } from '@/features/locations/hooks/useLocations'
 import { useStock } from '@/features/stock/hooks/useStock'
@@ -11,11 +10,11 @@ import {
   useCloseCashierSession,
   useOpenCashierSession,
 } from '@/features/cashier/hooks/useCashierSession'
+import { SESSION_SALES_KEY, useSessionSales } from '@/features/cashier/hooks/useSessionSales'
 import {
   cancelSale,
   completeSale,
   computeSessionRevenue,
-  filterSalesBySession,
 } from '@/features/cashier/services/cashierService'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { useToast } from '@/hooks/useToast'
@@ -35,7 +34,6 @@ export function useCashier(scannerContainerId: string) {
   const { data: stock, isLoading: stockLoading } = useStock()
   const { data: customers } = useContacts('CUSTOMER')
   const queryClient = useQueryClient()
-  const { data: movements, isLoading: movementsLoading } = useMovements()
   const { toast } = useToast()
   const openSessionMutation = useOpenCashierSession()
   const closeSessionMutation = useCloseCashierSession()
@@ -65,6 +63,11 @@ export function useCashier(scannerContainerId: string) {
   const activeLocationName = locations?.find((l) => l.id === activeLocationId)?.name ?? ''
 
   const { data: openSession, isLoading: sessionLoading } = useCashierSession(activeLocationId)
+
+  // Session sales are fetched directly by cashier_session_id (untruncated) so
+  // the live sales list and `sessionRevenue` (used as `dailyRevenue` when
+  // closing the session) are correct even when a session exceeds 25 sales.
+  const { data: sessionSalesData, isLoading: salesLoading } = useSessionSales(openSession?.id)
 
   const canCancelSales = hasRole(['super_admin', 'admin'])
 
@@ -99,17 +102,10 @@ export function useCashier(scannerContainerId: string) {
     )
   }, [availableProducts, search])
 
-  const sessionSales = useMemo(
-    () => filterSalesBySession(movements, openSession?.id ?? null),
-    [movements, openSession]
-  )
+  const sessionSales = useMemo(() => sessionSalesData ?? [], [sessionSalesData])
   const sessionRevenue = useMemo(() => computeSessionRevenue(sessionSales), [sessionSales])
 
-  const getSaleProductName = (sale: (typeof sessionSales)[number]) => {
-    const detail =
-      sale as unknown as import('@/features/movements/services/movementService').MovementWithDetails
-    return detail.productName ?? 'Produit'
-  }
+  const getSaleProductName = (sale: (typeof sessionSales)[number]) => sale.productName ?? 'Produit'
 
   const addToCart = useCallback(
     (product: CatalogProduct) => {
@@ -267,6 +263,8 @@ export function useCashier(scannerContainerId: string) {
       void queryClient.invalidateQueries({ queryKey: ['movements', session.membership.orgId] })
       void queryClient.invalidateQueries({ queryKey: ['stock', session.membership.orgId] })
       void queryClient.invalidateQueries({ queryKey: ['receipts', openSession.id] })
+      void queryClient.invalidateQueries({ queryKey: [SESSION_SALES_KEY, openSession.id] })
+      void queryClient.invalidateQueries({ queryKey: ['movement-stats', session.membership.orgId] })
 
       setReceipt(createdReceipt)
       setShowReceipt(true)
@@ -321,12 +319,26 @@ export function useCashier(scannerContainerId: string) {
   }
 
   const handleCancelSale = (movementId: string) => {
-    if (!canCancelSales) return
+    if (!canCancelSales || !session) return
     const sale = sessionSales.find((s) => s.id === movementId)
     if (!sale) return
     if (!confirm('Annuler cette vente ?')) return
     void cancelSale(sale.referenceId ? { receiptId: sale.referenceId } : { movementId: sale.id })
       .then(() => {
+        // Refresh everything the cancellation affects: the session sales list +
+        // revenue (a sale disappears), stock (quantity is restored), the
+        // receipts of the session, the paginated movements list, and the
+        // server-aggregated dashboard/analytics stats. Without this the
+        // cancelled sale stayed visible and `sessionRevenue` stayed inflated.
+        if (openSession) {
+          void queryClient.invalidateQueries({ queryKey: [SESSION_SALES_KEY, openSession.id] })
+          void queryClient.invalidateQueries({ queryKey: ['receipts', openSession.id] })
+        }
+        void queryClient.invalidateQueries({ queryKey: ['movements', session.membership.orgId] })
+        void queryClient.invalidateQueries({ queryKey: ['stock', session.membership.orgId] })
+        void queryClient.invalidateQueries({
+          queryKey: ['movement-stats', session.membership.orgId],
+        })
         toast({
           variant: 'success',
           title: 'Vente annulée',
@@ -345,7 +357,7 @@ export function useCashier(scannerContainerId: string) {
   }
 
   const isLoading =
-    productsLoading || locationsLoading || stockLoading || movementsLoading || sessionLoading
+    productsLoading || locationsLoading || stockLoading || salesLoading || sessionLoading
 
   return {
     session,
