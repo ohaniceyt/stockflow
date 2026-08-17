@@ -576,7 +576,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // The AppLock PIN is local to this device. The server only validates format + auth.
+      // The AppLock PIN is local to this device. The server validates format +
+      // auth and clears the admin-forced reset flag (force_pin_change) on the
+      // membership in the DB. Without that DB clear the flag stays true and
+      // every switch-membership re-triggers the /change-pin redirect.
       const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL)
       const response = await fetch(`${supabaseUrl}/functions/v1/change-pin`, {
         method: 'POST',
@@ -585,7 +588,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Authorization: `Bearer ${session.accessToken}`,
           apikey: supabaseKey,
         },
-        body: JSON.stringify({ newPin }),
+        body: JSON.stringify({ membershipId: session.membership.id, newPin }),
       })
 
       if (!response.ok) {
