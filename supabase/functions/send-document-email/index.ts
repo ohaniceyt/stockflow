@@ -4,13 +4,17 @@ import { sendEmail } from '../_shared/resend.ts'
 import { buildDocumentPdfBase64, type DocumentType } from '../_shared/documentPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml } from '../_shared/html.ts'
-import { getCurrentOrgId } from '../_shared/membership.ts'
+import { parseJsonBody, isUuid, isEnum, isEmail } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface SendDocumentEmailPayload {
   document_id: string
   type: DocumentType
   to?: string
 }
+
+const DOCUMENT_TYPES: readonly DocumentType[] = ['quote', 'invoice', 'delivery_note']
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -41,9 +45,28 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: SendDocumentEmailPayload = await req.json()
-    if (!payload.document_id || !payload.type) {
-      return new Response(JSON.stringify({ error: 'document_id and type are required' }), {
+    const parsed = await parseJsonBody<SendDocumentEmailPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.document_id)) {
+      return new Response(JSON.stringify({ error: 'document_id must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!isEnum(parsed.body.type, DOCUMENT_TYPES)) {
+      return new Response(
+        JSON.stringify({ error: 'type must be quote, invoice, or delivery_note' }),
+        {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (parsed.body.to !== undefined && !isEmail(parsed.body.to)) {
+      return new Response(JSON.stringify({ error: 'Invalid recipient email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -53,8 +76,8 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
-    if (!activeOrgId) {
+    const membership = await getCurrentMembership(adminClient, claims.sub)
+    if (!membership) {
       return new Response(JSON.stringify({ error: 'No active organization' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -63,12 +86,12 @@ Deno.serve(async (req: Request) => {
 
     const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
       adminClient,
-      payload.document_id,
-      payload.type,
-      activeOrgId
+      parsed.body.document_id,
+      parsed.body.type,
+      membership.org_id
     )
 
-    let recipient = payload.to
+    let recipient = parsed.body.to
     if (!recipient && document.contact_id) {
       const { data: contact } = await adminClient
         .from('contacts')
@@ -87,7 +110,7 @@ Deno.serve(async (req: Request) => {
 
     const orgName = (document.org as Record<string, unknown>)?.name ?? 'StockFlow'
     const documentNumber = document.document_number as string
-    const typeLabel = documentTitle(payload.type)
+    const typeLabel = documentTitle(parsed.body.type)
     const totalFormatted = formatCurrency(Number(document.total), document.currency as string)
 
     const html = `<!DOCTYPE html>
@@ -98,7 +121,7 @@ Deno.serve(async (req: Request) => {
   </head>
   <body style="font-family: Arial, sans-serif; color: #333;">
     <p>Bonjour,</p>
-    <p>Veuillez trouver ci-joint votre ${escapeHtml(typeLabel.toLowerCase())} <strong>${escapeHtml(documentNumber)}</strong> de <strong>${escapeHtml(orgName)}</strong>.</p>
+    <p>Veuillez trouver ci-joint votre ${typeLabel.toLowerCase()} <strong>${escapeHtml(documentNumber)}</strong> de <strong>${escapeHtml(orgName)}</strong>.</p>
     <p>Total : <strong>${escapeHtml(totalFormatted)}</strong></p>
     <p>Merci pour votre confiance.</p>
     <br />
@@ -106,7 +129,7 @@ Deno.serve(async (req: Request) => {
   </body>
 </html>`
 
-    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre ${escapeHtml(typeLabel.toLowerCase())} ${escapeHtml(documentNumber)} de ${escapeHtml(orgName)}.\nTotal : ${escapeHtml(totalFormatted)}\n\nMerci pour votre confiance.\n\nCet email a été envoyé automatiquement par StockFlow.`
+    const text = `Bonjour,\n\nVeuillez trouver ci-joint votre ${typeLabel.toLowerCase()} ${escapeHtml(documentNumber)} de ${escapeHtml(orgName)}.\nTotal : ${escapeHtml(totalFormatted)}\n\nMerci pour votre confiance.\n\nCet email a été envoyé automatiquement par StockFlow.`
 
     const emailResult = await sendEmail({
       to: recipient,
@@ -128,12 +151,8 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
 
@@ -153,5 +172,5 @@ function formatCurrency(amount: number, currency: string) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })
-  return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
+  return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
 }

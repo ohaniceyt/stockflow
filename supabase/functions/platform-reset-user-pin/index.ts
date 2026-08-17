@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid, parseJsonBody } from '../_shared/validate.ts'
 
 interface Payload {
   membershipId: string
@@ -30,9 +32,12 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { membershipId }: Payload = await req.json()
-    if (!membershipId) {
-      return new Response(JSON.stringify({ error: 'membershipId required' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+    const { membershipId } = parsed.body
+
+    if (!isUuid(membershipId)) {
+      return new Response(JSON.stringify({ error: 'membershipId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -45,13 +50,10 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (membershipError || !membership) {
-      return new Response(
-        JSON.stringify({ error: membershipError?.message ?? 'Membership not found' }),
-        {
-          status: membershipError ? 500 : 404,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Membership not found' }), {
+        status: membershipError ? 500 : 404,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const userId = membership.user_id as string
@@ -64,10 +66,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', membershipId)
 
     if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     // Send a magic link so the user can set a new PIN through /auth/reset-pin.
@@ -101,11 +100,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

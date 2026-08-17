@@ -2,9 +2,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
-  planId: string
+  planId: unknown
 }
 
 Deno.serve(async (req: Request) => {
@@ -55,9 +57,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { planId }: Payload = await req.json()
-    if (!planId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+
+    const { planId } = parsed.body
+    if (!isUuid(planId)) {
+      return new Response(JSON.stringify({ error: 'Invalid planId' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -66,7 +73,7 @@ Deno.serve(async (req: Request) => {
     const { data: plan, error: planError } = await adminClient
       .from('plans')
       .select('id')
-      .eq('id', planId)
+      .eq('id', planId as string)
       .eq('is_active', true)
       .single()
 
@@ -80,27 +87,21 @@ Deno.serve(async (req: Request) => {
     const { error } = await adminClient
       .from('subscriptions')
       .update({
-        plan_id: planId,
+        plan_id: planId as string,
         updated_at: new Date().toISOString(),
       })
       .eq('org_id', operator.org_id)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      console.error('change-org-plan update failed:', error)
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(JSON.stringify({ success: true, message: 'Organization plan updated' }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

@@ -1,6 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
+import {
+  parseJsonBody,
+  isUuid,
+  isEmail,
+  isPhone,
+  isNonEmptyString,
+  isNumber,
+  isPositiveInteger,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface ApiKeyRecord {
   id: string
@@ -17,13 +27,19 @@ interface OrderItem {
   unit_price?: number | null
 }
 
-interface CreateOrderPayload {
-  customer_name: string
-  customer_email: string
-  customer_phone?: string | null
-  address?: string | null
-  location_id?: string | null
-  items: OrderItem[]
+interface RawOrderItem {
+  product_id?: unknown
+  quantity?: unknown
+  unit_price?: unknown
+}
+
+interface RawCreateOrderPayload {
+  customer_name?: unknown
+  customer_email?: unknown
+  customer_phone?: unknown
+  address?: unknown
+  location_id?: unknown
+  items?: unknown
 }
 
 interface OrgFeatures {
@@ -136,9 +152,15 @@ async function handleRequest(
       .eq('org_id', keyRecord.org_id)
       .eq('is_active', true)
 
-    if (error) return errorResponse(req, error.message, 500)
+    if (error) {
+      console.error('api-gateway: failed to load products', error)
+      return genericInternalErrorResponse(req)
+    }
 
     if (segments[1]) {
+      if (!isUuid(segments[1])) {
+        return errorResponse(req, 'Invalid product id', 400)
+      }
       const product = products?.find((p) => p.id === segments[1])
       if (!product) return errorResponse(req, 'Product not found', 404)
       return jsonResponse(req, product)
@@ -154,6 +176,9 @@ async function handleRequest(
     }
 
     const requestedLocationId = url.searchParams.get('location_id')
+    if (requestedLocationId && !isUuid(requestedLocationId)) {
+      return errorResponse(req, 'Invalid location_id', 400)
+    }
     if (
       requestedLocationId &&
       keyRecord.allowed_location_ids &&
@@ -174,7 +199,10 @@ async function handleRequest(
     }
 
     const { data, error } = await query
-    if (error) return errorResponse(req, error.message, 500)
+    if (error) {
+      console.error('api-gateway: failed to load stock', error)
+      return genericInternalErrorResponse(req)
+    }
     return jsonResponse(req, data ?? [])
   }
 
@@ -184,17 +212,77 @@ async function handleRequest(
       return errorResponse(req, 'Insufficient scope', 403)
     }
 
-    const payload: CreateOrderPayload = await req.json()
-    if (
-      !payload.customer_name?.trim() ||
-      !payload.customer_email?.trim() ||
-      !Array.isArray(payload.items) ||
-      payload.items.length === 0
-    ) {
-      return errorResponse(req, 'Invalid request', 400)
+    const parsed = await parseJsonBody<RawCreateOrderPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
     }
 
-    const locationId = payload.location_id ?? features.storefront_location_id
+    const body = parsed.body
+
+    if (!isNonEmptyString(body.customer_name, 100)) {
+      return errorResponse(req, 'Customer name is required', 400)
+    }
+    const customerName = (body.customer_name as string).trim()
+
+    if (!isEmail(body.customer_email)) {
+      return errorResponse(req, 'A valid customer email is required', 400)
+    }
+    const customerEmail = (body.customer_email as string).trim().toLowerCase()
+
+    let customerPhone: string | null = null
+    if (body.customer_phone !== undefined && body.customer_phone !== null) {
+      if (!isPhone(body.customer_phone)) {
+        return errorResponse(req, 'Invalid customer phone', 400)
+      }
+      customerPhone = (body.customer_phone as string).trim()
+    }
+
+    let address: string | null = null
+    if (body.address !== undefined && body.address !== null) {
+      if (!isNonEmptyString(body.address, 255)) {
+        return errorResponse(req, 'Invalid address', 400)
+      }
+      address = (body.address as string).trim()
+    }
+
+    let explicitLocationId: string | null = null
+    if (body.location_id !== undefined && body.location_id !== null) {
+      if (!isUuid(body.location_id)) {
+        return errorResponse(req, 'Invalid location_id', 400)
+      }
+      explicitLocationId = body.location_id as string
+    }
+
+    if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 100) {
+      return errorResponse(req, 'Items must be a non-empty array of 1 to 100 items', 400)
+    }
+
+    const validatedItems: OrderItem[] = []
+    for (const rawItem of body.items) {
+      if (!rawItem || typeof rawItem !== 'object') {
+        return errorResponse(req, 'Each item must be an object', 400)
+      }
+      const item = rawItem as RawOrderItem
+      if (!isUuid(item.product_id)) {
+        return errorResponse(req, 'Each item must have a valid product_id', 400)
+      }
+      if (!isPositiveInteger(item.quantity)) {
+        return errorResponse(req, 'Each item must have a positive integer quantity', 400)
+      }
+      if (item.unit_price !== undefined && item.unit_price !== null && !isNumber(item.unit_price)) {
+        return errorResponse(req, 'Invalid unit_price', 400)
+      }
+      validatedItems.push({
+        product_id: item.product_id as string,
+        quantity: item.quantity as number,
+        unit_price:
+          item.unit_price === undefined || item.unit_price === null
+            ? null
+            : (item.unit_price as number),
+      })
+    }
+
+    const locationId = explicitLocationId ?? features.storefront_location_id
     if (!locationId) {
       return errorResponse(
         req,
@@ -207,7 +295,7 @@ async function handleRequest(
       return errorResponse(req, 'Location not allowed for this API key', 403)
     }
 
-    const productIds = payload.items.map((i) => i.product_id)
+    const productIds = validatedItems.map((i) => i.product_id)
     const { data: products, error: productsError } = await adminClient
       .from('products')
       .select('id, name, selling_price, is_active')
@@ -215,10 +303,13 @@ async function handleRequest(
       .eq('org_id', keyRecord.org_id)
       .eq('is_active', true)
 
-    if (productsError) return errorResponse(req, productsError.message, 500)
+    if (productsError) {
+      console.error('api-gateway: failed to load products for order', productsError)
+      return genericInternalErrorResponse(req)
+    }
 
     const productMap = new Map(products?.map((p) => [p.id, p]))
-    const missing = payload.items.find((i) => !productMap.has(i.product_id))
+    const missing = validatedItems.find((i) => !productMap.has(i.product_id))
     if (missing) return errorResponse(req, 'Product not found or inactive', 400)
 
     const { data: stock, error: stockError } = await adminClient
@@ -227,10 +318,13 @@ async function handleRequest(
       .eq('location_id', locationId)
       .in('product_id', productIds)
 
-    if (stockError) return errorResponse(req, stockError.message, 500)
+    if (stockError) {
+      console.error('api-gateway: failed to load stock for order', stockError)
+      return genericInternalErrorResponse(req)
+    }
 
     const stockMap = new Map(stock?.map((s) => [s.product_id, s.quantity]))
-    const insufficient = payload.items.find((i) => (stockMap.get(i.product_id) ?? 0) < i.quantity)
+    const insufficient = validatedItems.find((i) => (stockMap.get(i.product_id) ?? 0) < i.quantity)
     if (insufficient) return errorResponse(req, 'Insufficient stock', 400)
 
     // Upsert customer contact
@@ -238,7 +332,7 @@ async function handleRequest(
       .from('contacts')
       .select('id')
       .eq('org_id', keyRecord.org_id)
-      .eq('email', payload.customer_email.trim().toLowerCase())
+      .eq('email', customerEmail)
       .eq('type', 'CUSTOMER')
       .maybeSingle()
 
@@ -249,17 +343,18 @@ async function handleRequest(
         .insert({
           org_id: keyRecord.org_id,
           type: 'CUSTOMER',
-          name: payload.customer_name.trim(),
-          email: payload.customer_email.trim().toLowerCase(),
-          phone: payload.customer_phone?.trim() || null,
-          address: payload.address?.trim() || null,
+          name: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+          address,
           is_active: true,
         })
         .select('id')
         .single()
 
       if (contactError || !newContact) {
-        return errorResponse(req, contactError?.message ?? 'Contact creation failed', 500)
+        console.error('api-gateway: contact creation failed', contactError)
+        return genericInternalErrorResponse(req)
       }
       contactId = newContact.id
     }
@@ -272,7 +367,7 @@ async function handleRequest(
         p_org_id: keyRecord.org_id,
         p_location_id: locationId,
         p_contact_id: contactId,
-        p_items: payload.items.map((i) => ({
+        p_items: validatedItems.map((i) => ({
           product_id: i.product_id,
           quantity: i.quantity,
           unit_price: i.unit_price ?? productMap.get(i.product_id)?.selling_price,
@@ -282,7 +377,8 @@ async function handleRequest(
     )
 
     if (orderError || !orderResult) {
-      return errorResponse(req, orderError?.message ?? 'Order failed', 500)
+      console.error('api-gateway: order creation failed', orderError)
+      return genericInternalErrorResponse(req)
     }
 
     const movementIds = (orderResult as { movement_ids: string[] }).movement_ids
@@ -368,8 +464,7 @@ Deno.serve(async (req: Request) => {
     )
 
     return response
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+  } catch (_err) {
     if (adminClient && keyRecord) {
       logApiRequest(
         adminClient,
@@ -381,6 +476,6 @@ Deno.serve(async (req: Request) => {
         500
       )
     }
-    return errorResponse(req, message, 500)
+    return genericInternalErrorResponse(req)
   }
 })

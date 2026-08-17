@@ -1,16 +1,20 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString, isEnum } from '../_shared/validate.ts'
+import { internalErrorResponse, genericInternalErrorResponse } from '../_shared/errors.ts'
 
-interface OnboardingPayload {
-  orgName: string
-  orgSlug: string
-  country: string
-  currency: string
-  timezone: string
-  defaultLocationName: string
-  plan?: 'free' | 'starter' | 'pro'
+interface Payload {
+  orgName: unknown
+  orgSlug: unknown
+  country: unknown
+  currency: unknown
+  timezone: unknown
+  defaultLocationName: unknown
+  plan?: unknown
 }
+
+const ALLOWED_PLANS = ['free', 'starter', 'pro'] as const
 
 function normalizeSlug(value: string): string {
   return value
@@ -55,24 +59,19 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const {
-      orgName,
-      orgSlug,
-      country,
-      currency,
-      timezone,
-      defaultLocationName,
-      plan,
-    }: OnboardingPayload = await req.json()
-    const selectedPlan = plan && ['free', 'starter', 'pro'].includes(plan) ? plan : 'free'
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
 
+    const body = parsed.body
     if (
-      !orgName?.trim() ||
-      !orgSlug?.trim() ||
-      !country ||
-      !currency ||
-      !timezone ||
-      !defaultLocationName?.trim()
+      !isNonEmptyString(body.orgName, 100) ||
+      !isNonEmptyString(body.orgSlug, 50) ||
+      !isNonEmptyString(body.country, 2) ||
+      !isNonEmptyString(body.currency, 3) ||
+      !isNonEmptyString(body.timezone, 64) ||
+      !isNonEmptyString(body.defaultLocationName, 100)
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
@@ -80,7 +79,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const normalizedSlug = normalizeSlug(orgSlug.trim())
+    const selectedPlan = isEnum(body.plan, ALLOWED_PLANS) ? body.plan : 'free'
+
+    const normalizedSlug = normalizeSlug((body.orgSlug as string).trim())
     if (!isValidSlug(normalizedSlug)) {
       return new Response(
         JSON.stringify({
@@ -142,19 +143,17 @@ Deno.serve(async (req: Request) => {
     // We call it through the user client so the RPC can assert auth.uid() == p_user_id.
     const { data: rpcData, error: rpcError } = await userClient.rpc('complete_onboarding', {
       p_user_id: authUserId,
-      p_org_name: orgName.trim(),
+      p_org_name: (body.orgName as string).trim(),
       p_org_slug: normalizedSlug,
-      p_country: country,
-      p_currency: currency,
-      p_timezone: timezone,
-      p_default_location_name: defaultLocationName.trim(),
+      p_country: (body.country as string).trim(),
+      p_currency: (body.currency as string).trim(),
+      p_timezone: (body.timezone as string).trim(),
+      p_default_location_name: (body.defaultLocationName as string).trim(),
       p_plan_id: selectedPlan,
     })
 
     if (rpcError) {
-      let status = 500
       if (rpcError.message?.includes('organizations_slug_unique')) {
-        status = 409
         // Build a suggestion by appending an incremental numeric suffix.
         const { data: existing } = await adminClient
           .from('organizations')
@@ -173,31 +172,31 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({
             error: `L’identifiant « ${normalizedSlug} » est déjà utilisé. suggestion: ${candidate}`,
             suggestion: candidate,
-            code: rpcError.code,
           }),
-          { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+          { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
-      if (rpcError.message?.includes('organizations_name_unique')) status = 409
-      if (rpcError.message?.includes('Invalid slug')) status = 400
-      return new Response(
-        JSON.stringify({
-          error: rpcError.message,
-          code: rpcError.code,
-        }),
-        { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-      )
+
+      if (rpcError.message?.includes('organizations_name_unique')) {
+        return new Response(
+          JSON.stringify({ error: 'An organization with this name already exists' }),
+          { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (rpcError.message?.includes('Invalid slug')) {
+        return internalErrorResponse(req, 400, 'Invalid organization identifier')
+      }
+
+      console.error('complete-onboarding RPC failed:', rpcError)
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(
       JSON.stringify({ success: true, message: 'Onboarding terminé', orgId: rpcData }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

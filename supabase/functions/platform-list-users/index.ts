@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { clampInt, isEnum, isSafeSearchTerm, isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -27,12 +29,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url)
-    const search = url.searchParams.get('search') ?? undefined
-    const orgId = url.searchParams.get('orgId') ?? undefined
-    const role = url.searchParams.get('role') ?? undefined
-    const isActive = url.searchParams.get('isActive')
-    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20', 10), 100)
-    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const rawSearch = url.searchParams.get('search') ?? undefined
+    const rawOrgId = url.searchParams.get('orgId') ?? undefined
+    const rawRole = url.searchParams.get('role') ?? undefined
+    const rawIsActive = url.searchParams.get('isActive')
+    const limit = clampInt(url.searchParams.get('limit'), 1, 100, 20)
+    const offset = clampInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER, 0)
+
+    const search = rawSearch ? rawSearch.trim() : undefined
+    if (search !== undefined && !isSafeSearchTerm(search)) {
+      return new Response(JSON.stringify({ error: 'Invalid search term' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (rawOrgId !== undefined && !isUuid(rawOrgId)) {
+      return new Response(JSON.stringify({ error: 'Invalid orgId' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const allowedRoles = ['super_admin', 'admin', 'operator', 'cashier', 'reader'] as const
+    if (rawRole !== undefined && !isEnum(rawRole, allowedRoles)) {
+      return new Response(JSON.stringify({ error: 'Invalid role' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
 
     let query = adminClient.from('users').select(
       `
@@ -61,16 +86,16 @@ Deno.serve(async (req: Request) => {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`)
     }
 
-    if (orgId) {
-      query = query.eq('organization_memberships.org_id', orgId)
+    if (rawOrgId !== undefined) {
+      query = query.eq('organization_memberships.org_id', rawOrgId)
     }
 
-    if (role) {
-      query = query.eq('organization_memberships.role', role)
+    if (rawRole !== undefined) {
+      query = query.eq('organization_memberships.role', rawRole)
     }
 
-    if (isActive === 'true' || isActive === 'false') {
-      query = query.eq('organization_memberships.is_active', isActive === 'true')
+    if (rawIsActive === 'true' || rawIsActive === 'false') {
+      query = query.eq('organization_memberships.is_active', rawIsActive === 'true')
     }
 
     const {
@@ -80,21 +105,14 @@ Deno.serve(async (req: Request) => {
     } = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(JSON.stringify({ users: users ?? [], total: count ?? 0, limit, offset }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

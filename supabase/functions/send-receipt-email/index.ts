@@ -4,7 +4,9 @@ import { sendEmail } from '../_shared/resend.ts'
 import { buildReceiptPdfBase64 } from '../_shared/receiptPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml } from '../_shared/html.ts'
-import { getCurrentOrgId } from '../_shared/membership.ts'
+import { parseJsonBody, isUuid, isEmail } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface SendReceiptEmailPayload {
   receipt_id: string
@@ -40,9 +42,18 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: SendReceiptEmailPayload = await req.json()
-    if (!payload.receipt_id) {
-      return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
+    const parsed = await parseJsonBody<SendReceiptEmailPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.receipt_id)) {
+      return new Response(JSON.stringify({ error: 'receipt_id must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (parsed.body.to !== undefined && !isEmail(parsed.body.to)) {
+      return new Response(JSON.stringify({ error: 'Invalid recipient email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -52,8 +63,8 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
-    if (!activeOrgId) {
+    const membership = await getCurrentMembership(adminClient, claims.sub)
+    if (!membership) {
       return new Response(JSON.stringify({ error: 'No active organization' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -62,11 +73,11 @@ Deno.serve(async (req: Request) => {
 
     const { pdfBase64, filename, receipt } = await buildReceiptPdfBase64(
       adminClient,
-      payload.receipt_id,
-      activeOrgId
+      parsed.body.receipt_id,
+      membership.org_id
     )
 
-    let recipient = payload.to
+    let recipient = parsed.body.to
     if (!recipient && receipt.contact_id) {
       const { data: contact } = await adminClient
         .from('contacts')
@@ -132,12 +143,8 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
 

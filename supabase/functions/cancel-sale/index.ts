@@ -1,11 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 import { logActivity } from '../_shared/audit.ts'
 
-interface CancelSalePayload {
-  receipt_id?: string | null
-  movement_id?: string | null
+interface Payload {
+  receipt_id?: unknown
+  movement_id?: unknown
 }
 
 Deno.serve(async (req: Request) => {
@@ -37,14 +39,31 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: CancelSalePayload = await req.json()
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
+    const { receipt_id, movement_id } = parsed.body
+    const hasReceipt = receipt_id !== undefined && receipt_id !== null
+    const hasMovement = movement_id !== undefined && movement_id !== null
 
-    if (!payload.receipt_id && !payload.movement_id) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    if (!hasReceipt && !hasMovement) {
+      return new Response(JSON.stringify({ error: 'receipt_id or movement_id required' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (hasReceipt && !isUuid(receipt_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid receipt_id' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (hasMovement && !isUuid(movement_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid movement_id' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -56,32 +75,41 @@ Deno.serve(async (req: Request) => {
     })
 
     const { error } = await userClient.rpc('cancel_sale', {
-      p_receipt_id: payload.receipt_id ?? null,
-      p_movement_id: payload.movement_id ?? null,
+      p_receipt_id: hasReceipt ? (receipt_id as string) : null,
+      p_movement_id: hasMovement ? (movement_id as string) : null,
     })
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      console.error('cancel-sale RPC failed:', error)
+      return genericInternalErrorResponse(req)
     }
 
-    // Resolve org context for audit logging (service role read, caller has already been authorized by RPC).
-    const { data: receipt } = payload.receipt_id
+    // Audit the cancellation as a semantic sale_cancelled event (actor + IP +
+    // amount). The DB movements_audit_trigger already traces the row mutation;
+    // this adds the business-level event the trigger cannot reconstruct. The
+    // caller was authorized by the cancel_sale RPC, so the service-role read
+    // below only fetches audit context (org_id, total_amount, currency).
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    const receiptUuid = hasReceipt ? (receipt_id as string) : null
+    const movementUuid = hasMovement ? (movement_id as string) : null
+
+    const { data: receipt } = receiptUuid
       ? await adminClient
           .from('receipts')
           .select('id, org_id, total_amount, currency')
-          .eq('id', payload.receipt_id)
+          .eq('id', receiptUuid)
           .maybeSingle()
       : { data: null }
 
     const { data: movement } =
-      !receipt && payload.movement_id
+      !receipt && movementUuid
         ? await adminClient
             .from('movements')
             .select('id, org_id, reference_id')
-            .eq('id', payload.movement_id)
+            .eq('id', movementUuid)
             .maybeSingle()
         : { data: null }
 
@@ -92,10 +120,10 @@ Deno.serve(async (req: Request) => {
         actor_id: claims.sub,
         action: 'sale_cancelled',
         target_type: 'receipt',
-        target_id: payload.receipt_id ?? movement?.reference_id ?? null,
+        target_id: receiptUuid ?? movement?.reference_id ?? null,
         details: {
-          receipt_id: payload.receipt_id,
-          movement_id: payload.movement_id,
+          receipt_id: receiptUuid,
+          movement_id: movementUuid,
           total_amount: receipt?.total_amount,
           currency: receipt?.currency,
         },
@@ -107,11 +135,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

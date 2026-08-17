@@ -2,6 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { encodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   password: string
@@ -44,7 +46,7 @@ Deno.serve(async (req: Request) => {
     })
 
     // Only super_admins may set platform admin passwords.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
@@ -52,8 +54,13 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { password, targetAdminId }: Payload = await req.json()
-    if (!password || typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (
+      !isNonEmptyString(parsed.body.password) ||
+      parsed.body.password.length < MIN_PASSWORD_LENGTH
+    ) {
       return new Response(
         JSON.stringify({
           error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
@@ -65,7 +72,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const targetAuthUserId = targetAdminId ?? platformAdmin.authUserId
+    if (parsed.body.targetAdminId !== undefined && !isUuid(parsed.body.targetAdminId)) {
+      return new Response(JSON.stringify({ error: 'targetAdminId must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const targetAuthUserId = parsed.body.targetAdminId ?? platformAdmin.authUserId
 
     const { data: targetAdmin, error: targetError } = await adminClient
       .from('platform_admins')
@@ -82,7 +96,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const salt = crypto.getRandomValues(new Uint8Array(16))
-    const passwordHash = await hashPassword(password, salt)
+    const passwordHash = await hashPassword(parsed.body.password, salt)
 
     const { error: updateError } = await adminClient
       .from('platform_admins')
@@ -95,13 +109,7 @@ Deno.serve(async (req: Request) => {
       .eq('auth_user_id', targetAuthUserId)
 
     if (updateError) {
-      return new Response(
-        JSON.stringify({ error: updateError.message ?? 'Failed to update password' }),
-        {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
@@ -126,11 +134,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

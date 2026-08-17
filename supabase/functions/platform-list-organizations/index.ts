@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { clampInt, isEnum, isSafeSearchTerm, isUuid } from '../_shared/validate.ts'
 
 interface ListQuery {
   search?: string
@@ -35,11 +37,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url)
-    const search = url.searchParams.get('search') ?? undefined
-    const planId = url.searchParams.get('planId') ?? undefined
-    const status = (url.searchParams.get('status') as ListQuery['status']) ?? 'all'
-    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20', 10), 100)
-    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const rawSearch = url.searchParams.get('search') ?? undefined
+    const rawPlanId = url.searchParams.get('planId') ?? undefined
+    const rawStatus = (url.searchParams.get('status') as ListQuery['status']) ?? 'all'
+    const limit = clampInt(url.searchParams.get('limit'), 1, 100, 20)
+    const offset = clampInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER, 0)
+
+    const search = rawSearch ? rawSearch.trim() : undefined
+    if (search !== undefined && !isSafeSearchTerm(search)) {
+      return new Response(JSON.stringify({ error: 'Invalid search term' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (rawPlanId !== undefined && !isUuid(rawPlanId)) {
+      return new Response(JSON.stringify({ error: 'Invalid planId' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const allowedStatuses = ['active', 'suspended', 'all'] as const
+    if (!isEnum(rawStatus, allowedStatuses)) {
+      return new Response(JSON.stringify({ error: 'Invalid status' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+    const status = rawStatus
 
     let query = adminClient.from('organizations').select(
       `
@@ -70,8 +96,8 @@ Deno.serve(async (req: Request) => {
       query = query.eq('is_suspended', true)
     }
 
-    if (planId) {
-      query = query.eq('subscriptions.plan_id', planId)
+    if (rawPlanId !== undefined) {
+      query = query.eq('subscriptions.plan_id', rawPlanId)
     }
 
     const {
@@ -81,10 +107,7 @@ Deno.serve(async (req: Request) => {
     } = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const rows = (organizations ?? []).map((org) => {
@@ -99,11 +122,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

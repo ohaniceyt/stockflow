@@ -3,6 +3,8 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isNonNegativeInteger, isNumber, isUuid, parseJsonBody } from '../_shared/validate.ts'
 
 interface BulkProductInput {
   name: string
@@ -31,29 +33,10 @@ function jsonResponse(req: Request, body: Record<string, unknown>, status = 200)
   })
 }
 
-function errorResponse(
-  req: Request,
-  message: string,
-  details?: Record<string, unknown>,
-  status = 500
-) {
-  return jsonResponse(
-    req,
-    { error: { message, details }, created: 0, total: 0, errors: [message] },
-    status
-  )
-}
-
 function normalizeName(value: unknown): string | null {
   if (value === undefined || value === null) return null
   const str = String(value).trim()
   return str.length > 0 ? str : null
-}
-
-function normalizeNumber(value: unknown, fallback = 0): number {
-  if (value === undefined || value === null) return fallback
-  const n = Number(value)
-  return Number.isNaN(n) ? fallback : n
 }
 
 Deno.serve(async (req: Request) => {
@@ -96,11 +79,16 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: BulkCreateProductsPayload = await req.json()
-    const { org_id, products } = payload
+    const parsed = await parseJsonBody<BulkCreateProductsPayload>(req)
+    if (!parsed.ok) return parsed.response
+    const { org_id, products } = parsed.body
 
-    if (!org_id || !Array.isArray(products)) {
-      return jsonResponse(req, { error: 'Invalid request' }, 400)
+    if (!isUuid(org_id)) {
+      return jsonResponse(req, { error: 'org_id must be a valid UUID' }, 400)
+    }
+
+    if (!Array.isArray(products)) {
+      return jsonResponse(req, { error: 'products must be an array' }, 400)
     }
 
     if (operator.org_id !== org_id) {
@@ -141,19 +129,42 @@ Deno.serve(async (req: Request) => {
         errors.push(`Ligne ${index + 1}: le nom est requis`)
         return
       }
+      if (name.length > 255) {
+        errors.push(`Ligne ${index + 1}: le nom dépasse 255 caractères`)
+        return
+      }
       const category = normalizeName(item.category)
-      if (category) categoryNames.add(category)
+      if (category) {
+        if (category.length > 100) {
+          errors.push(`Ligne ${index + 1}: la catégorie dépasse 100 caractères`)
+          return
+        }
+        categoryNames.add(category)
+      }
+
+      const threshold = isNumber(item.threshold) ? Math.max(0, Math.round(item.threshold)) : 0
+      if (!isNonNegativeInteger(threshold)) {
+        errors.push(`Ligne ${index + 1}: seuil invalide`)
+        return
+      }
+
+      const costPrice = isNumber(item.cost_price) ? Math.max(0, item.cost_price) : 0
+      const sellingPrice = isNumber(item.selling_price) ? Math.max(0, item.selling_price) : 0
+      if (!isNumber(costPrice) || !isNumber(sellingPrice)) {
+        errors.push(`Ligne ${index + 1}: prix invalide`)
+        return
+      }
 
       validProducts.push({
         name,
         category,
-        unit: normalizeName(item.unit) ?? 'unité',
-        threshold: Math.max(0, Math.round(normalizeNumber(item.threshold, 0))),
-        cost_price: Math.max(0, normalizeNumber(item.cost_price, 0)),
-        selling_price: Math.max(0, normalizeNumber(item.selling_price, 0)),
-        supplier: normalizeName(item.supplier),
-        description: normalizeName(item.description),
-        barcode: normalizeName(item.barcode),
+        unit: (normalizeName(item.unit) ?? 'unité').slice(0, 50),
+        threshold,
+        cost_price: costPrice,
+        selling_price: sellingPrice,
+        supplier: normalizeName(item.supplier)?.slice(0, 255) ?? null,
+        description: normalizeName(item.description)?.slice(0, 1000) ?? null,
+        barcode: normalizeName(item.barcode)?.slice(0, 255) ?? null,
         is_active: item.is_active !== false,
       })
     })
@@ -232,7 +243,7 @@ Deno.serve(async (req: Request) => {
 
     if (duplicateCount > 0) {
       errors.push(
-        `${duplicateCount} produit(s) ignoré(s) car le nom existe déjà dans cette organisation.`
+        `${duplicateCount} produit(s) ignoré(s) car le nom existe déjà dans cette entreprise.`
       )
     }
 
@@ -257,10 +268,7 @@ Deno.serve(async (req: Request) => {
     console.log('bulk-create-products: insertedProducts count', insertedProducts?.length ?? 0)
 
     if (insertError) {
-      return errorResponse(req, `Erreur lors de l'insertion des produits: ${insertError.message}`, {
-        code: insertError.code,
-        hint: insertError.hint,
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const created = insertedProducts?.length ?? 0
@@ -274,8 +282,7 @@ Deno.serve(async (req: Request) => {
       errors,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('bulk-create-products: unhandled exception', err)
-    return errorResponse(req, message, { stack: err instanceof Error ? err.stack : undefined })
+    return genericInternalErrorResponse(req)
   }
 })

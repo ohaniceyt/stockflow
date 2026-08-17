@@ -4,6 +4,8 @@ import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 import { logActivity } from '../_shared/audit.ts'
 import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
+import { parseJsonBody, isEmail, isNonEmptyString, isPhone, isEnum } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface SignupPayload {
   name: string
@@ -12,6 +14,11 @@ interface SignupPayload {
   phone?: string
   plan?: 'free' | 'starter' | 'pro'
 }
+
+const NAME_MAX_LENGTH = 120
+const PASSWORD_MIN_LENGTH = 8
+const PASSWORD_MAX_LENGTH = 128
+const PLANS: readonly ('free' | 'starter' | 'pro')[] = ['free', 'starter', 'pro']
 
 function buildVerificationEmailHtml(link: string, _appUrl: string): string {
   return `
@@ -66,49 +73,49 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const bodyText = await req.text()
-    if (!bodyText || bodyText.trim().length === 0) {
-      return new Response(JSON.stringify({ error: 'Request body is empty' }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+    const parsed = await parseJsonBody<SignupPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    const { name, email, password, phone, plan } = parsed.body
+    const selectedPlan = isEnum(plan, PLANS) ? plan : 'free'
+
+    if (!isNonEmptyString(name, NAME_MAX_LENGTH)) {
+      return new Response(
+        JSON.stringify({ error: `Name is required (max ${NAME_MAX_LENGTH} characters)` }),
+        {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
     }
 
-    let payload: SignupPayload
-    try {
-      payload = JSON.parse(bodyText) as SignupPayload
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
-    }
-
-    const { name, email, password, phone, plan } = payload
-    const selectedPlan = plan && ['free', 'starter', 'pro'].includes(plan) ? plan : 'free'
-
-    if (!name?.trim() || !email?.trim() || !password) {
-      return new Response(JSON.stringify({ error: 'Name, email and password are required' }), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
-    }
-
-    const normalizedEmail = email.trim().toLowerCase()
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    if (!isEmail(email)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
-    if (password.length < 8) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), {
+    if (!isNonEmptyString(password, PASSWORD_MAX_LENGTH) || password.length < PASSWORD_MIN_LENGTH) {
+      return new Response(
+        JSON.stringify({
+          error: `Password must be ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters`,
+        }),
+        {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (phone !== undefined && !isPhone(phone)) {
+      return new Response(JSON.stringify({ error: 'Invalid phone number' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
+
+    const normalizedEmail = email.trim().toLowerCase()
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -218,23 +225,17 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
-    } catch (err) {
+    } catch (_err) {
       // Best-effort rollback
       if (authUserId) {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
       }
 
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      return new Response(JSON.stringify({ error: message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      console.error('signup error:', _err)
+      return genericInternalErrorResponse(req)
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    console.error('signup unhandled error:', _err)
+    return genericInternalErrorResponse(req)
   }
 })

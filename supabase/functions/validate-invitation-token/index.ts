@@ -1,9 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   token: string
 }
+
+const TOKEN_MAX_LENGTH = 256
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -21,8 +25,10 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { token }: Payload = await req.json()
-    if (!token) {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isNonEmptyString(parsed.body.token, TOKEN_MAX_LENGTH)) {
       return new Response(JSON.stringify({ valid: false, error: 'Token required' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -32,7 +38,7 @@ Deno.serve(async (req: Request) => {
     const { data: invitation, error } = await adminClient
       .from('invitations')
       .select('id, org_id, email, role, expires_at, status, organizations!inner(name)')
-      .eq('token', token)
+      .eq('token', parsed.body.token)
       .single()
 
     if (error || !invitation) {
@@ -70,11 +76,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ valid: false, error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

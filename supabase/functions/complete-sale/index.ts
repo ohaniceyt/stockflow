@@ -5,6 +5,14 @@ import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { logActivity } from '../_shared/audit.ts'
 import { getLogger, getTraceId } from '../_shared/logger.ts'
+import {
+  parseJsonBody,
+  isUuid,
+  isNonEmptyString,
+  isNumber,
+  isPositiveInteger,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface OrgFeatures {
   has_cashier_enabled: boolean
@@ -33,16 +41,26 @@ interface CompleteSaleItem {
   total?: number
 }
 
-interface CompleteSalePayload {
-  location_id: string
-  cashier_session_id: string
-  contact_id?: string | null
-  payment_method: string
-  currency: string
-  prefix?: string | null
-  amount_paid: number
-  notes?: string | null
-  items: CompleteSaleItem[]
+interface RawCompleteSaleItem {
+  product_id?: unknown
+  product_name?: unknown
+  quantity?: unknown
+  unit_price?: unknown
+  discount_amount?: unknown
+  tax_amount?: unknown
+  total?: unknown
+}
+
+interface RawCompleteSalePayload {
+  location_id?: unknown
+  cashier_session_id?: unknown
+  contact_id?: unknown
+  payment_method?: unknown
+  currency?: unknown
+  prefix?: unknown
+  amount_paid?: unknown
+  notes?: unknown
+  items?: unknown
 }
 
 interface PriceMismatch {
@@ -189,14 +207,18 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: CompleteSalePayload = await req.json()
+    const parsed = await parseJsonBody<RawCompleteSalePayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+
+    const body = parsed.body
     if (
-      !payload.location_id ||
-      !payload.cashier_session_id ||
-      !payload.payment_method ||
-      typeof payload.amount_paid !== 'number' ||
-      !Array.isArray(payload.items) ||
-      payload.items.length === 0
+      !isUuid(body.location_id) ||
+      !isUuid(body.cashier_session_id) ||
+      !isNonEmptyString(body.payment_method, 50) ||
+      !isNonEmptyString(body.currency, 3) ||
+      !isNumber(body.amount_paid)
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
@@ -204,9 +226,118 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    const amountPaid = body.amount_paid as number
+    if (amountPaid < 0) {
+      return new Response(JSON.stringify({ error: 'Invalid amount_paid' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    let contactId: string | null = null
+    if (body.contact_id !== undefined && body.contact_id !== null) {
+      if (!isUuid(body.contact_id)) {
+        return new Response(JSON.stringify({ error: 'Invalid contact_id' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      contactId = body.contact_id as string
+    }
+
+    let prefix: string | null = null
+    if (body.prefix !== undefined && body.prefix !== null) {
+      if (!isNonEmptyString(body.prefix, 20)) {
+        return new Response(JSON.stringify({ error: 'Invalid prefix' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      prefix = (body.prefix as string).trim()
+    }
+
+    let notes: string | null = null
+    if (body.notes !== undefined && body.notes !== null) {
+      if (!isNonEmptyString(body.notes, 500)) {
+        return new Response(JSON.stringify({ error: 'Invalid notes' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      notes = (body.notes as string).trim()
+    }
+
+    if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 200) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    const typedItems: CompleteSaleItem[] = []
+    for (const rawItem of body.items) {
+      if (!rawItem || typeof rawItem !== 'object') {
+        return new Response(JSON.stringify({ error: 'Invalid item' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+      const item = rawItem as RawCompleteSaleItem
+      if (
+        !isUuid(item.product_id) ||
+        !isNonEmptyString(item.product_name, 100) ||
+        !isPositiveInteger(item.quantity) ||
+        !isNumber(item.unit_price)
+      ) {
+        return new Response(JSON.stringify({ error: 'Invalid item' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+
+      const discount =
+        item.discount_amount !== undefined && item.discount_amount !== null
+          ? isNumber(item.discount_amount)
+            ? (item.discount_amount as number)
+            : NaN
+          : undefined
+      const tax =
+        item.tax_amount !== undefined && item.tax_amount !== null
+          ? isNumber(item.tax_amount)
+            ? (item.tax_amount as number)
+            : NaN
+          : undefined
+      const total =
+        item.total !== undefined && item.total !== null
+          ? isNumber(item.total)
+            ? (item.total as number)
+            : NaN
+          : undefined
+      if (
+        (discount !== undefined && Number.isNaN(discount)) ||
+        (tax !== undefined && Number.isNaN(tax)) ||
+        (total !== undefined && Number.isNaN(total))
+      ) {
+        return new Response(JSON.stringify({ error: 'Invalid item' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+
+      typedItems.push({
+        product_id: item.product_id as string,
+        product_name: (item.product_name as string).trim(),
+        quantity: item.quantity as number,
+        unit_price: item.unit_price as number,
+        ...(discount !== undefined ? { discount_amount: discount } : {}),
+        ...(tax !== undefined ? { tax_amount: tax } : {}),
+        ...(total !== undefined ? { total } : {}),
+      })
+    }
+
     const features = await getOrgFeatures(adminClient, operator.org_id)
     if (!features?.has_cashier_enabled) {
-      return new Response(JSON.stringify({ error: 'Caisse non activée pour cette organisation' }), {
+      return new Response(JSON.stringify({ error: 'Caisse non activée pour cette entreprise' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -214,10 +345,10 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, operator.org_id)
     if (!limits) {
-      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      console.error('complete-sale: could not load organization limits', {
+        org_id: operator.org_id,
       })
+      return genericInternalErrorResponse(req)
     }
     if (limits.isSuspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
@@ -225,9 +356,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
-    if (
-      isAtLimit(limits.usedMovementsThisMonth + payload.items.length, limits.maxMonthlyMovements)
-    ) {
+    if (isAtLimit(limits.usedMovementsThisMonth + typedItems.length, limits.maxMonthlyMovements)) {
       return new Response(
         JSON.stringify({ error: 'Monthly movement limit reached for this plan' }),
         {
@@ -237,7 +366,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const validation = await validateItemPrices(adminClient, operator.org_id, payload.items)
+    const validation = await validateItemPrices(adminClient, operator.org_id, typedItems)
     if (!validation.ok) {
       log.warn('sale_price_validation_failed', {
         org_id: operator.org_id,
@@ -255,9 +384,10 @@ Deno.serve(async (req: Request) => {
         details: {
           reason: validation.reason,
           mismatches: validation.mismatches,
-          amount_paid: payload.amount_paid,
-          currency: payload.currency,
-          payment_method: payload.payment_method,
+          amount_paid: amountPaid,
+          currency: body.currency as string,
+          payment_method: body.payment_method as string,
+          ip_address: req.headers.get('x-forwarded-for') ?? null,
         },
         ip_address: req.headers.get('x-forwarded-for') ?? null,
       })
@@ -281,14 +411,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: saleData, error: saleError } = await userClient.rpc('complete_sale', {
       p_org_id: operator.org_id,
-      p_location_id: payload.location_id,
-      p_cashier_session_id: payload.cashier_session_id,
-      p_amount_paid: payload.amount_paid,
-      p_contact_id: payload.contact_id ?? null,
-      p_payment_method: payload.payment_method,
-      p_currency: payload.currency,
-      p_prefix: payload.prefix ?? null,
-      p_notes: payload.notes ?? null,
+      p_location_id: body.location_id as string,
+      p_cashier_session_id: body.cashier_session_id as string,
+      p_amount_paid: amountPaid,
+      p_contact_id: contactId,
+      p_payment_method: (body.payment_method as string).trim(),
+      p_currency: (body.currency as string).trim(),
+      p_prefix: prefix,
+      p_notes: notes,
       p_items: validation.validatedItems,
     })
 
@@ -298,13 +428,7 @@ Deno.serve(async (req: Request) => {
         { org_id: operator.org_id, actor_id: claims.sub },
         saleError ?? undefined
       )
-      return new Response(
-        JSON.stringify({ error: saleError?.message ?? 'Failed to complete sale' }),
-        {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return genericInternalErrorResponse(req)
     }
 
     const receiptId = (saleData as { receipt_id: string }).receipt_id
@@ -313,7 +437,7 @@ Deno.serve(async (req: Request) => {
       actor_id: claims.sub,
       receipt_id: receiptId,
       total: (saleData as { total?: number }).total ?? null,
-      item_count: payload.items.length,
+      item_count: typedItems.length,
     })
 
     await logActivity(adminClient, {
@@ -323,10 +447,10 @@ Deno.serve(async (req: Request) => {
       target_type: 'receipt',
       target_id: receiptId,
       details: {
-        amount_paid: payload.amount_paid,
-        currency: payload.currency,
-        item_count: payload.items.length,
-        payment_method: payload.payment_method,
+        amount_paid: amountPaid,
+        currency: body.currency as string,
+        item_count: typedItems.length,
+        payment_method: body.payment_method as string,
         subtotal: (saleData as { subtotal?: number }).subtotal ?? null,
         tax_amount: (saleData as { tax_amount?: number }).tax_amount ?? null,
         total: (saleData as { total?: number }).total ?? null,
@@ -339,10 +463,8 @@ Deno.serve(async (req: Request) => {
     ])
 
     if (receiptError || !receipt) {
-      return new Response(JSON.stringify({ error: receiptError?.message ?? 'Receipt not found' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      console.error('complete-sale: receipt not found after sale', receiptError)
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(
@@ -355,12 +477,8 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    log.error('sale_unhandled_error', {}, err instanceof Error ? err : new Error(message))
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    log.error('sale_unhandled_error', {}, _err instanceof Error ? _err : new Error(String(_err)))
+    return genericInternalErrorResponse(req)
   }
 })

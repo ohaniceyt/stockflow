@@ -3,6 +3,8 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid, isNonEmptyString, isString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface CreateLocationPayload {
   org_id: string
@@ -21,7 +23,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -59,8 +61,35 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: CreateLocationPayload = await req.json()
-    if (!payload.org_id || !payload.name) {
+    const parsed = await parseJsonBody<CreateLocationPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const payload = parsed.body
+
+    if (!isUuid(payload.org_id) || !isNonEmptyString(payload.name, 100)) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      payload.description !== undefined &&
+      payload.description !== null &&
+      !isString(payload.description, 500)
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      payload.address !== undefined &&
+      payload.address !== null &&
+      !isString(payload.address, 255)
+    ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -76,10 +105,7 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, payload.org_id)
     if (!limits) {
-      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
     if (limits.isSuspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
@@ -107,21 +133,14 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !data) {
-      return new Response(
-        JSON.stringify({ error: error?.message ?? 'Could not create location' }),
-        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-      )
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

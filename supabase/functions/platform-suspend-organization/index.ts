@@ -1,12 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid, isBoolean, isNonEmptyString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   orgId: string
   isSuspended: boolean
   reason?: string
 }
+
+const REASON_MAX_LENGTH = 500
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -32,51 +36,66 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgId, isSuspended, reason }: Payload = await req.json()
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.orgId)) {
+      return new Response(JSON.stringify({ error: 'orgId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
+    if (!isBoolean(parsed.body.isSuspended)) {
+      return new Response(JSON.stringify({ error: 'isSuspended must be a boolean' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      parsed.body.reason !== undefined &&
+      !isNonEmptyString(parsed.body.reason, REASON_MAX_LENGTH)
+    ) {
+      return new Response(
+        JSON.stringify({ error: `reason must be a string up to ${REASON_MAX_LENGTH} characters` }),
+        {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     const { error } = await adminClient
       .from('organizations')
       .update({
-        is_suspended: isSuspended,
-        suspension_reason: isSuspended ? (reason ?? null) : null,
+        is_suspended: parsed.body.isSuspended,
+        suspension_reason: parsed.body.isSuspended ? (parsed.body.reason ?? null) : null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', orgId)
+      .eq('id', parsed.body.orgId)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
       actor_id: platformAdmin.authUserId,
       actor_role: platformAdmin.role,
-      action: isSuspended ? 'org_suspended' : 'org_reactivated',
+      action: parsed.body.isSuspended ? 'org_suspended' : 'org_reactivated',
       target_type: 'organization',
-      target_id: orgId,
-      metadata: { reason },
+      target_id: parsed.body.orgId,
+      metadata: { reason: parsed.body.reason },
     })
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Organization ${isSuspended ? 'suspended' : 'reactivated'}`,
+        message: `Organization ${parsed.body.isSuspended ? 'suspended' : 'reactivated'}`,
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

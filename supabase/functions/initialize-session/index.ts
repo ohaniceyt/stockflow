@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -12,7 +13,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -74,13 +75,7 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (createError || !newProfile) {
-        return new Response(
-          JSON.stringify({ error: createError?.message ?? 'Could not create profile' }),
-          {
-            status: 500,
-            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-          }
-        )
+        return genericInternalErrorResponse(req)
       }
       profile = newProfile
     }
@@ -234,11 +229,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

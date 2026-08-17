@@ -4,13 +4,16 @@ import { sendEmail } from '../_shared/resend.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { logActivity } from '../_shared/audit.ts'
+import { parseJsonBody, isNonEmptyString, isEmail, isEnum } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface CreateUserPayload {
   name: string
   email: string
   role: 'admin' | 'operator' | 'cashier' | 'reader'
 }
+
+const ROLES = ['admin', 'operator', 'cashier', 'reader'] as const
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -22,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -62,8 +65,13 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { name, email, role }: CreateUserPayload = await req.json()
-    if (!name || !email || !role || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const parsed = await parseJsonBody<CreateUserPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const { name, email, role } = parsed.body
+
+    if (!isNonEmptyString(name, 100) || !isEmail(email) || !isEnum(role, ROLES)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -80,10 +88,7 @@ Deno.serve(async (req: Request) => {
     // Quota check
     const limits = await getOrgLimits(adminClient, operator.org_id)
     if (!limits) {
-      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
     if (isAtLimit(limits.usedUsers, limits.maxUsers)) {
       return new Response(JSON.stringify({ error: 'User limit reached for this plan' }), {
@@ -129,10 +134,7 @@ Deno.serve(async (req: Request) => {
         })
 
       if (createAuthError || !createAuthData.user) {
-        return new Response(
-          JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
-          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-        )
+        return genericInternalErrorResponse(req)
       }
 
       authUserId = createAuthData.user.id
@@ -146,10 +148,7 @@ Deno.serve(async (req: Request) => {
 
       if (insertProfileError) {
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
-        return new Response(JSON.stringify({ error: insertProfileError.message }), {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        })
+        return genericInternalErrorResponse(req)
       }
     }
 
@@ -172,28 +171,9 @@ Deno.serve(async (req: Request) => {
           .eq('id', authUserId)
           .catch(() => {})
       }
-      return new Response(JSON.stringify({ error: insertMembershipError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
-    await logActivity(adminClient, {
-      org_id: operator.org_id,
-      actor_id: claims.sub,
-      action: 'user_created',
-      target_type: 'user',
-      target_id: authUserId,
-      details: {
-        role,
-        is_new_profile: !existingProfile,
-      },
-      ip_address: req.headers.get('x-forwarded-for') ?? null,
-    })
-
-    // Generate a password-recovery link so the new user can set a real password.
-    // The account is created with a random password; without this link the user
-    // would be unable to sign in (login uses email + password, not the temp PIN).
     const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
     const setupPasswordUrl = `${appUrl}/auth/reset-password`
     let setupLink: string | null = null
@@ -212,12 +192,10 @@ Deno.serve(async (req: Request) => {
       } else {
         setupLink = linkData.properties.action_link
       }
-    } catch (linkErr) {
-      console.error('Failed to generate recovery link:', linkErr)
+    } catch (_err) {
+      console.error('Failed to generate recovery link:', _err)
     }
 
-    // Send welcome email with the setup link via Resend.
-    // We do not block account creation if the email fails; we just log and surface it.
     let emailSent = false
     try {
       await sendEmail({
@@ -227,13 +205,11 @@ Deno.serve(async (req: Request) => {
         text: buildWelcomeEmailText(name, setupLink),
       })
       emailSent = true
-    } catch (emailErr) {
-      console.error('Failed to send welcome email:', emailErr)
+    } catch (_err) {
+      console.error('Failed to send welcome email:', _err)
     }
 
     if (setupLink && !emailSent) {
-      // Surface the raw setup link to the admin if the email provider is down,
-      // so the account is still usable.
       return new Response(
         JSON.stringify({
           success: true,
@@ -256,12 +232,8 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
 
@@ -311,7 +283,13 @@ function buildWelcomeEmailText(name: string, setupLink: string | null): string {
     ? `Définissez votre mot de passe en cliquant sur ce lien : ${setupLink}`
     : `Un problème est survenu lors de la génération du lien. Contactez votre administrateur.`
 
-  return `Bonjour ${name},\n\nVotre compte StockFlow a été créé. ${linkText}\n\nAprès avoir défini votre mot de passe, connectez-vous avec votre email et ce mot de passe. Vous pourrez ensuite définir un code PIN local sur votre appareil pour verrouiller l’application.\n\nStockFlow vNext`
+  return `Bonjour ${name},
+
+Votre compte StockFlow a été créé. ${linkText}
+
+Après avoir défini votre mot de passe, connectez-vous avec votre email et ce mot de passe. Vous pourrez ensuite définir un code PIN local sur votre appareil pour verrouiller l’application.
+
+StockFlow vNext`
 }
 
 function escapeHtml(value: string): string {

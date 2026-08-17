@@ -24,9 +24,10 @@ export async function getCurrentOrgId(
 
 export async function getCurrentMembership(
   adminClient: ReturnType<typeof createClient>,
-  authUserId: string
+  authUserId: string,
+  orgId?: string
 ): Promise<Membership | null> {
-  const activeOrgId = await getCurrentOrgId(adminClient, authUserId)
+  const activeOrgId = orgId ?? (await getCurrentOrgId(adminClient, authUserId))
   if (!activeOrgId) return null
 
   const { data, error } = await adminClient

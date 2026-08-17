@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -28,8 +30,8 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url)
     const userId = url.searchParams.get('userId')
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'userId required' }), {
+    if (!userId || !isUuid(userId)) {
+      return new Response(JSON.stringify({ error: 'userId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -63,7 +65,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: userError?.message ?? 'User not found' }), {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
         status: userError?.code === 'PGRST116' ? 404 : 500,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -91,11 +93,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

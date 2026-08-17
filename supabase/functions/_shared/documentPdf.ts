@@ -7,7 +7,7 @@ export async function buildDocumentPdfBase64(
   adminClient: SupabaseClient,
   documentId: string,
   type: DocumentType,
-  expectedOrgId?: string,
+  expectedOrgId: string,
 ): Promise<{ pdfBase64: string; filename: string; document: Record<string, unknown> }> {
   const { data: doc, error: docError } = await adminClient
     .from('invoices')
@@ -20,7 +20,7 @@ export async function buildDocumentPdfBase64(
     throw new Error(docError?.message ?? 'Document not found')
   }
 
-  if (expectedOrgId && String(doc.org_id) !== expectedOrgId) {
+  if (String(doc.org_id) !== expectedOrgId) {
     throw new Error('Document does not belong to the active organization')
   }
 

@@ -4,11 +4,15 @@ import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { logActivity } from '../_shared/audit.ts'
 import { getLogger, getTraceId } from '../_shared/logger.ts'
+import { parseJsonBody, isEnum, isString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface DataSubjectRequestPayload {
   request_type: 'access' | 'deletion' | 'portability' | 'rectification'
   details?: string | null
 }
+
+const REQUEST_TYPES = ['access', 'deletion', 'portability', 'rectification'] as const
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -23,7 +27,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -68,10 +72,7 @@ Deno.serve(async (req: Request) => {
           { org_id: operator.org_id, user_id: claims.sub },
           error
         )
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        })
+        return genericInternalErrorResponse(req)
       }
 
       return new Response(JSON.stringify({ requests: data }), {
@@ -81,9 +82,21 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method === 'POST') {
-      const payload: DataSubjectRequestPayload = await req.json()
-      if (!['access', 'deletion', 'portability', 'rectification'].includes(payload.request_type)) {
+      const parsed = await parseJsonBody<DataSubjectRequestPayload>(req)
+      if (!parsed.ok) {
+        return parsed.response
+      }
+      const { request_type, details } = parsed.body
+
+      if (!isEnum(request_type, REQUEST_TYPES)) {
         return new Response(JSON.stringify({ error: 'Invalid request type' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
+
+      if (details !== undefined && details !== null && !isString(details, 2000)) {
+        return new Response(JSON.stringify({ error: 'Invalid request' }), {
           status: 400,
           headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
@@ -94,8 +107,8 @@ Deno.serve(async (req: Request) => {
         .insert({
           org_id: operator.org_id,
           user_id: claims.sub,
-          request_type: payload.request_type,
-          details: payload.details ? { note: payload.details } : null,
+          request_type: request_type,
+          details: details ? { note: details } : null,
         })
         .select()
         .single()
@@ -106,13 +119,7 @@ Deno.serve(async (req: Request) => {
           { org_id: operator.org_id, user_id: claims.sub },
           error ?? undefined
         )
-        return new Response(
-          JSON.stringify({ error: error?.message ?? 'Failed to create request' }),
-          {
-            status: 500,
-            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-          }
-        )
+        return genericInternalErrorResponse(req)
       }
 
       await logActivity(adminClient, {
@@ -121,7 +128,7 @@ Deno.serve(async (req: Request) => {
         action: 'data_subject_request_created',
         target_type: 'data_subject_request',
         target_id: data.id,
-        details: { request_type: payload.request_type },
+        details: { request_type: request_type },
         ip_address: req.headers.get('x-forwarded-for') ?? null,
       })
 
@@ -129,7 +136,7 @@ Deno.serve(async (req: Request) => {
         org_id: operator.org_id,
         user_id: claims.sub,
         request_id: data.id,
-        request_type: payload.request_type,
+        request_type: request_type,
       })
 
       return new Response(JSON.stringify({ request: data }), {
@@ -142,16 +149,9 @@ Deno.serve(async (req: Request) => {
       status: 405,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    log.error(
-      'data_subject_request_unhandled_error',
-      {},
-      err instanceof Error ? err : new Error(message)
-    )
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    const logErr = _err instanceof Error ? _err : new Error(String(_err))
+    log.error('data_subject_request_unhandled_error', {}, logErr)
+    return genericInternalErrorResponse(req)
   }
 })

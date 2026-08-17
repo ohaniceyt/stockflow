@@ -1,6 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { getClientIp, isRateLimited, recordRateLimitRequest } from '../_shared/rateLimit.ts'
+import {
+  parseJsonBody,
+  isSlug,
+  isNonEmptyString,
+  isEmail,
+  isPhone,
+  isString,
+  isUuid,
+  isPositiveInteger,
+  isNumber,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface OrderItem {
   product_id: string
@@ -34,7 +46,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -53,18 +65,75 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: CreateStorefrontOrderPayload = await req.json()
+    const parsed = await parseJsonBody<CreateStorefrontOrderPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const payload = parsed.body
+
+    if (!isSlug(payload.org_slug)) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!isNonEmptyString(payload.customer_name, 100)) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!isEmail(payload.customer_email)) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
     if (
-      !payload.org_slug ||
-      !payload.customer_name?.trim() ||
-      !payload.customer_email?.trim() ||
-      !Array.isArray(payload.items) ||
-      payload.items.length === 0
+      payload.customer_phone !== undefined &&
+      payload.customer_phone !== null &&
+      !isPhone(payload.customer_phone)
     ) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
+    }
+
+    if (
+      payload.address !== undefined &&
+      payload.address !== null &&
+      !isString(payload.address, 255)
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!Array.isArray(payload.items) || payload.items.length === 0 || payload.items.length > 100) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    for (const item of payload.items) {
+      if (
+        !isUuid(item.product_id) ||
+        !isPositiveInteger(item.quantity) ||
+        !isNumber(item.unit_price) ||
+        !Number.isFinite(item.unit_price) ||
+        item.unit_price < 0
+      ) {
+        return new Response(JSON.stringify({ error: 'Invalid item' }), {
+          status: 400,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     const { data: org, error: orgError } = await adminClient
@@ -90,17 +159,6 @@ Deno.serve(async (req: Request) => {
     const orgId = org.id
     const locationId = org.storefront_location_id
 
-    // Validate items
-    for (const item of payload.items) {
-      if (!item.product_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
-        return new Response(JSON.stringify({ error: 'Invalid item' }), {
-          status: 400,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        })
-      }
-    }
-
-    // Check product ownership and stock
     const productIds = payload.items.map((i) => i.product_id)
     const { data: products, error: productsError } = await adminClient
       .from('products')
@@ -110,10 +168,7 @@ Deno.serve(async (req: Request) => {
       .eq('is_active', true)
 
     if (productsError) {
-      return new Response(JSON.stringify({ error: productsError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const productMap = new Map(products?.map((p) => [p.id, p]))
@@ -132,10 +187,7 @@ Deno.serve(async (req: Request) => {
       .in('product_id', productIds)
 
     if (stockError) {
-      return new Response(JSON.stringify({ error: stockError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const stockMap = new Map(stock?.map((s) => [s.product_id, s.quantity]))
@@ -147,7 +199,6 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Upsert customer contact
     const { data: existingContact } = await adminClient
       .from('contacts')
       .select('id')
@@ -173,13 +224,7 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (contactError || !newContact) {
-        return new Response(
-          JSON.stringify({ error: contactError?.message ?? 'Contact creation failed' }),
-          {
-            status: 500,
-            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-          }
-        )
+        return genericInternalErrorResponse(req)
       }
       contactId = newContact.id
     }
@@ -202,10 +247,7 @@ Deno.serve(async (req: Request) => {
     )
 
     if (orderError || !orderResult) {
-      return new Response(JSON.stringify({ error: orderError?.message ?? 'Order failed' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const movementIds = (orderResult as { movement_ids: string[] }).movement_ids
@@ -225,11 +267,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

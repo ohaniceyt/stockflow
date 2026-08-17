@@ -1,9 +1,11 @@
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
-interface ChangePinPayload {
-  currentPin?: string
-  newPin: string
+interface Payload {
+  currentPin?: unknown
+  newPin: unknown
 }
 
 function isValidPin(pin: string): boolean {
@@ -39,9 +41,13 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { newPin }: ChangePinPayload = await req.json()
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
 
-    if (!isValidPin(newPin)) {
+    const { newPin } = parsed.body
+    if (!isNonEmptyString(newPin, 8) || !isValidPin(newPin)) {
       return new Response(JSON.stringify({ error: 'PIN must be 4 to 8 digits' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -55,11 +61,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

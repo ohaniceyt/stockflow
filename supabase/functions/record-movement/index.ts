@@ -12,7 +12,7 @@ import {
   isUuid,
   parseJsonBody,
 } from '../_shared/validate.ts'
-import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { genericInternalErrorResponse, internalErrorResponse } from '../_shared/errors.ts'
 
 interface OrgFeatures {
   has_cashier_enabled: boolean
@@ -35,6 +35,7 @@ async function getOrgFeatures(
 }
 
 interface RecordMovementPayload {
+  org_id: string
   product_id: string
   location_id: string
   target_location_id?: string | null
@@ -58,6 +59,9 @@ const ALLOWED_TYPES: RecordMovementPayload['type'][] = [
 function validatePayload(
   payload: RecordMovementPayload
 ): { ok: false; error: string } | { ok: true } {
+  if (!isUuid(payload.org_id)) {
+    return { ok: false, error: 'Entreprise invalide' }
+  }
   if (!isEnum(payload.type, ALLOWED_TYPES)) {
     return { ok: false, error: 'Type de mouvement invalide' }
   }
@@ -163,6 +167,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+      console.error('[record-movement] missing env vars')
       return genericInternalErrorResponse(req)
     }
 
@@ -176,6 +181,7 @@ Deno.serve(async (req: Request) => {
 
     const claims = await verifyToken(supabaseUrl, anonKey, token)
     if (!claims?.sub) {
+      console.warn('[record-movement] jwt verification failed')
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -186,23 +192,11 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const operator = await getCurrentMembership(adminClient, claims.sub)
-
-    if (!operator || !['super_admin', 'admin', 'operator', 'cashier'].includes(operator.role)) {
-      return new Response(
-        JSON.stringify({
-          error: 'Forbidden',
-          debug: 'Operator not found or insufficient role',
-        }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    console.info('[record-movement] request received', claims.sub)
 
     const parseResult = await parseJsonBody<RecordMovementPayload>(req)
     if (!parseResult.ok) {
+      console.warn('[record-movement] json parse failed', claims.sub)
       return parseResult.response
     }
 
@@ -213,6 +207,27 @@ Deno.serve(async (req: Request) => {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
+    }
+
+    console.info('[record-movement] membership lookup', claims.sub, payload.org_id)
+
+    const operator = await getCurrentMembership(adminClient, claims.sub, payload.org_id)
+
+    if (!operator || !['super_admin', 'admin', 'operator', 'cashier'].includes(operator.role)) {
+      console.warn(
+        '[record-movement] membership not found or insufficient role',
+        claims.sub,
+        payload.org_id
+      )
+      return new Response(
+        JSON.stringify({
+          error: 'Forbidden',
+        }),
+        {
+          status: 403,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     const owned = await validateOwnership(adminClient, operator.org_id, payload)
@@ -233,7 +248,12 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, operator.org_id)
     if (!limits) {
-      return genericInternalErrorResponse(req)
+      console.error('[record-movement] org limits unavailable', operator.org_id)
+      return internalErrorResponse(
+        req,
+        503,
+        'Service temporairement indisponible, veuillez réessayer'
+      )
     }
     if (limits.isSuspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
@@ -358,7 +378,7 @@ Deno.serve(async (req: Request) => {
         )
       }
       // Unexpected database/internal error: keep details server-side.
-      console.error('record_movement rpc error', error)
+      console.error('[record-movement] rpc error', message, error)
       return genericInternalErrorResponse(req)
     }
 
@@ -372,7 +392,9 @@ Deno.serve(async (req: Request) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    console.error('record-movement uncaught error', err)
+    const message = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error ? err.stack : undefined
+    console.error('[record-movement] uncaught error', message, stack, err)
     return genericInternalErrorResponse(req)
   }
 })

@@ -2,6 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { encodeBase64, decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   password: string
@@ -66,7 +68,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -81,8 +83,13 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { password }: Payload = await req.json()
-    if (!password || typeof password !== 'string') {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const { password } = parsed.body
+
+    if (!isNonEmptyString(password, 256)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -96,10 +103,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (adminError || !adminRecord) {
-      return new Response(JSON.stringify({ error: 'Admin record not found' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     const lockedUntil = adminRecord.locked_until ? new Date(adminRecord.locked_until) : null
@@ -181,13 +185,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !challenge) {
-      return new Response(
-        JSON.stringify({ error: error?.message ?? 'Failed to create challenge' }),
-        {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
@@ -206,11 +204,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

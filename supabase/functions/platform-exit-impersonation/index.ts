@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid, parseJsonBody } from '../_shared/validate.ts'
 
 interface Payload {
   targetId?: string
@@ -30,7 +32,16 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { targetId }: Payload = await req.json()
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+    const { targetId } = parsed.body
+
+    if (targetId !== undefined && !isUuid(targetId)) {
+      return new Response(JSON.stringify({ error: 'Invalid targetId' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
 
     await adminClient.from('platform_audit_logs').insert({
       actor_id: platformAdmin.authUserId,
@@ -45,11 +56,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

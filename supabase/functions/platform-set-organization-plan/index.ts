@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid, parseJsonBody } from '../_shared/validate.ts'
 
 interface Payload {
   orgId: string
@@ -23,7 +25,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
@@ -31,9 +33,12 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgId, planId }: Payload = await req.json()
-    if (!orgId || !planId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+    const { orgId, planId } = parsed.body
+
+    if (!isUuid(orgId) || !isUuid(planId)) {
+      return new Response(JSON.stringify({ error: 'orgId and planId must be valid UUIDs' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -62,10 +67,7 @@ Deno.serve(async (req: Request) => {
       .eq('org_id', orgId)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
@@ -81,11 +83,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

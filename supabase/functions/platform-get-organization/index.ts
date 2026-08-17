@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -28,8 +30,8 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url)
     const orgId = url.searchParams.get('orgId')
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'orgId required' }), {
+    if (!orgId || !isUuid(orgId)) {
+      return new Response(JSON.stringify({ error: 'orgId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -58,13 +60,10 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (orgError || !org) {
-      return new Response(
-        JSON.stringify({ error: orgError?.message ?? 'Organization not found' }),
-        {
-          status: orgError?.code === 'PGRST116' ? 404 : 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Organization not found' }), {
+        status: orgError?.code === 'PGRST116' ? 404 : 500,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const { data: recentActivity } = await adminClient
@@ -98,11 +97,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

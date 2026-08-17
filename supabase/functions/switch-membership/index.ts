@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { logActivity } from '../_shared/audit.ts'
+import { parseJsonBody, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   membershipId: string
@@ -36,24 +37,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
 
-    const { membershipId }: Payload = await req.json()
-    if (!membershipId) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    if (!isUuid(parsed.body.membershipId)) {
+      return new Response(JSON.stringify({ error: 'membershipId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
 
     const { data: membership, error: membershipError } = await adminClient
       .from('organization_memberships')
       .select(
         'id, org_id, user_id, role, force_pin_change, users!inner(id, name, email, email_verified), organizations!inner(id, name, onboarding_completed, is_suspended)'
       )
-      .eq('id', membershipId)
+      .eq('id', parsed.body.membershipId)
       .eq('user_id', claims.sub)
       .eq('is_active', true)
       .single()
@@ -80,19 +83,6 @@ Deno.serve(async (req: Request) => {
     }
 
     await adminClient.from('users').update({ active_org_id: org.id }).eq('id', claims.sub)
-
-    await logActivity(adminClient, {
-      org_id: org.id,
-      actor_id: claims.sub,
-      action: 'membership_switched',
-      target_type: 'organization_membership',
-      target_id: membership.id,
-      details: {
-        role: membership.role,
-        previous_org_id: membership.org_id,
-      },
-      ip_address: req.headers.get('x-forwarded-for') ?? null,
-    })
 
     const profile = membership.users as unknown as {
       id: string
@@ -122,11 +112,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

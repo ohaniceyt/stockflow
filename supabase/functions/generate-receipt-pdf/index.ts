@@ -2,7 +2,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { buildReceiptPdfBase64 } from '../_shared/receiptPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { getCurrentOrgId } from '../_shared/membership.ts'
+import { parseJsonBody, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface GenerateReceiptPdfPayload {
   receipt_id: string
@@ -18,7 +20,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -37,8 +39,13 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: GenerateReceiptPdfPayload = await req.json()
-    if (!payload.receipt_id) {
+    const parsed = await parseJsonBody<GenerateReceiptPdfPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const { receipt_id } = parsed.body
+
+    if (!isUuid(receipt_id)) {
       return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -49,8 +56,8 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
-    if (!activeOrgId) {
+    const membership = await getCurrentMembership(adminClient, claims.sub)
+    if (!membership) {
       return new Response(JSON.stringify({ error: 'No active organization' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -59,8 +66,8 @@ Deno.serve(async (req: Request) => {
 
     const { pdfBase64, filename, receipt } = await buildReceiptPdfBase64(
       adminClient,
-      payload.receipt_id,
-      activeOrgId
+      receipt_id,
+      membership.org_id
     )
 
     return new Response(
@@ -74,11 +81,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

@@ -5,6 +5,8 @@ import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 import { logActivity } from '../_shared/audit.ts'
 import { getLogger, getTraceId } from '../_shared/logger.ts'
+import { isEmail, parseJsonBody } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface RequestPinResetPayload {
   email: string
@@ -135,7 +137,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     // This endpoint is no longer public: only an authenticated user may request
@@ -156,9 +158,14 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { email }: RequestPinResetPayload = await req.json()
+    const parseResult = await parseJsonBody<RequestPinResetPayload>(req)
+    if (!parseResult.ok) {
+      return parseResult.response
+    }
+
+    const { email } = parseResult.body
     const normalizedEmail = email?.trim().toLowerCase()
-    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    if (!isEmail(normalizedEmail)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -237,10 +244,7 @@ Deno.serve(async (req: Request) => {
         { email: normalizedEmail },
         linkError ?? undefined
       )
-      return new Response(
-        JSON.stringify({ error: linkError?.message ?? 'Could not generate reset link' }),
-        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-      )
+      return genericInternalErrorResponse(req)
     }
 
     const magicLink = linkData.properties.action_link
@@ -274,12 +278,9 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    log.error('pin_reset_unhandled_error', {}, err instanceof Error ? err : new Error(message))
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    const message = _err instanceof Error ? _err.message : 'Unknown error'
+    log.error('pin_reset_unhandled_error', {}, _err instanceof Error ? _err : new Error(message))
+    return genericInternalErrorResponse(req)
   }
 })

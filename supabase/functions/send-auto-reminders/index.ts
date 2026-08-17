@@ -3,6 +3,7 @@ import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml } from '../_shared/html.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface OrgReminderSettings {
   id: string
@@ -108,7 +109,8 @@ Deno.serve(async (req: Request) => {
           const { pdfBase64, filename, document } = await buildDocumentPdfBase64(
             adminClient,
             inv.invoice_id,
-            'invoice'
+            'invoice',
+            org.id
           )
           const orgName = (document.org as Record<string, unknown>)?.name ?? 'StockFlow'
           const paidAmount = Number((document as Record<string, unknown>).paid_amount ?? 0)
@@ -154,8 +156,8 @@ Deno.serve(async (req: Request) => {
             .eq('id', inv.invoice_id)
 
           results.push({ orgId: org.id, invoiceId: inv.invoice_id, status: 'sent' })
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Unknown error'
+        } catch (_err) {
+          const message = _err instanceof Error ? _err.message : 'Unknown error'
           results.push({
             orgId: org.id,
             invoiceId: inv.invoice_id,
@@ -170,14 +172,9 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    // Log internally but never expose stack or internals to the cron caller.
-    console.error('send-auto-reminders error:', message)
-    return new Response(JSON.stringify({ error: 'Internal error' }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    console.error('send-auto-reminders error:', _err)
+    return genericInternalErrorResponse(req)
   }
 })
 
@@ -186,5 +183,5 @@ function formatCurrency(amount: number, currency: string) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })
-  return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
+  return `${formatted.replace(/[  ]/g, ' ')} ${currency}`
 }

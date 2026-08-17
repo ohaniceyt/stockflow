@@ -3,7 +3,11 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { buildDocumentPdfBase64 } from '../_shared/documentPdf.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { getCurrentOrgId } from '../_shared/membership.ts'
+import { parseJsonBody } from '../_shared/validate.ts'
+import { isEmail, isUuid } from '../_shared/validate.ts'
+import { escapeHtml } from '../_shared/html.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { getCurrentMembership } from '../_shared/membership.ts'
 
 interface SendInvoiceReminderPayload {
   invoice_id: string
@@ -39,9 +43,18 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: SendInvoiceReminderPayload = await req.json()
-    if (!payload.invoice_id) {
-      return new Response(JSON.stringify({ error: 'invoice_id is required' }), {
+    const parsed = await parseJsonBody<SendInvoiceReminderPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.invoice_id)) {
+      return new Response(JSON.stringify({ error: 'invoice_id must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (parsed.body.to !== undefined && !isEmail(parsed.body.to)) {
+      return new Response(JSON.stringify({ error: 'Invalid recipient email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -51,8 +64,8 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const activeOrgId = await getCurrentOrgId(adminClient, claims.sub)
-    if (!activeOrgId) {
+    const membership = await getCurrentMembership(adminClient, claims.sub)
+    if (!membership) {
       return new Response(JSON.stringify({ error: 'No active organization' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -62,22 +75,16 @@ Deno.serve(async (req: Request) => {
     const { data: invoice, error: invoiceError } = await adminClient
       .from('invoices')
       .select('*, org:organizations(*), contact:contacts(*)')
-      .eq('id', payload.invoice_id)
+      .eq('id', parsed.body.invoice_id)
+      .eq('org_id', membership.org_id)
       .eq('type', 'invoice')
       .single()
 
     if (invoiceError || !invoice) {
-      throw new Error(invoiceError?.message ?? 'Invoice not found')
-    }
-
-    if (String(invoice.org_id) !== activeOrgId) {
-      return new Response(
-        JSON.stringify({ error: 'Invoice does not belong to the active organization' }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Invoice not found' }), {
+        status: 404,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const status = String(invoice.status)
@@ -90,12 +97,12 @@ Deno.serve(async (req: Request) => {
 
     const { pdfBase64, filename } = await buildDocumentPdfBase64(
       adminClient,
-      payload.invoice_id,
+      parsed.body.invoice_id,
       'invoice',
-      activeOrgId
+      membership.org_id
     )
 
-    const recipient = payload.to ?? (invoice.contact as Record<string, unknown>)?.email ?? null
+    const recipient = parsed.body.to ?? (invoice.contact as Record<string, unknown>)?.email ?? null
     if (!recipient) {
       return new Response(JSON.stringify({ error: 'No recipient email provided or found' }), {
         status: 400,
@@ -103,11 +110,16 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const orgName = (invoice.org as Record<string, unknown>)?.name ?? 'StockFlow'
-    const documentNumber = invoice.document_number as string
-    const totalFormatted = formatCurrency(Number(invoice.total), invoice.currency as string)
+    const orgNameRaw = (invoice.org as Record<string, unknown>)?.name ?? 'StockFlow'
+    const documentNumberRaw = invoice.document_number as string
+    const totalFormattedRaw = formatCurrency(Number(invoice.total), invoice.currency as string)
     const paidAmount = Number(invoice.paid_amount ?? 0)
     const remaining = Math.max(0, Number(invoice.total) - paidAmount)
+
+    const orgName = escapeHtml(orgNameRaw)
+    const documentNumber = escapeHtml(documentNumberRaw)
+    const totalFormatted = escapeHtml(totalFormattedRaw)
+    const remainingFormatted = escapeHtml(formatCurrency(remaining, invoice.currency as string))
 
     const html = `<!DOCTYPE html>
 <html>
@@ -118,7 +130,7 @@ Deno.serve(async (req: Request) => {
   <body style="font-family: Arial, sans-serif; color: #333;">
     <p>Bonjour,</p>
     <p>Nous vous rappelons que votre facture <strong>${documentNumber}</strong> de <strong>${orgName}</strong> d'un montant de <strong>${totalFormatted}</strong> n'a pas encore été réglée.</p>
-    ${remaining > 0 ? `<p>Reste à payer : <strong>${formatCurrency(remaining, invoice.currency as string)}</strong></p>` : ''}
+    ${remaining > 0 ? `<p>Reste à payer : <strong>${remainingFormatted}</strong></p>` : ''}
     <p>La facture est jointe à cet email. Merci de procéder au règlement dans les meilleurs délais.</p>
     <br />
     <p><em>Cet email a été envoyé automatiquement par StockFlow.</em></p>
@@ -149,7 +161,7 @@ Cet email a été envoyé automatiquement par StockFlow.`
     const { data: current } = await adminClient
       .from('invoices')
       .select('reminders_sent')
-      .eq('id', payload.invoice_id)
+      .eq('id', parsed.body.invoice_id)
       .single()
     await adminClient
       .from('invoices')
@@ -157,7 +169,7 @@ Cet email a été envoyé automatiquement par StockFlow.`
         reminders_sent: (current?.reminders_sent ?? 0) + 1,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', payload.invoice_id)
+      .eq('id', parsed.body.invoice_id)
 
     return new Response(
       JSON.stringify({
@@ -168,12 +180,8 @@ Cet email a été envoyé automatiquement par StockFlow.`
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
 

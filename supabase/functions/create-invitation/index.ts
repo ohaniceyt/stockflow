@@ -3,11 +3,15 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { sendEmail } from '../_shared/resend.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isEmail, isEnum } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
-  email: string
-  role: 'admin' | 'operator' | 'cashier' | 'reader'
+  email: unknown
+  role: unknown
 }
+
+const ALLOWED_ROLES = ['admin', 'operator', 'cashier', 'reader'] as const
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -54,20 +58,27 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { email, role }: Payload = await req.json()
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !role) {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+
+    const { email, role } = parsed.body
+    if (!isEmail(email) || !isEnum(role, ALLOWED_ROLES)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
+    const normalizedEmail = (email as string).trim().toLowerCase()
+
     // Do not invite existing membership in same org
     const { data: existingMembership } = await adminClient
       .from('organization_memberships')
       .select('id')
       .eq('org_id', operator.org_id)
-      .eq('users.email', email.toLowerCase())
+      .eq('users.email', normalizedEmail)
       .maybeSingle()
 
     if (existingMembership) {
@@ -89,7 +100,7 @@ Deno.serve(async (req: Request) => {
       .from('invitations')
       .insert({
         org_id: operator.org_id,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         role,
         invited_by: operator.id,
         expires_at: expiresAt,
@@ -98,24 +109,22 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      console.error('create-invitation insert failed:', insertError)
+      return genericInternalErrorResponse(req)
     }
 
     // Best-effort email notification
     try {
       const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
-      const token = (invitation.token as string | undefined) ?? ''
-      const inviteUrl = token
-        ? `${appUrl}/invite?token=${encodeURIComponent(token)}`
+      const inviteToken = (invitation.token as string | undefined) ?? ''
+      const inviteUrl = inviteToken
+        ? `${appUrl}/invite?token=${encodeURIComponent(inviteToken)}`
         : `${appUrl}/login`
       await sendEmail({
-        to: email,
-        subject: 'Invitation à rejoindre une organisation sur StockFlow',
+        to: normalizedEmail,
+        subject: 'Invitation à rejoindre une entreprise sur StockFlow',
         html: buildInvitationHtml(
-          email,
+          normalizedEmail,
           (operatorProfile?.name as string | undefined) ?? 'Un administrateur',
           (invitation.organizations as { name: string }).name,
           inviteUrl
@@ -130,12 +139,8 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
 
@@ -159,7 +164,7 @@ function buildInvitationHtml(
           <p>Bonjour ${escapeHtml(email)},</p>
           <p>
             <strong>${escapeHtml(inviterName)}</strong> vous invite à rejoindre
-            l'organisation <strong>${escapeHtml(orgName)}</strong> sur StockFlow.
+            l'entreprise <strong>${escapeHtml(orgName)}</strong> sur StockFlow.
           </p>
           <p style="margin-top:24px;">
             <a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:14px 24px;background:#111827;color:#fff;text-decoration:none;border-radius:8px;font-weight:500;">Se connecter pour accepter</a>

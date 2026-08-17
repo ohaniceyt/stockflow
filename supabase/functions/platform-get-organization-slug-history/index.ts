@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -28,8 +30,8 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url)
     const orgId = url.searchParams.get('orgId')
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'orgId is required' }), {
+    if (!orgId || !isUuid(orgId)) {
+      return new Response(JSON.stringify({ error: 'orgId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -41,17 +43,15 @@ Deno.serve(async (req: Request) => {
       .eq('org_id', orgId)
       .order('changed_at', { ascending: false })
 
-    if (error) throw error
+    if (error) {
+      return genericInternalErrorResponse(req)
+    }
 
     return new Response(JSON.stringify({ history: history ?? [] }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isUuid, parseJsonBody } from '../_shared/validate.ts'
 
 interface Payload {
   userId?: string
@@ -31,9 +33,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { userId, orgId }: Payload = await req.json()
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+    const { userId, orgId } = parsed.body
+
     if (!userId && !orgId) {
       return new Response(JSON.stringify({ error: 'userId or orgId required' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (userId !== undefined && !isUuid(userId)) {
+      return new Response(JSON.stringify({ error: 'Invalid userId' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (orgId !== undefined && !isUuid(orgId)) {
+      return new Response(JSON.stringify({ error: 'Invalid orgId' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -70,12 +89,10 @@ Deno.serve(async (req: Request) => {
     if (orgError || !targetOrg || targetOrg.is_suspended) {
       return new Response(
         JSON.stringify({
-          error:
-            orgError?.message ??
-            (targetOrg?.is_suspended ? 'Organization is suspended' : 'Organization not found'),
+          error: targetOrg?.is_suspended ? 'Organization is suspended' : 'Organization not found',
         }),
         {
-          status: orgError ? 500 : 403,
+          status: targetOrg?.is_suspended ? 403 : 404,
           headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       )
@@ -102,11 +119,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

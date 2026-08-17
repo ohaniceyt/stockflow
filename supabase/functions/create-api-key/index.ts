@@ -2,13 +2,20 @@ import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { logActivity } from '../_shared/audit.ts'
+import {
+  parseJsonBody,
+  isUuid,
+  isNonEmptyString,
+  isStringArray,
+  isUuidArray,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
-interface CreateApiKeyPayload {
-  org_id: string
-  name: string
-  scopes: string[]
-  allowed_location_ids?: string[] | null
+interface Payload {
+  org_id: unknown
+  name: unknown
+  scopes: unknown
+  allowed_location_ids?: unknown
 }
 
 const VALID_SCOPES = ['read:products', 'read:stock', 'write:orders', 'read:orders']
@@ -68,15 +75,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const payload: CreateApiKeyPayload = await req.json()
-    if (!payload.org_id || !payload.name?.trim() || !Array.isArray(payload.scopes)) {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+
+    const body = parsed.body
+    if (!isUuid(body.org_id) || !isNonEmptyString(body.name, 100) || !isStringArray(body.scopes)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
-    if (membership.org_id !== payload.org_id) {
+    if (membership.org_id !== body.org_id) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -86,7 +98,7 @@ Deno.serve(async (req: Request) => {
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
       .select('has_api_enabled')
-      .eq('id', payload.org_id)
+      .eq('id', body.org_id as string)
       .single()
 
     if (orgError || !org?.has_api_enabled) {
@@ -96,9 +108,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const scopes = payload.scopes.filter((s) => VALID_SCOPES.includes(s))
+    const scopes = (body.scopes as string[]).filter((s) => VALID_SCOPES.includes(s))
     if (scopes.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid scopes provided' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      body.allowed_location_ids !== undefined &&
+      body.allowed_location_ids !== null &&
+      !isUuidArray(body.allowed_location_ids, 50)
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid allowed_location_ids' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -110,11 +133,14 @@ Deno.serve(async (req: Request) => {
     const { data: inserted, error: insertError } = await adminClient
       .from('organization_api_keys')
       .insert({
-        org_id: payload.org_id,
-        name: payload.name.trim(),
+        org_id: body.org_id as string,
+        name: (body.name as string).trim(),
         key_hash: keyHash,
         scopes,
-        allowed_location_ids: payload.allowed_location_ids ?? null,
+        allowed_location_ids:
+          body.allowed_location_ids === undefined || body.allowed_location_ids === null
+            ? null
+            : (body.allowed_location_ids as string[]),
         created_by: claims.sub,
       })
       .select(
@@ -123,28 +149,9 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (insertError || !inserted) {
-      return new Response(
-        JSON.stringify({ error: insertError?.message ?? 'Failed to create API key' }),
-        {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+      console.error('create-api-key insert failed:', insertError)
+      return genericInternalErrorResponse(req)
     }
-
-    await logActivity(adminClient, {
-      org_id: payload.org_id,
-      actor_id: claims.sub,
-      action: 'api_key_created',
-      target_type: 'organization_api_key',
-      target_id: inserted.id,
-      details: {
-        name: inserted.name,
-        scopes: inserted.scopes,
-        allowed_location_ids: inserted.allowed_location_ids,
-      },
-      ip_address: req.headers.get('x-forwarded-for') ?? null,
-    })
 
     return new Response(
       JSON.stringify({
@@ -165,11 +172,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

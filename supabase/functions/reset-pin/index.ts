@@ -1,6 +1,9 @@
+import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid, isBoolean, isNonEmptyString } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface ResetPinPayload {
   userId: string
@@ -54,9 +57,25 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { userId, newPin, forcePinChange = true }: ResetPinPayload = await req.json()
-    if (!userId || !isValidPin(newPin)) {
-      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    const parsed = await parseJsonBody<ResetPinPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.userId)) {
+      return new Response(JSON.stringify({ error: 'userId must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!isNonEmptyString(parsed.body.newPin) || !isValidPin(parsed.body.newPin)) {
+      return new Response(JSON.stringify({ error: 'newPin must be 4 to 8 digits' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (parsed.body.forcePinChange !== undefined && !isBoolean(parsed.body.forcePinChange)) {
+      return new Response(JSON.stringify({ error: 'forcePinChange must be a boolean' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -65,7 +84,7 @@ Deno.serve(async (req: Request) => {
     const { data: targetMembership, error: targetError } = await adminClient
       .from('organization_memberships')
       .select('id, org_id, role')
-      .eq('id', userId)
+      .eq('id', parsed.body.userId)
       .single()
 
     if (targetError || targetMembership?.org_id !== operator.org_id) {
@@ -85,27 +104,20 @@ Deno.serve(async (req: Request) => {
     const { error: updateError } = await adminClient
       .from('organization_memberships')
       .update({
-        force_pin_change: forcePinChange,
+        force_pin_change: parsed.body.forcePinChange ?? true,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', userId)
+      .eq('id', parsed.body.userId)
 
     if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

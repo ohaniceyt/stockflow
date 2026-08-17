@@ -1,11 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isNonEmptyString, isUuid } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
-interface NewUserPayload {
-  token: string
-  name: string
-  password: string
+interface Payload {
+  token?: unknown
+  invitationId?: unknown
+  name?: unknown
+  password?: unknown
 }
 
 Deno.serve(async (req: Request) => {
@@ -25,11 +28,16 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const payload = await req.json()
-    const token = (payload as { token?: string }).token
-    const invitationId = (payload as { invitationId?: string }).invitationId
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
 
-    if (!token && !invitationId) {
+    const { token, invitationId, name, password } = parsed.body
+    const hasToken = isNonEmptyString(token, 255)
+    const hasInvitationId = isUuid(invitationId)
+
+    if (!hasToken && !hasInvitationId) {
       return new Response(JSON.stringify({ error: 'Token or invitationId required' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -42,10 +50,10 @@ Deno.serve(async (req: Request) => {
       .select('id, org_id, email, role, expires_at, status, name')
       .eq('status', 'pending')
 
-    if (token) {
-      query = query.eq('token', token)
+    if (hasToken) {
+      query = query.eq('token', token as string)
     } else {
-      query = query.eq('id', invitationId)
+      query = query.eq('id', invitationId as string)
     }
 
     const { data: invitation, error: inviteError } = await query.single()
@@ -116,14 +124,15 @@ Deno.serve(async (req: Request) => {
       profileName = existingProfile.name
     } else {
       // New-user acceptance: name and password are required.
-      const { name, password } = payload as NewUserPayload
-      if (!name?.trim() || !password || (password as string).length < 8) {
+      const hasName = isNonEmptyString(name, 100)
+      const hasPassword = isNonEmptyString(password, 128)
+      if (!hasName || !hasPassword || (password as string).length < 8) {
         return new Response(
           JSON.stringify({ error: 'Name and a password of at least 8 characters are required' }),
           { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         )
       }
-      profileName = name.trim()
+      profileName = (name as string).trim()
 
       // Refuse if a profile already exists for this email (user should log in first).
       if (existingProfile) {
@@ -148,10 +157,8 @@ Deno.serve(async (req: Request) => {
       )
 
       if (createAuthError || !newAuthUser.user) {
-        return new Response(
-          JSON.stringify({ error: createAuthError?.message ?? 'Could not create auth user' }),
-          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-        )
+        console.error('Failed to create auth user during invitation acceptance:', createAuthError)
+        return genericInternalErrorResponse(req)
       }
       authUserId = newAuthUser.user.id
 
@@ -165,11 +172,12 @@ Deno.serve(async (req: Request) => {
       })
 
       if (insertProfileError) {
+        console.error(
+          'Failed to insert user profile during invitation acceptance:',
+          insertProfileError
+        )
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
-        return new Response(JSON.stringify({ error: insertProfileError.message }), {
-          status: 500,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        })
+        return genericInternalErrorResponse(req)
       }
 
       const { data: newMembership, error: insertError } = await adminClient
@@ -185,11 +193,9 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (insertError || !newMembership) {
+        console.error('Failed to create membership during invitation acceptance:', insertError)
         await adminClient.auth.admin.deleteUser(authUserId).catch(() => {})
-        return new Response(
-          JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
-          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-        )
+        return genericInternalErrorResponse(req)
       }
 
       await adminClient.from('invitations').update({ status: 'accepted' }).eq('id', invitation.id)
@@ -219,10 +225,8 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (insertError || !newMembership) {
-      return new Response(
-        JSON.stringify({ error: insertError?.message ?? 'Could not create membership' }),
-        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-      )
+      console.error('Failed to create authenticated membership:', insertError)
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient
@@ -240,11 +244,7 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

@@ -3,7 +3,16 @@ import { getBearerToken, verifyToken } from '../_shared/auth.ts'
 import { getCurrentMembership } from '../_shared/membership.ts'
 import { getOrgLimits, isAtLimit } from '../_shared/quotas.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
-import { logActivity } from '../_shared/audit.ts'
+import {
+  parseJsonBody,
+  isUuid,
+  isNonEmptyString,
+  isString,
+  isNumber,
+  isNonNegativeInteger,
+  isBoolean,
+} from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface CreateProductPayload {
   org_id: string
@@ -29,7 +38,7 @@ Deno.serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      throw new Error('Missing Supabase env vars')
+      return genericInternalErrorResponse(req)
     }
 
     const token = getBearerToken(req)
@@ -67,8 +76,59 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const payload: CreateProductPayload = await req.json()
-    if (!payload.org_id || !payload.name || !payload.unit) {
+    const parsed = await parseJsonBody<CreateProductPayload>(req)
+    if (!parsed.ok) {
+      return parsed.response
+    }
+    const payload = parsed.body
+
+    if (
+      !isUuid(payload.org_id) ||
+      !isNonEmptyString(payload.name, 100) ||
+      !isNonEmptyString(payload.unit, 20)
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      (payload.category !== undefined &&
+        payload.category !== null &&
+        !isString(payload.category, 50)) ||
+      (payload.supplier !== undefined &&
+        payload.supplier !== null &&
+        !isString(payload.supplier, 100)) ||
+      (payload.description !== undefined &&
+        payload.description !== null &&
+        !isString(payload.description, 1000)) ||
+      (payload.barcode !== undefined && payload.barcode !== null && !isString(payload.barcode, 50))
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (payload.threshold !== undefined && !isNonNegativeInteger(payload.threshold)) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (
+      (payload.cost_price !== undefined && !isNumber(payload.cost_price)) ||
+      (payload.selling_price !== undefined && !isNumber(payload.selling_price))
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (payload.is_active !== undefined && !isBoolean(payload.is_active)) {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -84,10 +144,7 @@ Deno.serve(async (req: Request) => {
 
     const limits = await getOrgLimits(adminClient, payload.org_id)
     if (!limits) {
-      return new Response(JSON.stringify({ error: 'Could not load organization limits' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
     if (limits.isSuspended) {
       return new Response(JSON.stringify({ error: 'Organization suspended' }), {
@@ -121,37 +178,14 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (error || !data) {
-      return new Response(JSON.stringify({ error: error?.message ?? 'Could not create product' }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
-
-    await logActivity(adminClient, {
-      org_id: payload.org_id,
-      actor_id: claims.sub,
-      action: 'product_created',
-      target_type: 'product',
-      target_id: data.id,
-      details: {
-        name: data.name,
-        category: data.category,
-        unit: data.unit,
-        cost_price: data.cost_price,
-        selling_price: data.selling_price,
-      },
-      ip_address: req.headers.get('x-forwarded-for') ?? null,
-    })
 
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

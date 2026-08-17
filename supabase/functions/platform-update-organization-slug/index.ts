@@ -1,14 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid, isSlug } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   orgId: string
   newSlug: string
 }
 
-const SLUG_RE = /^[a-z0-9-]+$/
-const SLUG_MIN = 2
 const SLUG_MAX = 50
 
 function normalizeSlug(value: string): string {
@@ -45,24 +45,21 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { orgId, newSlug: rawNewSlug }: Payload = await req.json()
-    const newSlug = normalizeSlug(rawNewSlug ?? '')
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
 
-    if (!orgId) {
-      return new Response(JSON.stringify({ error: 'orgId is required' }), {
+    if (!isUuid(parsed.body.orgId)) {
+      return new Response(JSON.stringify({ error: 'orgId must be a valid UUID' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
-    if (
-      !newSlug ||
-      newSlug.length < SLUG_MIN ||
-      newSlug.length > SLUG_MAX ||
-      !SLUG_RE.test(newSlug)
-    ) {
+
+    const newSlug = normalizeSlug(parsed.body.newSlug ?? '')
+    if (!isSlug(newSlug)) {
       return new Response(
         JSON.stringify({
-          error: `Slug must be ${SLUG_MIN}-${SLUG_MAX} lowercase letters, numbers, or hyphens.`,
+          error: `Slug must be 2-${SLUG_MAX} lowercase letters, numbers, or hyphens.`,
         }),
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       )
@@ -73,7 +70,7 @@ Deno.serve(async (req: Request) => {
       .from('organizations')
       .select('id')
       .eq('slug', newSlug)
-      .neq('id', orgId)
+      .neq('id', parsed.body.orgId)
       .maybeSingle()
 
     if (existingError) throw existingError
@@ -89,7 +86,7 @@ Deno.serve(async (req: Request) => {
       .from('organization_slug_history')
       .select('org_id')
       .eq('new_slug', newSlug)
-      .neq('org_id', orgId)
+      .neq('org_id', parsed.body.orgId)
       .maybeSingle()
 
     if (historyError) throw historyError
@@ -104,7 +101,7 @@ Deno.serve(async (req: Request) => {
     const { data: org, error: orgError } = await adminClient
       .from('organizations')
       .select('id, slug')
-      .eq('id', orgId)
+      .eq('id', parsed.body.orgId)
       .single()
 
     if (orgError) throw orgError
@@ -127,14 +124,14 @@ Deno.serve(async (req: Request) => {
     const { error: updateError } = await adminClient
       .from('organizations')
       .update({ slug: newSlug, updated_at: new Date().toISOString() })
-      .eq('id', orgId)
+      .eq('id', parsed.body.orgId)
 
     if (updateError) throw updateError
 
     const { error: historyInsertError } = await adminClient
       .from('organization_slug_history')
       .insert({
-        org_id: orgId,
+        org_id: parsed.body.orgId,
         old_slug: oldSlug,
         new_slug: newSlug,
         changed_by: platformAdmin.authUserId,
@@ -148,19 +145,18 @@ Deno.serve(async (req: Request) => {
       actor_role: platformAdmin.role,
       action: 'org_slug_changed',
       target_type: 'organization',
-      target_id: orgId,
+      target_id: parsed.body.orgId,
       metadata: { old_slug: oldSlug, new_slug: newSlug },
     })
 
-    return new Response(JSON.stringify({ success: true, orgId, oldSlug, newSlug }), {
-      status: 200,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ success: true, orgId: parsed.body.orgId, oldSlug, newSlug }),
+      {
+        status: 200,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      }
+    )
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

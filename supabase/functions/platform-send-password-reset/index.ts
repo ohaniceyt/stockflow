@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isEmail, parseJsonBody } from '../_shared/validate.ts'
 
 interface Payload {
   email: string
@@ -30,18 +32,22 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { email }: Payload = await req.json()
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'email required' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+    const { email } = parsed.body
+
+    if (!isEmail(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
+    const normalizedEmail = email.toLowerCase()
     const { data: user, error: userError } = await adminClient
       .from('users')
       .select('id')
-      .eq('email', email.toLowerCase())
+      .eq('email', normalizedEmail)
       .maybeSingle()
 
     if (userError || !user) {
@@ -52,15 +58,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://stockflow.grandigix.com'
-    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
+    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: `${appUrl}/auth/reset-password`,
     })
 
     if (resetError) {
-      return new Response(JSON.stringify({ error: resetError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
@@ -69,18 +72,14 @@ Deno.serve(async (req: Request) => {
       action: 'user_password_reset_sent',
       target_type: 'user',
       target_id: user.id,
-      metadata: { user_id: user.id },
+      metadata: { email: normalizedEmail },
     })
 
     return new Response(JSON.stringify({ success: true, message: 'Password reset email sent' }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

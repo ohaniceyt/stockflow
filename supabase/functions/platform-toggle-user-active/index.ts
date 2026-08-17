@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { parseJsonBody, isUuid, isBoolean } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
 
 interface Payload {
   membershipId: string
@@ -24,7 +26,7 @@ Deno.serve(async (req: Request) => {
     })
 
     // Moderators may disable a user for support reasons, but only super_admins can re-enable or disable owners.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, undefined, true)
+    const platformAdmin = await requirePlatformAdmin(req, adminClient)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
@@ -32,9 +34,18 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { membershipId, isActive }: Payload = await req.json()
-    if (!membershipId || typeof isActive !== 'boolean') {
-      return new Response(JSON.stringify({ error: 'membershipId and isActive required' }), {
+    const parsed = await parseJsonBody<Payload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isUuid(parsed.body.membershipId)) {
+      return new Response(JSON.stringify({ error: 'membershipId must be a valid UUID' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!isBoolean(parsed.body.isActive)) {
+      return new Response(JSON.stringify({ error: 'isActive must be a boolean' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
@@ -43,17 +54,17 @@ Deno.serve(async (req: Request) => {
     const { data: membership, error: membershipError } = await adminClient
       .from('organization_memberships')
       .select('id, user_id, org_id, role')
-      .eq('id', membershipId)
+      .eq('id', parsed.body.membershipId)
       .single()
 
-    if (membershipError || !membership) {
-      return new Response(
-        JSON.stringify({ error: membershipError?.message ?? 'Membership not found' }),
-        {
-          status: membershipError ? 500 : 404,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        }
-      )
+    if (membershipError) {
+      return genericInternalErrorResponse(req)
+    }
+    if (!membership) {
+      return new Response(JSON.stringify({ error: 'Membership not found' }), {
+        status: 404,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     if (membership.role === 'super_admin' && platformAdmin.role !== 'super_admin') {
@@ -68,34 +79,27 @@ Deno.serve(async (req: Request) => {
 
     const { error: updateError } = await adminClient
       .from('organization_memberships')
-      .update({ is_active: isActive, updated_at: new Date().toISOString() })
-      .eq('id', membershipId)
+      .update({ is_active: parsed.body.isActive, updated_at: new Date().toISOString() })
+      .eq('id', parsed.body.membershipId)
 
     if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     await adminClient.from('platform_audit_logs').insert({
       actor_id: platformAdmin.authUserId,
       actor_role: platformAdmin.role,
-      action: isActive ? 'user_activated' : 'user_deactivated',
+      action: parsed.body.isActive ? 'user_activated' : 'user_deactivated',
       target_type: 'membership',
-      target_id: membershipId,
+      target_id: parsed.body.membershipId,
       metadata: { userId: membership.user_id, orgId: membership.org_id, role: membership.role },
     })
 
-    return new Response(JSON.stringify({ success: true, isActive }), {
+    return new Response(JSON.stringify({ success: true, isActive: parsed.body.isActive }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })

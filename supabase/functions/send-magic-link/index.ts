@@ -3,7 +3,9 @@ import { sendEmail } from '../_shared/resend.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
 import { escapeHtml, escapeHtmlAttribute } from '../_shared/html.ts'
 import { getLogger, getTraceId } from '../_shared/logger.ts'
-import { getDefaultRedirectUrl, isAllowedRedirectUrl } from '../_shared/redirect.ts'
+import { parseJsonBody, isEmail } from '../_shared/validate.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { isAllowedRedirectUrl, getDefaultRedirectUrl } from '../_shared/redirect.ts'
 
 interface SendMagicLinkPayload {
   email: string
@@ -38,7 +40,7 @@ export function buildMagicLinkEmailHtml(link: string, _appUrl: string): string {
           <div class="logo">StockFlow</div>
           <div class="title">Votre lien de connexion sécurisé</div>
           <p class="text">
-            Cliquez sur le bouton ci-dessous pour accéder à votre compte. Ce lien est valable 1 heure et ne peut être utilisé qu'une seule fois.
+            Cliquez sur le bouton ci-dessous pour accéder à votre compte. Ce lien est valable 24 heures et ne peut être utilisé qu'une seule fois.
           </p>
           <p>
             <a class="button" href="${escapeHtmlAttribute(link)}" target="_blank">Se connecter</a>
@@ -135,24 +137,24 @@ Deno.serve(async (req: Request) => {
       throw new Error('Missing Supabase env vars')
     }
 
-    const { email, redirectTo }: SendMagicLinkPayload = await req.json()
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const parsed = await parseJsonBody<SendMagicLinkPayload>(req)
+    if (!parsed.ok) return parsed.response
+
+    if (!isEmail(parsed.body.email)) {
       return new Response(JSON.stringify({ error: 'Invalid email' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
 
-    // Only allow configured application origins. Reject anything else to prevent
-    // open-redirect / token theft.
-    if (redirectTo && !isAllowedRedirectUrl(redirectTo)) {
-      log.warn('magic_link_invalid_redirect', { redirect_to: redirectTo })
+    if (parsed.body.redirectTo !== undefined && !isAllowedRedirectUrl(parsed.body.redirectTo)) {
+      log.warn('magic_link_invalid_redirect', { redirect_to: parsed.body.redirectTo })
       return new Response(JSON.stringify({ error: 'Invalid redirect URL' }), {
         status: 400,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
-    const finalRedirectTo = redirectTo ?? getDefaultRedirectUrl()
+    const finalRedirectTo = parsed.body.redirectTo ?? getDefaultRedirectUrl()
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -171,9 +173,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Rate-limit by email.
-    const emailRequests = await countRecentRequests(adminClient, 'email', email)
+    const emailRequests = await countRecentRequests(adminClient, 'email', parsed.body.email)
     if (emailRequests >= MAX_REQUESTS_PER_EMAIL) {
-      log.warn('magic_link_rate_limited_email', { email, count: emailRequests })
+      log.warn('magic_link_rate_limited_email', { email: parsed.body.email, count: emailRequests })
       return new Response(
         JSON.stringify({ error: 'Too many requests for this email. Try again later.' }),
         { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -182,7 +184,7 @@ Deno.serve(async (req: Request) => {
 
     // Only send magic links to active users. We still return a generic success
     // response so we do not leak whether the email exists.
-    const userExists = await isActiveUser(adminClient, email)
+    const userExists = await isActiveUser(adminClient, parsed.body.email)
     if (!userExists) {
       return new Response(
         JSON.stringify({
@@ -195,42 +197,42 @@ Deno.serve(async (req: Request) => {
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
-      email,
-      options: { redirectTo: finalRedirectTo },
+      email: parsed.body.email,
+      options: {
+        redirectTo: finalRedirectTo,
+      },
     })
 
     if (linkError || !linkData.properties?.action_link) {
-      log.error('magic_link_generation_failed', { email }, linkError ?? undefined)
-      return new Response(
-        JSON.stringify({ error: linkError?.message ?? 'Could not generate magic link' }),
-        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      log.error(
+        'magic_link_generation_failed',
+        { email: parsed.body.email },
+        linkError ?? undefined
       )
+      return genericInternalErrorResponse(req)
     }
 
-    const appUrl = getDefaultRedirectUrl()
+    const appUrl = finalRedirectTo
     const magicLink = linkData.properties.action_link
 
     const { id } = await sendEmail({
-      to: email,
+      to: parsed.body.email,
       subject: 'Votre lien de connexion StockFlow',
       html: buildMagicLinkEmailHtml(magicLink, appUrl),
       text: `Cliquez sur ce lien pour vous connecter à StockFlow : ${magicLink}`,
     })
 
-    await recordRequest(adminClient, email, clientIp)
+    await recordRequest(adminClient, parsed.body.email, clientIp)
 
-    log.info('magic_link_sent', { email, ip_address: clientIp, email_id: id })
+    log.info('magic_link_sent', { email: parsed.body.email, ip_address: clientIp, email_id: id })
 
     return new Response(JSON.stringify({ success: true, emailId: id }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    log.error('magic_link_unhandled_error', {}, err instanceof Error ? err : new Error(message))
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    const message = _err instanceof Error ? _err.message : 'Unknown error'
+    log.error('magic_link_unhandled_error', {}, _err instanceof Error ? _err : new Error(message))
+    return genericInternalErrorResponse(req)
   }
 })

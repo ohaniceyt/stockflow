@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 import { requirePlatformAdmin } from '../_shared/platform.ts'
 import { getCorsHeaders, corsResponse } from '../_shared/cors.ts'
+import { genericInternalErrorResponse } from '../_shared/errors.ts'
+import { clampInt, isNonEmptyString, isUuid } from '../_shared/validate.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -27,17 +29,38 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url)
-    const action = url.searchParams.get('action') ?? undefined
-    const targetType = url.searchParams.get('targetType') ?? undefined
-    const targetId = url.searchParams.get('targetId') ?? undefined
-    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10), 200)
-    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10)
+    const rawAction = url.searchParams.get('action') ?? undefined
+    const rawTargetType = url.searchParams.get('targetType') ?? undefined
+    const rawTargetId = url.searchParams.get('targetId') ?? undefined
+    const limit = clampInt(url.searchParams.get('limit'), 1, 200, 50)
+    const offset = clampInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER, 0)
+
+    if (rawAction !== undefined && !isNonEmptyString(rawAction, 100)) {
+      return new Response(JSON.stringify({ error: 'Invalid action' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (rawTargetType !== undefined && !isNonEmptyString(rawTargetType, 100)) {
+      return new Response(JSON.stringify({ error: 'Invalid targetType' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (rawTargetId !== undefined && !isUuid(rawTargetId)) {
+      return new Response(JSON.stringify({ error: 'Invalid targetId' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
 
     let query = adminClient.from('platform_audit_logs').select('*', { count: 'exact' })
 
-    if (action) query = query.eq('action', action)
-    if (targetType) query = query.eq('target_type', targetType)
-    if (targetId) query = query.eq('target_id', targetId)
+    if (rawAction) query = query.eq('action', rawAction)
+    if (rawTargetType) query = query.eq('target_type', rawTargetType)
+    if (rawTargetId) query = query.eq('target_id', rawTargetId)
 
     const {
       data: logs,
@@ -46,21 +69,14 @@ Deno.serve(async (req: Request) => {
     } = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      return genericInternalErrorResponse(req)
     }
 
     return new Response(JSON.stringify({ logs: logs ?? [], total: count ?? 0, limit, offset }), {
       status: 200,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    })
+  } catch (_err) {
+    return genericInternalErrorResponse(req)
   }
 })
