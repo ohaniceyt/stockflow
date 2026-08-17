@@ -25,8 +25,10 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Moderators may disable a user for support reasons, but only super_admins can re-enable or disable owners.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient)
+    // Moderators may disable a user for support reasons, but only super_admins
+    // can re-enable or disable owners. A fresh 2FA challenge is required since
+    // this can lock users out (DoS).
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, undefined, true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

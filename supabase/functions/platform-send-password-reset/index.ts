@@ -24,7 +24,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const platformAdmin = await requirePlatformAdmin(req, adminClient)
+    // Triggering a password reset is an account-takeover vector; require a fresh
+    // 2FA challenge even for moderators.
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, undefined, true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,

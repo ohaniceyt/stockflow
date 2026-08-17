@@ -45,8 +45,9 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Only super_admins may set platform admin passwords.
-    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin')
+    // Only super_admins may set platform admin passwords; a fresh 2FA challenge
+    // is required since this can take over another admin's account.
+    const platformAdmin = await requirePlatformAdmin(req, adminClient, 'super_admin', true)
     if (!platformAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
