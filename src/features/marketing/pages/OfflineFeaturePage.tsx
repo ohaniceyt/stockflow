@@ -5,8 +5,8 @@ export default function OfflineFeaturePage() {
   return (
     <FeaturePage
       eyebrow="Mode offline"
-      title="Vendez et gérez votre stock, même sans connexion"
-      description="StockFlow fonctionne hors ligne. Vos ventes, mouvements et ajustements sont enregistrés localement puis synchronisés dès le retour du réseau."
+      title="Votre caisse et votre stock suivent partout, même sans réseau"
+      description="La connexion saute ? Pas de panique. Vos ventes, mouvements et ajustements sont enregistrés localement puis synchronisés automatiquement dès le retour du réseau."
       primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
@@ -17,17 +17,18 @@ export default function OfflineFeaturePage() {
         {
           icon: WifiOff,
           title: 'Travail hors ligne natif',
-          description: 'Continuez à vendre et gérer le stock sans internet.',
+          description:
+            'Vendez et gérez le stock sans connexion, depuis votre téléphone ou tablette.',
         },
         {
           icon: RotateCcw,
           title: 'Synchronisation intelligente',
-          description: 'Les données locales remontent automatiquement au retour en ligne.',
+          description: 'Les données locales remontent automatiquement au retour du réseau.',
         },
         {
           icon: ShieldCheck,
           title: 'Détection de conflits',
-          description: 'StockFlow détecte les conflits et vous aide à les résoudre.',
+          description: 'StockFlow détecte les conflits et vous aide à les résoudre simplement.',
         },
         {
           icon: Clock,
@@ -42,12 +43,12 @@ export default function OfflineFeaturePage() {
         {
           icon: Zap,
           title: 'Performance locale',
-          description: 'Interface réactive grâce au stockage local optimisé.',
+          description: 'Interface rapide même avec une connexion faible ou instable.',
         },
       ]}
       benefits={[
         'Ne perdez plus de ventes à cause du réseau',
-        'Travaillez dans les zones rurales',
+        'Travaillez dans les zones rurales ou en déplacement',
         'Synchronisez automatiquement au retour en ligne',
         'Gardez vos données en sécurité',
       ]}

@@ -18,7 +18,7 @@ export function useContacts(type?: ContactType) {
   return useQuery({
     queryKey: [CONTACTS_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
         const data = await fetchContacts(orgId)
         await cacheContacts(data)
@@ -46,7 +46,7 @@ export function useCreateContact() {
 
   return useMutation({
     mutationFn: (input: ContactFormData) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const tempId = tempIdMap.current.get(input) ?? `pending-contact-${crypto.randomUUID()}`
       const inputWithTempId = { ...input, tempId }
       if (!online) {
@@ -111,7 +111,7 @@ export function useUpdateContact() {
 
   return useMutation({
     mutationFn: ({ id, ...input }: { id: string } & Partial<ContactFormData>) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, id, input }
       if (!online) {
         return queueOperation({ type: 'CONTACT_UPDATE', payload }).then(() => undefined)

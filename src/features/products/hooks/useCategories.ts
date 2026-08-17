@@ -21,7 +21,7 @@ export function useCategories() {
   return useQuery({
     queryKey: [CATEGORIES_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       try {
         const data = await fetchCategories(orgId)
         await cacheCategories(data)
@@ -47,7 +47,7 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (name: string): Promise<Category> => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       if (!online) {
         throw new Error('Création de catégorie indisponible hors ligne')
       }
@@ -102,7 +102,7 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, id, name }
       if (!online) {
         return queueOperation({ type: 'CATEGORY_UPDATE', payload }).then(() => undefined)
@@ -146,7 +146,7 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: (id: string) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       const payload = { orgId, id }
       if (!online) {
         return queueOperation({ type: 'CATEGORY_DELETE', payload }).then(() => undefined)

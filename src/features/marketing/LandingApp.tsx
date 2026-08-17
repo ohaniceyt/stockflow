@@ -5,7 +5,6 @@ import InventoryFeaturePage from './pages/InventoryFeaturePage'
 import PosCashierFeaturePage from './pages/PosCashierFeaturePage'
 import OfflineFeaturePage from './pages/OfflineFeaturePage'
 import AnalyticsFeaturePage from './pages/AnalyticsFeaturePage'
-import PricingPage from './pages/PricingPage'
 import PrivacyPage from './pages/PrivacyPage'
 import DataResidencyPage from './pages/DataResidencyPage'
 import TermsPage from './pages/TermsPage'
@@ -17,7 +16,6 @@ const routes: Record<string, ComponentType> = {
   '/features/pos-cashier': PosCashierFeaturePage,
   '/features/offline': OfflineFeaturePage,
   '/features/analytics': AnalyticsFeaturePage,
-  '/pricing': PricingPage,
   '/privacy': PrivacyPage,
   '/data-residency': DataResidencyPage,
   '/terms': TermsPage,

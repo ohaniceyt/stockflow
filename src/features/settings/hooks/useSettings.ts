@@ -41,7 +41,7 @@ export function useOrganization() {
   return useQuery({
     queryKey: [ORGANIZATION_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       return fetchOrganization(orgId)
     },
     enabled: Boolean(orgId) && online,
@@ -56,7 +56,7 @@ export function useUpdateOrganization() {
 
   return useMutation({
     mutationFn: async (input: Parameters<typeof updateOrganization>[1]) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       return updateOrganization(orgId, input)
     },
     onSuccess: (organization) => {

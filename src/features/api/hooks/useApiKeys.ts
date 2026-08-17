@@ -16,7 +16,7 @@ export function useApiKeys() {
   return useQuery({
     queryKey: [API_KEYS_QUERY_KEY, orgId],
     queryFn: async () => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       return listApiKeys(orgId)
     },
     enabled: Boolean(orgId),
@@ -30,7 +30,7 @@ export function useCreateApiKey() {
 
   return useMutation({
     mutationFn: async (input: CreateApiKeyInput) => {
-      if (!orgId) throw new Error('Organisation manquante')
+      if (!orgId) throw new Error('Entreprise manquante')
       return createApiKey(orgId, input)
     },
     onSuccess: () => {

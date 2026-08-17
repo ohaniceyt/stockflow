@@ -6,7 +6,6 @@ interface MarketingLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 
 const LANDING_ROUTES = new Set([
   '/',
-  '/pricing',
   '/features/inventory',
   '/features/pos-cashier',
   '/features/offline',
@@ -27,7 +26,13 @@ export const MarketingLink = forwardRef<HTMLAnchorElement, MarketingLinkProps>(
     }
 
     return (
-      <a ref={ref} href={to} onClick={handleClick} {...props}>
+      <a
+        ref={ref}
+        href={to}
+        onClick={handleClick}
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+        {...props}
+      >
         {props.children}
       </a>
     )

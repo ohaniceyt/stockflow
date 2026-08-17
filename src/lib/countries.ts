@@ -71,18 +71,18 @@ export const CURRENCIES = [
 ] as const
 
 export const TIMEZONES = [
-  { value: 'Africa/Abidjan', label: 'Abidjan / Dakar / Bamako (UTC+0)' },
-  { value: 'Africa/Kigali', label: 'Kigali (UTC+2)' },
-  { value: 'Africa/Kinshasa', label: 'Kinshasa (UTC+1)' },
-  { value: 'Africa/Lagos', label: 'Lagos / Douala / Libreville (UTC+1)' },
-  { value: 'Africa/Nairobi', label: 'Nairobi / Djibouti (UTC+3)' },
-  { value: 'Africa/Tunis', label: 'Tunis (UTC+1)' },
-  { value: 'America/New_York', label: 'New York (UTC-5/-4)' },
-  { value: 'America/Toronto', label: 'Toronto (UTC-5/-4)' },
-  { value: 'Europe/Brussels', label: 'Bruxelles (UTC+1/+2)' },
-  { value: 'Europe/London', label: 'Londres (UTC+0/+1)' },
-  { value: 'Europe/Paris', label: 'Paris (UTC+1/+2)' },
-  { value: 'Europe/Zurich', label: 'Zurich (UTC+1/+2)' },
+  { value: 'Africa/Abidjan', label: 'UTC+0' },
+  { value: 'Africa/Kigali', label: 'UTC+2' },
+  { value: 'Africa/Kinshasa', label: 'UTC+1' },
+  { value: 'Africa/Lagos', label: 'UTC+1' },
+  { value: 'Africa/Nairobi', label: 'UTC+3' },
+  { value: 'Africa/Tunis', label: 'UTC+1' },
+  { value: 'America/New_York', label: 'UTC-5 / UTC-4' },
+  { value: 'America/Toronto', label: 'UTC-5 / UTC-4' },
+  { value: 'Europe/Brussels', label: 'UTC+1 / UTC+2' },
+  { value: 'Europe/London', label: 'UTC+0 / UTC+1' },
+  { value: 'Europe/Paris', label: 'UTC+1 / UTC+2' },
+  { value: 'Europe/Zurich', label: 'UTC+1 / UTC+2' },
 ] as const
 
 export function getCountryDefault(code: string | null | undefined): CountryDefault | undefined {

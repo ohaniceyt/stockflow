@@ -5,8 +5,8 @@ export default function AnalyticsFeaturePage() {
   return (
     <FeaturePage
       eyebrow="Analytics"
-      title="Pilotez votre activité avec des données claires"
-      description="Tableaux de bord, KPIs, rapports de vente, de stock et de trésorerie : prenez les bonnes décisions basées sur des chiffres actualisés en temps réel."
+      title="Pilotez votre activité avec des chiffres clairs"
+      description="Ventes, stock, trésorerie et rentabilité : visualisez l’essentiel en un coup d’œil et prenez les bonnes décisions, sans être expert en tableur."
       primaryCta="Essayer 1 mois gratuit"
       primaryCtaLink="/signup"
       secondaryCta="Voir les tarifs"
@@ -18,13 +18,13 @@ export default function AnalyticsFeaturePage() {
         {
           icon: BarChart3,
           title: 'Tableau de bord en temps réel',
-          description: 'Ventes, stocks faibles, impayés et mouvements du jour en un coup d’œil.',
+          description:
+            'Ventes du jour, stock faible, meilleurs produits et mouvements en un clin d’œil.',
         },
         {
           icon: TrendingUp,
           title: 'Tendances de vente',
-          description:
-            'Analysez l’évolution de votre chiffre d’affaires sur la période de votre choix.',
+          description: 'Suivez l’évolution de votre chiffre d’affaires par jour, semaine ou mois.',
         },
         {
           icon: PieChart,
@@ -34,7 +34,7 @@ export default function AnalyticsFeaturePage() {
         {
           icon: Activity,
           title: 'KPIs essentiels',
-          description: 'Rotation des stocks, panier moyen, marges et rentabilité.',
+          description: 'Rotation des stocks, panier moyen, marges et rentabilité simplifiées.',
         },
         {
           icon: Filter,
@@ -44,13 +44,13 @@ export default function AnalyticsFeaturePage() {
         {
           icon: Download,
           title: 'Exports',
-          description: 'Exportez vos rapports en Excel ou PDF pour vos comptables.',
+          description: 'Exportez vos rapports en Excel ou PDF pour votre comptable.',
         },
       ]}
       benefits={[
         'Identifiez les produits les plus rentables',
         'Anticipez les ruptures de stock',
-        'Suivez votre trésorerie',
+        'Suivez votre trésorerie au jour le jour',
         'Partagez des rapports avec votre comptable',
       ]}
     />

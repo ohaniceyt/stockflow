@@ -148,7 +148,7 @@ export function CashierWorkspace({
       <div className="flex h-screen flex-col items-center justify-center p-6">
         <EmptyState
           title="Caisse non activée"
-          description="La caisse n’est pas activée pour cette organisation. Contactez un administrateur."
+          description="La caisse n’est pas activée pour cette entreprise. Contactez un administrateur."
           action={
             onCloseTab ? (
               <Button type="button" variant="outline" onClick={onCloseTab}>
