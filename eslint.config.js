@@ -61,7 +61,10 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-floating-promises': 'off',
+      // Re-enabled: every async call in edge functions must be awaited or
+      // explicitly voided so rejected promises are not silently swallowed.
+      // Verified to produce zero violations on the current codebase.
+      '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off',
