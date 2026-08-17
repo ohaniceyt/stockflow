@@ -7,6 +7,7 @@ import {
   PiggyBank,
   TrendingUp,
   Wallet,
+  PackageMinus,
 } from 'lucide-react'
 
 interface RecapStatsProps {
@@ -20,6 +21,7 @@ interface RecapStatsProps {
   realMarginRate: number
   inCount: number
   outCount: number
+  outQty: number
   currency: string
   canViewFinancials?: boolean
 }
@@ -35,6 +37,7 @@ export function RecapStats({
   realMarginRate,
   inCount,
   outCount,
+  outQty,
   currency,
   canViewFinancials = true,
 }: RecapStatsProps) {
@@ -52,6 +55,16 @@ export function RecapStats({
       barColor: 'bg-sky-400',
       isMoney: false,
       sub: `${String(inCount)} entrées · ${String(outCount)} sorties`,
+    },
+    {
+      label: 'QTÉ SORTIE',
+      value: outQty,
+      icon: PackageMinus,
+      iconColor: 'text-rose-600',
+      iconBg: 'bg-rose-50',
+      barColor: 'bg-rose-400',
+      isMoney: false,
+      sub: `${String(outCount)} vente(s) sur la période`,
     },
     {
       label: 'QTÉ TOTALE EN STOCK',

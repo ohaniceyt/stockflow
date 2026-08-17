@@ -130,6 +130,7 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
   }, [realRevenue, realProfit])
   const inCount = totals?.in_count ?? 0
   const outCount = totals?.out_count ?? 0
+  const outQty = totals?.out_qty ?? 0
 
   const validateRange = (start: string, end: string) => {
     const s = new Date(start)
@@ -247,6 +248,7 @@ export function RecapSection({ embedded = false }: RecapSectionProps) {
             realMarginRate={realMarginRate}
             inCount={inCount}
             outCount={outCount}
+            outQty={outQty}
             currency={currency}
             canViewFinancials={canViewFinancials}
           />
