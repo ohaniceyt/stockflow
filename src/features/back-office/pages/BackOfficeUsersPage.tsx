@@ -96,7 +96,7 @@ export default function BackOfficeUsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nom</TableHead>
-                    <TableHead>Organisation</TableHead>
+                    <TableHead>Entreprise</TableHead>
                     <TableHead>Rôle</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead className="text-right">Actions</TableHead>

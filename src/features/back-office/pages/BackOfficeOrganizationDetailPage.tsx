@@ -33,7 +33,7 @@ export default function BackOfficeOrganizationDetailPage() {
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { platformAdminRole, enterSudo } = useAuth()
+  const { platformAdminRole } = useAuth()
   const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
   const safeOrgId = orgId ?? ''
@@ -55,7 +55,7 @@ export default function BackOfficeOrganizationDetailPage() {
 
   const planMutation = useMutation({
     mutationFn: async (plan: string) => {
-      const challengeId = await requestChallenge("Changer le plan de l'organisation")
+      const challengeId = await requestChallenge("Changer le plan de l'entreprise")
       return setOrganizationPlan(safeOrgId, plan, challengeId)
     },
     onSuccess: () => {
@@ -103,8 +103,8 @@ export default function BackOfficeOrganizationDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={org?.name ?? 'Organisation'}
-        description="Détails et administration de l'organisation."
+        title={org?.name ?? 'Entreprise'}
+        description="Détails et administration de l'entreprise."
       />
 
       <Button variant="ghost" size="sm" onClick={() => navigate('/back-office/organizations')}>
@@ -131,16 +131,12 @@ export default function BackOfficeOrganizationDetailPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {isSuperAdmin && (
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      void enterSudo({ type: 'organization', id: org.id, name: org.name }).then(
-                        () => navigate('/dashboard')
-                      )
-                    }
+                  <span
+                    className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-sm font-medium text-amber-800"
+                    title="L'impersonation d'entreprise est temporairement désactivée en attendant une implémentation serveur sécurisée."
                   >
-                    <ShieldAlert className="mr-2 h-4 w-4" /> Sudo
-                  </Button>
+                    <ShieldAlert className="mr-1.5 h-4 w-4" /> Sudo indisponible
+                  </span>
                 )}
                 {isSuperAdmin && (
                   <Button

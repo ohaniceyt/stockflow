@@ -29,7 +29,7 @@ const ORGS_QUERY_KEY = ['back-office', 'organizations']
 export default function BackOfficeOrganizationsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { platformAdminRole, enterSudo } = useAuth()
+  const { platformAdminRole } = useAuth()
   const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
 
@@ -65,23 +65,18 @@ export default function BackOfficeOrganizationsPage() {
 
   const planMutation = useMutation({
     mutationFn: async ({ orgId, plan }: { orgId: string; plan: string }) => {
-      const challengeId = await requestChallenge("Changer le plan de l'organisation")
+      const challengeId = await requestChallenge("Changer le plan de l'entreprise")
       return setOrganizationPlan(orgId, plan, challengeId)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ORGS_QUERY_KEY }),
   })
-
-  const handleSudo = async (org: BackOfficeOrganization) => {
-    await enterSudo({ type: 'organization', id: org.id, name: org.name })
-    void navigate('/dashboard')
-  }
 
   const organizations = data?.data ?? []
   const total = data?.total ?? 0
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Organisations" description="Gérer et surveiller les organisations." />
+      <PageHeader title="Entreprises" description="Gérer et surveiller les entreprises." />
 
       <PageSection>
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -194,15 +189,12 @@ export default function BackOfficeOrganizationsPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                             {isSuperAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10"
-                                onClick={() => void handleSudo(org)}
-                                title="Entrer en sudo"
+                              <span
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-800"
+                                title="L'impersonation d'entreprise est temporairement désactivée en attendant une implémentation serveur sécurisée."
                               >
                                 <ShieldAlert className="h-4 w-4" />
-                              </Button>
+                              </span>
                             )}
                             {isSuperAdmin && (
                               <Button

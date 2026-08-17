@@ -39,12 +39,12 @@ export default function BackOfficeOverviewPage() {
       <PageSection>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <DataCard
-            label="Organisations"
+            label="Entreprises"
             value={isLoading ? '…' : stats.organizationsTotal}
             icon={Building2}
           />
           <DataCard
-            label="Organisations actives"
+            label="Entreprises actives"
             value={isLoading ? '…' : stats.organizationsActive}
             icon={Building2}
             status="success"

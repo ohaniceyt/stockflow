@@ -7,7 +7,7 @@ import { PlatformChallengeProvider } from './PlatformChallengeProvider'
 
 const navItems = [
   { to: '/back-office', label: "Vue d'ensemble", icon: BarChart3 },
-  { to: '/back-office/organizations', label: 'Organisations', icon: Building2 },
+  { to: '/back-office/organizations', label: 'Entreprises', icon: Building2 },
   { to: '/back-office/users', label: 'Utilisateurs', icon: Users },
   { to: '/back-office/audit-logs', label: 'Audit', icon: FileText },
 ]

@@ -17,7 +17,7 @@ export default function BackOfficeUserDetailPage() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { platformAdminRole, enterSudo } = useAuth()
+  const { platformAdminRole } = useAuth()
   const { requestChallenge } = usePlatformChallenge()
   const isSuperAdmin = platformAdminRole === 'super_admin'
   const safeUserId = userId ?? ''
@@ -93,7 +93,7 @@ export default function BackOfficeUserDetailPage() {
               </div>
             </div>
 
-            <PageSection title="Membres et organisations">
+            <PageSection title="Membres et entreprises">
               <div className="mb-3 flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -121,20 +121,12 @@ export default function BackOfficeUserDetailPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          void enterSudo({
-                            type: 'organization',
-                            id: membership.org_id,
-                            name: membership.organizations?.name ?? membership.org_id,
-                            targetUserId: user.id,
-                          }).then(() => navigate('/dashboard'))
-                        }
+                      <span
+                        className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800"
+                        title="L'impersonation d'entreprise est temporairement désactivée en attendant une implémentation serveur sécurisée."
                       >
-                        <ShieldAlert className="mr-2 h-4 w-4" /> Sudo
-                      </Button>
+                        <ShieldAlert className="mr-1.5 h-3.5 w-3.5" /> Sudo indisponible
+                      </span>
                       <Button
                         variant="outline"
                         size="sm"
